@@ -1,10 +1,13 @@
 // App.tsx - Replace your existing App.tsx with this
 import React from "react";
+import { Text } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { AITestScreen } from "./src/screens/AITestScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
+import { SkillEvaluationScreen } from "./src/screens/SkillEvaluationScreen";
+import { KitchenAssessmentScreen } from "./src/screens/KitchenAssessmentScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -23,15 +26,31 @@ export default function App() {
           name="Chat"
           component={AITestScreen}
           options={{
-            tabBarIcon: () => "💬",
+            tabBarIcon: () => <Text>💬</Text>,
             title: "AI Coach",
+          }}
+        />
+        <Tab.Screen
+          name="Skills"
+          component={SkillEvaluationScreen}
+          options={{
+            tabBarIcon: () => <Text>🌱</Text>,
+            title: "Skills",
+          }}
+        />
+        <Tab.Screen
+          name="Kitchen"
+          component={KitchenAssessmentScreen}
+          options={{
+            tabBarIcon: () => <Text>🏠</Text>,
+            title: "Kitchen",
           }}
         />
         <Tab.Screen
           name="Settings"
           component={SettingsScreen}
           options={{
-            tabBarIcon: () => "⚙️",
+            tabBarIcon: () => <Text>⚙️</Text>,
             title: "Settings",
           }}
         />
