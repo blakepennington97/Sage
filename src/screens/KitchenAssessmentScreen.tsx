@@ -9,6 +9,7 @@ import {
   Dimensions,
   Alert,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { UserProfileService } from "../services/userProfile";
 
 const { width } = Dimensions.get("window");
@@ -171,6 +172,7 @@ const stoveTypes = [
 ];
 
 export const KitchenAssessmentScreen: React.FC = () => {
+  const navigation = useNavigation();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [stoveType, setStoveType] = useState("");

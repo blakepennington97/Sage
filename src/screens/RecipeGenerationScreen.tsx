@@ -1,5 +1,5 @@
 // src/screens/RecipeGenerationScreen.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,9 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { GeminiService } from "../services/ai";
+import { RecipeStorageService, SavedRecipe } from "../services/recipeStorage";
+import { LoadingSpinner } from "../components/LoadingSpinner";
+import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
 interface Recipe {
   id: string;
@@ -23,12 +26,26 @@ interface Recipe {
 
 export const RecipeGenerationScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { isOffline } = useNetworkStatus();
   const [recipeRequest, setRecipeRequest] = useState("");
   const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
+  const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[]>([]);
 
   const geminiService = new GeminiService();
+
+  useEffect(() => {
+    loadSavedRecipes();
+  }, []);
+
+  const loadSavedRecipes = async () => {
+    try {
+      const recipes = await RecipeStorageService.getRecentRecipes(5);
+      setSavedRecipes(recipes);
+    } catch (error) {
+      console.error("Failed to load saved recipes:", error);
+    }
+  };
 
   const quickSuggestions = [
     "Easy pasta dinner",
@@ -41,6 +58,14 @@ export const RecipeGenerationScreen: React.FC = () => {
   const generateRecipe = async () => {
     if (!recipeRequest.trim()) {
       Alert.alert("Enter Request", "Please describe what you'd like to cook");
+      return;
+    }
+
+    if (isOffline) {
+      Alert.alert(
+        "No Internet Connection",
+        "Recipe generation requires an internet connection. Please check your network and try again."
+      );
       return;
     }
 
@@ -59,22 +84,37 @@ export const RecipeGenerationScreen: React.FC = () => {
       setRecipeRequest("");
     } catch (error) {
       let errorMessage = "Failed to generate recipe.";
-      if (
-        error instanceof Error &&
-        error.message.includes("API key not found")
-      ) {
-        errorMessage = "Please configure your API key in Settings first.";
+
+      if (error instanceof Error) {
+        if (
+          error.message.includes("network") ||
+          error.message.includes("connection")
+        ) {
+          errorMessage =
+            "Connection issue. Please check your internet and try again.";
+        } else if (error.message.includes("API key not found")) {
+          errorMessage = "Please configure your API key in Settings first.";
+        }
       }
+
       Alert.alert("Error", errorMessage);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const saveRecipe = () => {
+  const saveRecipe = async () => {
     if (currentRecipe) {
-      setSavedRecipes((prev) => [currentRecipe, ...prev]);
-      Alert.alert("Saved!", "Recipe added to your collection");
+      try {
+        await RecipeStorageService.saveRecipe({
+          content: currentRecipe.content,
+          request: currentRecipe.request,
+        });
+        await loadSavedRecipes(); // Refresh the list
+        Alert.alert("Saved!", "Recipe added to your collection");
+      } catch (error) {
+        Alert.alert("Error", "Failed to save recipe");
+      }
     }
   };
 
@@ -102,53 +142,67 @@ export const RecipeGenerationScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <View style={styles.header}>
-      <Text style={styles.title}>👨‍🍳 Recipe Generator</Text>
-      <Text style={styles.subtitle}>Tell me what you want to cook</Text>
-    </View>
-  );
-
-  const renderRecipeInput = () => (
-    <View style={styles.inputSection}>
-      <TextInput
-        style={styles.textInput}
-        value={recipeRequest}
-        onChangeText={setRecipeRequest}
-        placeholder="What would you like to cook? (e.g., 'easy chicken dinner')"
-        multiline
-        numberOfLines={3}
-        maxLength={200}
-      />
-
-      <TouchableOpacity
-        style={[
-          styles.generateButton,
-          isGenerating && styles.generateButtonDisabled,
-        ]}
-        onPress={generateRecipe}
-        disabled={isGenerating}
-      >
-        <Text style={styles.generateButtonText}>
-          {isGenerating ? "Creating Recipe..." : "Generate Recipe"}
-        </Text>
-      </TouchableOpacity>
-
-      <View style={styles.suggestionsSection}>
-        <Text style={styles.suggestionsTitle}>Quick Ideas:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {quickSuggestions.map((suggestion, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.suggestionChip}
-              onPress={() => setRecipeRequest(suggestion)}
-            >
-              <Text style={styles.suggestionText}>{suggestion}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+    <>
+      <View style={styles.header}>
+        <Text style={styles.title}>👨‍🍳 Recipe Generator</Text>
+        <Text style={styles.subtitle}>Tell me what you want to cook</Text>
       </View>
-    </View>
+      {isOffline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineText}>📶 No internet connection</Text>
+        </View>
+      )}
+    </>
   );
+
+  const renderRecipeInput = () => {
+    if (isGenerating) {
+      return (
+        <View style={styles.generatingContainer}>
+          <LoadingSpinner message="Creating your personalized recipe..." />
+          <Text style={styles.generatingSubtext}>
+            Considering your skill level and kitchen setup
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.inputSection}>
+        <TextInput
+          style={styles.textInput}
+          value={recipeRequest}
+          onChangeText={setRecipeRequest}
+          placeholder="What would you like to cook? (e.g., 'easy chicken dinner')"
+          multiline
+          numberOfLines={3}
+          maxLength={200}
+        />
+
+        <TouchableOpacity
+          style={styles.generateButton}
+          onPress={generateRecipe}
+        >
+          <Text style={styles.generateButtonText}>Generate Recipe</Text>
+        </TouchableOpacity>
+
+        <View style={styles.suggestionsSection}>
+          <Text style={styles.suggestionsTitle}>Quick Ideas:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {quickSuggestions.map((suggestion, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.suggestionChip}
+                onPress={() => setRecipeRequest(suggestion)}
+              >
+                <Text style={styles.suggestionText}>{suggestion}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    );
+  };
 
   const renderRecipe = () => {
     if (!currentRecipe) return null;
@@ -189,19 +243,37 @@ export const RecipeGenerationScreen: React.FC = () => {
     return (
       <View style={styles.savedSection}>
         <Text style={styles.savedTitle}>
-          📚 Saved Recipes ({savedRecipes.length})
+          📚 Recent Recipes ({savedRecipes.length})
         </Text>
         <ScrollView showsVerticalScrollIndicator={false}>
           {savedRecipes.slice(0, 3).map((recipe) => (
             <TouchableOpacity
               key={recipe.id}
               style={styles.savedRecipeCard}
-              onPress={() => setCurrentRecipe(recipe)}
+              onPress={() =>
+                setCurrentRecipe({
+                  id: recipe.id,
+                  content: recipe.content,
+                  request: recipe.request,
+                  timestamp: recipe.createdAt,
+                })
+              }
             >
-              <Text style={styles.savedRecipeRequest}>{recipe.request}</Text>
+              <View style={styles.savedRecipeHeader}>
+                <Text style={styles.savedRecipeRequest}>{recipe.name}</Text>
+                {recipe.isFavorite && (
+                  <Text style={styles.favoriteIcon}>⭐</Text>
+                )}
+              </View>
               <Text style={styles.savedRecipeDate}>
-                {recipe.timestamp.toLocaleDateString()}
+                {recipe.createdAt.toLocaleDateString()}
               </Text>
+              {recipe.cookCount > 0 && (
+                <Text style={styles.cookCountText}>
+                  Cooked {recipe.cookCount} time
+                  {recipe.cookCount > 1 ? "s" : ""}
+                </Text>
+              )}
             </TouchableOpacity>
           ))}
           {savedRecipes.length > 3 && (
@@ -241,6 +313,17 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
+  offlineBanner: {
+    backgroundColor: "#f44336",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  offlineText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "500",
+  },
   title: {
     fontSize: 28,
     fontWeight: "bold",
@@ -259,6 +342,17 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     padding: 20,
+  },
+  generatingContainer: {
+    padding: 40,
+    alignItems: "center",
+  },
+  generatingSubtext: {
+    fontSize: 14,
+    color: "#888",
+    textAlign: "center",
+    marginTop: 10,
+    fontStyle: "italic",
   },
   textInput: {
     backgroundColor: "white",
@@ -380,15 +474,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
   },
+  savedRecipeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 5,
+  },
   savedRecipeRequest: {
     fontSize: 16,
     fontWeight: "600",
     color: "#333",
-    marginBottom: 5,
+    flex: 1,
+  },
+  favoriteIcon: {
+    fontSize: 16,
   },
   savedRecipeDate: {
     fontSize: 12,
     color: "#666",
+  },
+  cookCountText: {
+    fontSize: 11,
+    color: "#4CAF50",
+    fontWeight: "500",
+    marginTop: 2,
   },
   moreRecipesText: {
     textAlign: "center",

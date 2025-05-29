@@ -11,19 +11,27 @@ import {
   Platform,
 } from "react-native";
 import { APIKeyManager } from "../services/ai/config";
+import { UserProfileService } from "../services/userProfile";
 
 export const SettingsScreen: React.FC = () => {
   const [apiKey, setApiKey] = useState("");
   const [hasKey, setHasKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
 
   useEffect(() => {
     checkExistingKey();
+    checkProfile();
   }, []);
 
   const checkExistingKey = async () => {
     const keyExists = await APIKeyManager.hasGeminiKey();
     setHasKey(keyExists);
+  };
+
+  const checkProfile = async () => {
+    const completed = await UserProfileService.hasCompletedOnboarding();
+    setHasProfile(completed);
   };
 
   const saveApiKey = async () => {
@@ -43,6 +51,32 @@ export const SettingsScreen: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const resetProfile = async () => {
+    Alert.alert(
+      "Reset Profile",
+      "This will clear your cooking profile and restart the onboarding process. Are you sure?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await UserProfileService.clearProfile();
+              setHasProfile(false);
+              Alert.alert(
+                "Profile Reset",
+                "Please restart the app to see onboarding again."
+              );
+            } catch (error) {
+              Alert.alert("Error", "Failed to reset profile");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const removeApiKey = async () => {
@@ -73,6 +107,36 @@ export const SettingsScreen: React.FC = () => {
       </View>
 
       <View style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Cooking Profile</Text>
+          <Text style={styles.description}>
+            Your skill level, kitchen setup, and cooking preferences.
+          </Text>
+
+          <View style={styles.statusContainer}>
+            <Text style={styles.statusLabel}>Status: </Text>
+            <Text
+              style={[
+                styles.statusText,
+                hasProfile ? styles.statusActive : styles.statusInactive,
+              ]}
+            >
+              {hasProfile ? "✅ Profile Complete" : "❌ No Profile"}
+            </Text>
+          </View>
+
+          {hasProfile && (
+            <TouchableOpacity
+              style={[styles.button, styles.removeButton]}
+              onPress={resetProfile}
+            >
+              <Text style={styles.buttonText}>
+                Reset Profile & Restart Onboarding
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Gemini API Configuration</Text>
           <Text style={styles.description}>

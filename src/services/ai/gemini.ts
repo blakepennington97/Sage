@@ -2,6 +2,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { APIKeyManager } from "./config";
 import { UserProfileService } from "../userProfile";
+import { ResponseCacheService } from "../responseCache";
 
 export interface CookingCoachResponse {
   message: string;
@@ -113,11 +114,22 @@ Respond as if you're a patient cooking mentor helping a friend in their kitchen.
     }
 
     try {
+      // Check cache first
+      const profile = await UserProfileService.getProfile();
+      const profileHash = ResponseCacheService.generateProfileHash(profile);
+      const cached = await ResponseCacheService.getCachedResponse(
+        request,
+        profileHash
+      );
+
+      if (cached) {
+        return cached;
+      }
+
       const hasCompleted = await UserProfileService.hasCompletedOnboarding();
       let profileContext = "";
 
       if (hasCompleted) {
-        const profile = await UserProfileService.getProfile();
         const skillDesc = await UserProfileService.getSkillDescription();
         const kitchenSummary = await UserProfileService.getKitchenSummary();
         const fears = await UserProfileService.getFearsList();
@@ -162,7 +174,16 @@ Make instructions very clear for beginners. Include the "why" behind techniques.
 
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      return response.text();
+      const content = response.text();
+
+      // Cache the response
+      await ResponseCacheService.setCachedResponse(
+        request,
+        content,
+        profileHash
+      );
+
+      return content;
     } catch (error) {
       console.error("Recipe generation error:", error);
       throw error;
