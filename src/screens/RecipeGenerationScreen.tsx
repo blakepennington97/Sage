@@ -16,6 +16,9 @@ import { GeminiService } from "../services/ai";
 import { RecipeStorageService, SavedRecipe } from "../services/recipeStorage";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
+import { colors, spacing, borderRadius, typography } from "../constants/theme";
+import { MarkdownText } from "../components/MarkdownText";
+import { HapticService } from "../services/haptics";
 
 interface Recipe {
   id: string;
@@ -57,11 +60,13 @@ export const RecipeGenerationScreen: React.FC = () => {
 
   const generateRecipe = async () => {
     if (!recipeRequest.trim()) {
+      HapticService.warning();
       Alert.alert("Enter Request", "Please describe what you'd like to cook");
       return;
     }
 
     if (isOffline) {
+      HapticService.error();
       Alert.alert(
         "No Internet Connection",
         "Recipe generation requires an internet connection. Please check your network and try again."
@@ -69,6 +74,7 @@ export const RecipeGenerationScreen: React.FC = () => {
       return;
     }
 
+    HapticService.medium();
     setIsGenerating(true);
     try {
       const recipeContent = await geminiService.generateRecipe(recipeRequest);
@@ -82,7 +88,9 @@ export const RecipeGenerationScreen: React.FC = () => {
 
       setCurrentRecipe(newRecipe);
       setRecipeRequest("");
+      HapticService.success();
     } catch (error) {
+      HapticService.error();
       let errorMessage = "Failed to generate recipe.";
 
       if (error instanceof Error) {
@@ -105,14 +113,17 @@ export const RecipeGenerationScreen: React.FC = () => {
 
   const saveRecipe = async () => {
     if (currentRecipe) {
+      HapticService.light();
       try {
         await RecipeStorageService.saveRecipe({
           content: currentRecipe.content,
           request: currentRecipe.request,
         });
         await loadSavedRecipes(); // Refresh the list
+        HapticService.success();
         Alert.alert("Saved!", "Recipe added to your collection");
       } catch (error) {
+        HapticService.error();
         Alert.alert("Error", "Failed to save recipe");
       }
     }
@@ -120,6 +131,7 @@ export const RecipeGenerationScreen: React.FC = () => {
 
   const startCooking = () => {
     if (currentRecipe) {
+      HapticService.medium();
       // Extract recipe name from content
       const lines = currentRecipe.content.split("\n");
       const nameLine = lines.find(
@@ -223,7 +235,9 @@ export const RecipeGenerationScreen: React.FC = () => {
 
         <View style={styles.recipeContent}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.recipeText}>{currentRecipe.content}</Text>
+            <MarkdownText style={styles.recipeText}>
+              {currentRecipe.content}
+            </MarkdownText>
           </ScrollView>
         </View>
 
