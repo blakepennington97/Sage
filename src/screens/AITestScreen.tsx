@@ -1,5 +1,5 @@
 // src/screens/AITestScreen.tsx
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { GeminiService } from '../services/ai';
+} from "react-native";
+import { GeminiService } from "../services/ai";
 
 interface Message {
   id: string;
@@ -23,16 +23,22 @@ interface Message {
 export const AITestScreen: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
+      id: "1",
       text: "Hi! I'm Sage, your AI cooking coach. Ask me anything about cooking!",
       isUser: false,
       timestamp: new Date(),
     },
   ]);
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const geminiService = new GeminiService();
+
+  const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) return error.message;
+    if (typeof error === "string") return error;
+    return "An unknown error occurred";
+  };
 
   const sendMessage = async () => {
     if (!inputText.trim()) return;
@@ -44,13 +50,13 @@ export const AITestScreen: React.FC = () => {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputText('');
+    setMessages((prev) => [...prev, userMessage]);
+    setInputText("");
     setIsLoading(true);
 
     try {
       const response = await geminiService.getCookingAdvice(inputText);
-      
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: response.message,
@@ -58,10 +64,19 @@ export const AITestScreen: React.FC = () => {
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, aiMessage]);
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to get AI response. Make sure you added your API key!');
-      console.error('AI Error:', error);
+      let errorMessage = "Failed to get AI response.";
+      const errorMsg = getErrorMessage(error);
+
+      if (errorMsg.includes("API key not found")) {
+        errorMessage = "Please configure your API key in Settings first.";
+      } else if (errorMsg.includes("API configuration")) {
+        errorMessage = "API configuration error. Please check your settings.";
+      }
+
+      Alert.alert("Error", errorMessage);
+      console.error("AI Error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -75,9 +90,9 @@ export const AITestScreen: React.FC = () => {
   ];
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.header}>
         <Text style={styles.title}>🧠 AI Test - Sage Cooking Coach</Text>
@@ -93,10 +108,12 @@ export const AITestScreen: React.FC = () => {
               message.isUser ? styles.userMessage : styles.aiMessage,
             ]}
           >
-            <Text style={[
-              styles.messageText,
-              message.isUser ? styles.userText : styles.aiText,
-            ]}>
+            <Text
+              style={[
+                styles.messageText,
+                message.isUser ? styles.userText : styles.aiText,
+              ]}
+            >
               {message.text}
             </Text>
           </View>
@@ -147,23 +164,23 @@ export const AITestScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
   },
   header: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     padding: 20,
     paddingTop: 50,
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
+    fontWeight: "bold",
+    color: "white",
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 14,
-    color: 'white',
-    textAlign: 'center',
+    color: "white",
+    textAlign: "center",
     marginTop: 5,
   },
   messagesContainer: {
@@ -174,46 +191,46 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     padding: 12,
     borderRadius: 15,
-    maxWidth: '80%',
+    maxWidth: "80%",
   },
   userMessage: {
-    backgroundColor: '#007AFF',
-    alignSelf: 'flex-end',
+    backgroundColor: "#007AFF",
+    alignSelf: "flex-end",
   },
   aiMessage: {
-    backgroundColor: 'white',
-    alignSelf: 'flex-start',
+    backgroundColor: "white",
+    alignSelf: "flex-start",
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
   },
   messageText: {
     fontSize: 16,
     lineHeight: 22,
   },
   userText: {
-    color: 'white',
+    color: "white",
   },
   aiText: {
-    color: '#333',
+    color: "#333",
   },
   loadingText: {
-    color: '#666',
-    fontStyle: 'italic',
+    color: "#666",
+    fontStyle: "italic",
   },
   quickTestsContainer: {
     padding: 15,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: "#e0e0e0",
   },
   quickTestsTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
-    color: '#666',
+    color: "#666",
   },
   quickTestButton: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -221,18 +238,18 @@ const styles = StyleSheet.create({
   },
   quickTestText: {
     fontSize: 12,
-    color: '#333',
+    color: "#333",
   },
   inputContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 15,
-    backgroundColor: 'white',
-    alignItems: 'flex-end',
+    backgroundColor: "white",
+    alignItems: "flex-end",
   },
   textInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 10,
@@ -240,16 +257,16 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   sendButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
   },
   sendButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: "#ccc",
   },
   sendButtonText: {
-    color: 'white',
-    fontWeight: '600',
+    color: "white",
+    fontWeight: "600",
   },
 });
