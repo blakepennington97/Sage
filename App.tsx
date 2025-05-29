@@ -8,6 +8,8 @@ import { AITestScreen } from "./src/screens/AITestScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
 import { SkillEvaluationScreen } from "./src/screens/SkillEvaluationScreen";
 import { KitchenAssessmentScreen } from "./src/screens/KitchenAssessmentScreen";
+import { RecipeGenerationScreen } from "./src/screens/RecipeGenerationScreen";
+import { CookingCoachScreen } from "./src/screens/CookingCoachScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -23,11 +25,19 @@ export default function App() {
         }}
       >
         <Tab.Screen
-          name="Chat"
-          component={AITestScreen}
+          name="Recipes"
+          component={RecipeGenerationScreen}
           options={{
-            tabBarIcon: () => <Text>💬</Text>,
-            title: "AI Coach",
+            tabBarIcon: () => <Text>👨‍🍳</Text>,
+            title: "Recipes",
+          }}
+        />
+        <Tab.Screen
+          name="CookingCoach"
+          component={CookingCoachScreen}
+          options={{
+            tabBarButton: () => null, // Hide from tab bar
+            title: "Cooking Coach",
           }}
         />
         <Tab.Screen
