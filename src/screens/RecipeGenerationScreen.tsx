@@ -19,6 +19,8 @@ import { useNetworkStatus } from "../hooks/useNetworkStatus";
 import { colors, spacing, borderRadius, typography } from "../constants/theme";
 import { MarkdownText } from "../components/MarkdownText";
 import { HapticService } from "../services/haptics";
+import { useAuthStore } from "../stores/authStore";
+import { useRecipes } from "../hooks/useRecipes"; // A new hook you would create
 
 interface Recipe {
   id: string;
@@ -28,6 +30,7 @@ interface Recipe {
 }
 
 export const RecipeGenerationScreen: React.FC = () => {
+  const { profile } = useAuthStore(); // Get profile from global store
   const navigation = useNavigation();
   const { isOffline } = useNetworkStatus();
   const [recipeRequest, setRecipeRequest] = useState("");

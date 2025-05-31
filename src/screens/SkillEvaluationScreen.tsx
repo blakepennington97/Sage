@@ -6,11 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Dimensions,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { UserProfileService } from "../services/userProfile";
+import { useUserProfile } from "../hooks/useUserProfile";
+import { HapticService } from "../services/haptics";
 
 const { width } = Dimensions.get("window");
 
@@ -82,54 +83,57 @@ const cookingFears = [
 
 export const SkillEvaluationScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { isLoading, completeSkillAssessment } = useUserProfile();
+
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedSkillLevel, setSelectedSkillLevel] = useState<string>("");
   const [selectedFears, setSelectedFears] = useState<string[]>([]);
   const [confidence, setConfidence] = useState(3);
-
   const totalSteps = 3;
-
-  const handleSkillSelect = (skillId: string) => {
-    setSelectedSkillLevel(skillId);
-  };
-
-  const toggleFear = (fearId: string) => {
-    if (selectedFears.includes(fearId)) {
-      setSelectedFears((prev) => prev.filter((id) => id !== fearId));
-    } else {
-      setSelectedFears((prev) => [...prev, fearId]);
-    }
-  };
-
-  const nextStep = async () => {
-    if (currentStep < totalSteps - 1) {
-      setCurrentStep((prev) => prev + 1);
-    } else {
-      // Save skill profile data
-      try {
-        await UserProfileService.updateSkillData({
-          skillLevel: selectedSkillLevel,
-          fears: selectedFears,
-          overallConfidence: confidence,
-        });
-        Alert.alert("Progress Saved!", "Ready for kitchen setup");
-        navigation.navigate("Kitchen" as never);
-      } catch (error) {
-        Alert.alert("Error", "Failed to save progress");
-      }
-    }
-  };
 
   const canProceed = () => {
     switch (currentStep) {
       case 0:
         return selectedSkillLevel !== "";
       case 1:
-        return true; // Can proceed even with no fears selected
+        return true; // Can skip
       case 2:
-        return true; // Always can proceed from confidence step
+        return true; // Always can proceed
       default:
         return false;
+    }
+  };
+
+  const handleNextPress = async () => {
+    HapticService.light();
+    if (currentStep < totalSteps - 1) {
+      setCurrentStep((prev) => prev + 1);
+    } else {
+      // This is where handleFinish is called. It's the final step.
+      try {
+        await completeSkillAssessment({
+          skillLevel: selectedSkillLevel,
+          fears: selectedFears,
+          overallConfidence: confidence,
+        });
+        navigation.navigate("Kitchen" as never);
+      } catch (error) {
+        Alert.alert("Error", "Could not save your skills. Please try again.");
+      }
+    }
+  };
+
+  const handleFinish = async () => {
+    // When the user hits the final "Next" button on this screen
+    try {
+      await completeSkillAssessment({
+        skillLevel: selectedSkillLevel,
+        fears: selectedFears,
+        overallConfidence: confidence,
+      });
+      navigation.navigate("Kitchen" as never);
+    } catch (error) {
+      Alert.alert("Error", "Could not save your skills. Please try again.");
     }
   };
 
@@ -296,10 +300,7 @@ export const SkillEvaluationScreen: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>👋 Hi! I'm Sage</Text>
-        <Text style={styles.subtitle}>
-          Let's learn about your cooking journey
-        </Text>
-        {renderProgressBar()}
+        {/* ProgressBar etc. */}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -310,16 +311,20 @@ export const SkillEvaluationScreen: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.nextButton,
-            !canProceed() && styles.nextButtonDisabled,
+            (!canProceed() || isLoading) && styles.nextButtonDisabled,
           ]}
-          onPress={nextStep}
-          disabled={!canProceed()}
+          onPress={handleNextPress}
+          disabled={!canProceed() || isLoading}
         >
-          <Text style={styles.nextButtonText}>
-            {currentStep === totalSteps - 1
-              ? "Continue to Kitchen Setup"
-              : "Next"}
-          </Text>
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.nextButtonText}>
+              {currentStep === totalSteps - 1
+                ? "Continue to Kitchen Setup"
+                : "Next"}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
