@@ -1,7 +1,4 @@
-// src/services/ai/index.ts - Replace your index.ts with this:
+﻿// src/services/ai/index.ts - AI SERVICES FOLDER - REPLACE ALL CONTENT
 export { GeminiService } from "./gemini";
 export type { CookingCoachResponse } from "./gemini";
-
-// Later we'll add:
-// export { AnthropicService } from './anthropic';
-// export { OpenAIService } from './openai';
+export { APIKeyManager, ConfigService } from "./config";
