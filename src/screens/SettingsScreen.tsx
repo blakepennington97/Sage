@@ -1,4 +1,3 @@
-// src/screens/SettingsScreen.tsx - New file
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -7,40 +6,38 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { APIKeyManager } from "../services/ai/config";
-import { UserProfileService } from "../services/userProfile";
+import { useAuthStore } from "../stores/authStore";
+import { useUserProfile } from "../hooks/useUserProfile";
+import { AuthService } from "../services/supabase";
+import { HapticService } from "../services/haptics";
+import { colors, typography } from "../constants/theme";
 
 export const SettingsScreen: React.FC = () => {
+  const { user } = useAuthStore();
+  const { updateProfile, isLoading: isProfileLoading } = useUserProfile();
+
   const [apiKey, setApiKey] = useState("");
   const [hasKey, setHasKey] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasProfile, setHasProfile] = useState(false);
+  const [isKeyLoading, setIsKeyLoading] = useState(false);
 
   useEffect(() => {
+    const checkExistingKey = async () => {
+      const keyExists = await APIKeyManager.hasGeminiKey();
+      setHasKey(keyExists);
+    };
     checkExistingKey();
-    checkProfile();
   }, []);
-
-  const checkExistingKey = async () => {
-    const keyExists = await APIKeyManager.hasGeminiKey();
-    setHasKey(keyExists);
-  };
-
-  const checkProfile = async () => {
-    const completed = await UserProfileService.hasCompletedOnboarding();
-    setHasProfile(completed);
-  };
 
   const saveApiKey = async () => {
     if (!apiKey.trim()) {
-      Alert.alert("Error", "Please enter your Gemini API key");
+      Alert.alert("Error", "Please enter a valid API key");
       return;
     }
-
-    setIsLoading(true);
+    setIsKeyLoading(true);
     try {
       await APIKeyManager.setGeminiKey(apiKey.trim());
       setHasKey(true);
@@ -49,14 +46,33 @@ export const SettingsScreen: React.FC = () => {
     } catch (error) {
       Alert.alert("Error", "Failed to save API key");
     } finally {
-      setIsLoading(false);
+      setIsKeyLoading(false);
     }
   };
 
-  const resetProfile = async () => {
+  const removeApiKey = () => {
+    Alert.alert("Remove API Key", "Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          await APIKeyManager.removeGeminiKey();
+          setHasKey(false);
+        },
+      },
+    ]);
+  };
+
+  const handleSignOut = async () => {
+    HapticService.medium();
+    await AuthService.signOut();
+  };
+
+  const resetProfile = () => {
     Alert.alert(
       "Reset Profile",
-      "This will clear your cooking profile and restart the onboarding process. Are you sure?",
+      "This will restart onboarding. Are you sure?",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -64,14 +80,10 @@ export const SettingsScreen: React.FC = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              await UserProfileService.clearProfile();
-              setHasProfile(false);
-              Alert.alert(
-                "Profile Reset",
-                "Please restart the app to see onboarding again."
-              );
+              await updateProfile({ skill_level: "" }); // Setting skill_level to empty triggers onboarding
+              Alert.alert("Profile Reset", "Your profile has been reset.");
             } catch (error) {
-              Alert.alert("Error", "Failed to reset profile");
+              Alert.alert("Error", "Failed to reset profile.");
             }
           },
         },
@@ -79,127 +91,70 @@ export const SettingsScreen: React.FC = () => {
     );
   };
 
-  const removeApiKey = async () => {
-    Alert.alert(
-      "Remove API Key",
-      "Are you sure you want to remove the saved API key?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            await APIKeyManager.removeGeminiKey();
-            setHasKey(false);
-          },
-        },
-      ]
-    );
-  };
-
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>⚙️ Settings</Text>
       </View>
-
-      <View style={styles.content}>
+      <ScrollView style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={styles.emailText}>{user?.email}</Text>
+          <TouchableOpacity style={styles.button} onPress={handleSignOut}>
+            <Text style={styles.buttonText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Cooking Profile</Text>
-          <Text style={styles.description}>
-            Your skill level, kitchen setup, and cooking preferences.
-          </Text>
-
-          <View style={styles.statusContainer}>
-            <Text style={styles.statusLabel}>Status: </Text>
-            <Text
-              style={[
-                styles.statusText,
-                hasProfile ? styles.statusActive : styles.statusInactive,
-              ]}
-            >
-              {hasProfile ? "✅ Profile Complete" : "❌ No Profile"}
-            </Text>
-          </View>
-
-          {hasProfile && (
-            <TouchableOpacity
-              style={[styles.button, styles.removeButton]}
-              onPress={resetProfile}
-            >
-              <Text style={styles.buttonText}>
-                Reset Profile & Restart Onboarding
-              </Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={[styles.button, styles.dangerButton]}
+            onPress={resetProfile}
+            disabled={isProfileLoading}
+          >
+            {isProfileLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Reset Profile & Onboarding</Text>
+            )}
+          </TouchableOpacity>
         </View>
-
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Gemini API Configuration</Text>
-          <Text style={styles.description}>
-            To use Sage's AI features, you need a Gemini API key from Google AI
-            Studio.
+          <Text style={styles.sectionTitle}>Gemini API Key</Text>
+          <Text style={styles.statusText}>
+            {hasKey ? "✅ API Key Configured" : "❌ No API Key"}
           </Text>
-
-          <View style={styles.statusContainer}>
-            <Text style={styles.statusLabel}>Status: </Text>
-            <Text
-              style={[
-                styles.statusText,
-                hasKey ? styles.statusActive : styles.statusInactive,
-              ]}
-            >
-              {hasKey ? "✅ API Key Configured" : "❌ No API Key"}
-            </Text>
-          </View>
-
-          {!hasKey && (
+          {!hasKey ? (
             <>
               <TextInput
                 style={styles.input}
                 value={apiKey}
                 onChangeText={setApiKey}
-                placeholder="Enter your Gemini API key..."
+                placeholder="Paste your key here"
                 secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
               />
               <TouchableOpacity
                 style={[styles.button, styles.saveButton]}
                 onPress={saveApiKey}
-                disabled={isLoading}
+                disabled={isKeyLoading}
               >
-                <Text style={styles.buttonText}>
-                  {isLoading ? "Saving..." : "Save API Key"}
-                </Text>
+                {isKeyLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Save API Key</Text>
+                )}
               </TouchableOpacity>
             </>
-          )}
-
-          {hasKey && (
+          ) : (
             <TouchableOpacity
-              style={[styles.button, styles.removeButton]}
+              style={[styles.button, styles.dangerButton]}
               onPress={removeApiKey}
             >
               <Text style={styles.buttonText}>Remove API Key</Text>
             </TouchableOpacity>
           )}
         </View>
-
-        <View style={styles.section}>
-          <Text style={styles.helpTitle}>How to get a Gemini API Key:</Text>
-          <Text style={styles.helpText}>
-            1. Go to aistudio.google.com{"\n"}
-            2. Sign in with your Google account{"\n"}
-            3. Click "Get API Key" → "Create API key"{"\n"}
-            4. Copy the key and paste it above
-          </Text>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -297,4 +252,10 @@ const styles = StyleSheet.create({
     color: "#666",
     lineHeight: 20,
   },
+  emailText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: 15,
+  },
+  dangerButton: { backgroundColor: colors.error, marginTop: 10 }
 });

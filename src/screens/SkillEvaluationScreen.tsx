@@ -1,4 +1,3 @@
-// src/screens/SkillEvaluationScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -8,13 +7,14 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { HapticService } from "../services/haptics";
+import { colors, typography } from "../constants/theme";
 
-const { width } = Dimensions.get("window");
-
+// --- Data Definitions ---
 interface SkillLevel {
   id: string;
   title: string;
@@ -22,7 +22,6 @@ interface SkillLevel {
   emoji: string;
   examples: string[];
 }
-
 const skillLevels: SkillLevel[] = [
   {
     id: "complete_beginner",
@@ -69,7 +68,6 @@ const skillLevels: SkillLevel[] = [
     ],
   },
 ];
-
 const cookingFears = [
   { id: "knife_skills", text: "Using sharp knives", emoji: "🔪" },
   { id: "timing", text: "Getting timing right", emoji: "⏰" },
@@ -82,58 +80,53 @@ const cookingFears = [
 ];
 
 export const SkillEvaluationScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { isLoading, completeSkillAssessment } = useUserProfile();
 
-  const [currentStep, setCurrentStep] = useState(0);
   const [selectedSkillLevel, setSelectedSkillLevel] = useState<string>("");
   const [selectedFears, setSelectedFears] = useState<string[]>([]);
   const [confidence, setConfidence] = useState(3);
+  const [currentStep, setCurrentStep] = useState(0);
   const totalSteps = 3;
 
-  const canProceed = () => {
-    switch (currentStep) {
-      case 0:
-        return selectedSkillLevel !== "";
-      case 1:
-        return true; // Can skip
-      case 2:
-        return true; // Always can proceed
-      default:
-        return false;
-    }
-  };
+  const handleSkillSelect = (skillId: string) => setSelectedSkillLevel(skillId);
+  const toggleFear = (fearId: string) =>
+    setSelectedFears((prev) =>
+      prev.includes(fearId)
+        ? prev.filter((id) => id !== fearId)
+        : [...prev, fearId]
+    );
 
   const handleNextPress = async () => {
     HapticService.light();
     if (currentStep < totalSteps - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      // This is where handleFinish is called. It's the final step.
       try {
         await completeSkillAssessment({
           skillLevel: selectedSkillLevel,
           fears: selectedFears,
           overallConfidence: confidence,
         });
-        navigation.navigate("Kitchen" as never);
+        HapticService.success();
+        navigation.navigate("Kitchen");
       } catch (error) {
+        HapticService.error();
         Alert.alert("Error", "Could not save your skills. Please try again.");
       }
     }
   };
 
-  const handleFinish = async () => {
-    // When the user hits the final "Next" button on this screen
-    try {
-      await completeSkillAssessment({
-        skillLevel: selectedSkillLevel,
-        fears: selectedFears,
-        overallConfidence: confidence,
-      });
-      navigation.navigate("Kitchen" as never);
-    } catch (error) {
-      Alert.alert("Error", "Could not save your skills. Please try again.");
+  const canProceed = () => {
+    switch (currentStep) {
+      case 0:
+        return selectedSkillLevel !== "";
+      case 1:
+        return true;
+      case 2:
+        return true;
+      default:
+        return false;
     }
   };
 
@@ -331,6 +324,7 @@ export const SkillEvaluationScreen: React.FC = () => {
   );
 };
 
+const { width } = Dimensions.get("window");
 const styles = StyleSheet.create({
   container: {
     flex: 1,

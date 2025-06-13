@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { User } from "@supabase/supabase-js";
-import { UserProfile } from "../services/supabase"; // Using the type from your service
+import { UserProfile } from "../services/supabase";
 
 interface AuthState {
   user: User | null;
@@ -16,8 +16,8 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   profile: null,
-  isLoading: true, // App-level loading, for initial auth check
-  isProfileLoading: false, // Profile-specific loading
+  isLoading: true,
+  isProfileLoading: false,
   initializeSession: (user) => set({ user, isLoading: false }),
   setProfile: (profile) => set({ profile }),
   setProfileLoading: (isLoading) => set({ isProfileLoading: isLoading }),

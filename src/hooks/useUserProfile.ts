@@ -1,15 +1,15 @@
-// src/hooks/useUserProfile.ts
 import { useCallback } from "react";
 import { useAuthStore } from "../stores/authStore";
-import { ProfileService } from "../services/supabase";
-import { UserProfile } from "../services/supabase"; // Import the type
+import { ProfileService, UserProfile } from "../services/supabase";
 
 export const useUserProfile = () => {
-  const { user, profile, setProfile, setProfileLoading, isProfileLoading } =
+  const { user, setProfile, setProfileLoading, isProfileLoading } =
     useAuthStore();
 
   const updateProfile = useCallback(
-    async (updates: Partial<UserProfile>) => {
+    async (
+      updates: Partial<Omit<UserProfile, "id" | "email" | "created_at">>
+    ) => {
       if (!user) {
         throw new Error("User not authenticated");
       }
@@ -19,7 +19,7 @@ export const useUserProfile = () => {
           user.id,
           updates
         );
-        setProfile(updatedProfile); // Update global state
+        setProfile(updatedProfile);
         return updatedProfile;
       } catch (error) {
         console.error("Failed to update profile:", error);
@@ -31,7 +31,6 @@ export const useUserProfile = () => {
     [user, setProfile, setProfileLoading]
   );
 
-  // A helper to specifically complete the skill part of onboarding
   const completeSkillAssessment = async (data: {
     skillLevel: string;
     fears: string[];
@@ -44,19 +43,14 @@ export const useUserProfile = () => {
     });
   };
 
-  // A helper to complete the kitchen part and thus the whole onboarding
   const completeKitchenAssessment = async (data: {
     tools: string[];
     stoveType: string;
     hasOven: boolean;
     spaceLevel: number;
   }) => {
-    // We set skill_level again just in case, to mark onboarding as complete.
-    // If it's already set, it won't change.
-    // A more robust way might be a separate `onboarding_completed` flag,
-    // but using skill_level is a good proxy.
     const currentSkillLevel =
-      useAuthStore.getState().profile?.skill_level || "";
+      useAuthStore.getState().profile?.skill_level || "basic_skills";
     return updateProfile({
       skill_level: currentSkillLevel,
       kitchen_tools: data.tools,
@@ -67,7 +61,7 @@ export const useUserProfile = () => {
   };
 
   return {
-    profile,
+    profile: useAuthStore.getState().profile,
     isLoading: isProfileLoading,
     updateProfile,
     completeSkillAssessment,

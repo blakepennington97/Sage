@@ -1,9 +1,7 @@
-// src/services/supabase.ts - REPLACE EXISTING FILE
 import { createClient, SupabaseClient, User } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { environmentConfig } from "../config/environment";
 
-// Create Supabase client with secure configuration (WebSocket disabled for React Native)
 export const supabase: SupabaseClient = createClient(
   environmentConfig.supabaseUrl,
   environmentConfig.supabaseAnonKey,
@@ -14,21 +12,12 @@ export const supabase: SupabaseClient = createClient(
       persistSession: true,
       detectSessionInUrl: false,
     },
-    realtime: {
-      // Disable real-time to avoid WebSocket issues
-      params: {
-        eventsPerSecond: 0,
-      },
-    },
-    global: {
-      headers: {
-        "x-application-name": "sage-cooking-coach",
-      },
-    },
+    realtime: { params: { eventsPerSecond: 0 } },
+    global: { headers: { "x-application-name": "sage-cooking-coach" } },
   }
 );
 
-// Types for our database schema
+// Types
 export interface UserProfile {
   id: string;
   email: string;
@@ -45,7 +34,6 @@ export interface UserProfile {
   created_at: string;
   updated_at: string;
 }
-
 export interface UserRecipe {
   id: string;
   user_id: string;
@@ -60,7 +48,6 @@ export interface UserRecipe {
   created_at: string;
   last_cooked: string | null;
 }
-
 export interface CookingSession {
   id: string;
   user_id: string;
@@ -72,43 +59,29 @@ export interface CookingSession {
   notes: string;
 }
 
-// Authentication Service
+// Auth Service
 export class AuthService {
   static async signUp(email: string, password: string) {
-    return await supabase.auth.signUp({
-      email,
-      password,
-    });
+    return await supabase.auth.signUp({ email, password });
   }
-
   static async signIn(email: string, password: string) {
-    return await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    return await supabase.auth.signInWithPassword({ email, password });
   }
-
   static async signOut() {
     return await supabase.auth.signOut();
   }
-
   static async getCurrentUser(): Promise<User | null> {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     return user;
   }
-
   static onAuthChange(callback: (event: string, session: any) => void) {
     return supabase.auth.onAuthStateChange(callback);
   }
-
-  static async resetPassword(email: string) {
-    return await supabase.auth.resetPasswordForEmail(email);
-  }
 }
 
-// Profile Service - Complete Implementation
+// Profile Service
 export class ProfileService {
   static async getProfile(userId: string): Promise<UserProfile | null> {
     try {
@@ -117,15 +90,9 @@ export class ProfileService {
         .select("*")
         .eq("id", userId)
         .single();
-
-      if (error) {
-        if (error.code === "PGRST116") {
-          // No profile found - this is okay for new users
-          return null;
-        }
+      if (error && error.code !== "PGRST116") {
         throw error;
       }
-
       return data;
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -133,119 +100,27 @@ export class ProfileService {
     }
   }
 
-  static async createProfile(
-    userId: string,
-    email: string,
-    profileData: Partial<UserProfile>
-  ): Promise<UserProfile> {
-    try {
-      const newProfile = {
-        id: userId,
-        email,
-        skill_level: "",
-        cooking_fears: [],
-        confidence_level: 3,
-        kitchen_tools: [],
-        stove_type: "",
-        has_oven: true,
-        space_level: 3,
-        subscription_status: "free" as const,
-        recipes_generated_today: 0,
-        last_recipe_date: new Date().toISOString().split("T")[0],
-        ...profileData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .insert([newProfile])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error("Error creating profile:", error);
-      throw error;
-    }
-  }
-
   static async updateProfile(
     userId: string,
-    updates: Partial<UserProfile>
+    updates: Partial<Omit<UserProfile, "id" | "created_at">>
   ): Promise<UserProfile> {
     try {
       const { data, error } = await supabase
         .from("user_profiles")
-        .update({
+        .upsert({
+          id: userId,
           ...updates,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", userId)
         .select()
         .single();
-
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return data;
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error("Error upserting profile:", error);
       throw error;
-    }
-  }
-
-  static async incrementRecipeCount(userId: string): Promise<void> {
-    try {
-      const today = new Date().toISOString().split("T")[0];
-
-      // Get current profile to check date
-      const profile = await this.getProfile(userId);
-      if (!profile) throw new Error("Profile not found");
-
-      let recipesToday = profile.recipes_generated_today;
-
-      // Reset counter if it's a new day
-      if (profile.last_recipe_date !== today) {
-        recipesToday = 0;
-      }
-
-      await this.updateProfile(userId, {
-        recipes_generated_today: recipesToday + 1,
-        last_recipe_date: today,
-      });
-    } catch (error) {
-      console.error("Error incrementing recipe count:", error);
-      throw error;
-    }
-  }
-
-  static async canGenerateRecipe(
-    userId: string
-  ): Promise<{ canGenerate: boolean; recipesUsed: number; limit: number }> {
-    try {
-      const profile = await this.getProfile(userId);
-      if (!profile) throw new Error("Profile not found");
-
-      const today = new Date().toISOString().split("T")[0];
-      let recipesUsed = profile.recipes_generated_today;
-
-      // Reset counter if it's a new day
-      if (profile.last_recipe_date !== today) {
-        recipesUsed = 0;
-        // Update the profile to reset the counter
-        await this.updateProfile(userId, {
-          recipes_generated_today: 0,
-          last_recipe_date: today,
-        });
-      }
-
-      const limit = profile.subscription_status === "premium" ? 999 : 5; // Effectively unlimited for premium
-      const canGenerate = recipesUsed < limit;
-
-      return { canGenerate, recipesUsed, limit };
-    } catch (error) {
-      console.error("Error checking recipe generation limit:", error);
-      return { canGenerate: false, recipesUsed: 0, limit: 5 };
     }
   }
 }
@@ -258,177 +133,105 @@ export class RecipeService {
       recipe_name: string;
       recipe_content: string;
       recipe_request: string;
-      difficulty_level?: number;
-      estimated_time?: string;
     }
   ): Promise<UserRecipe> {
-    try {
-      const newRecipe = {
-        user_id: userId,
-        is_favorite: false,
-        cook_count: 0,
-        user_rating: 0,
-        created_at: new Date().toISOString(),
-        last_cooked: null,
-        ...recipeData,
-      };
-
-      const { data, error } = await supabase
-        .from("user_recipes")
-        .insert([newRecipe])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error("Error saving recipe:", error);
-      throw error;
-    }
+    const newRecipe = {
+      user_id: userId,
+      ...recipeData,
+      cook_count: 0,
+      is_favorite: false,
+    };
+    const { data, error } = await supabase
+      .from("user_recipes")
+      .insert(newRecipe)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
   }
 
-  static async getUserRecipes(
-    userId: string,
-    limit?: number
-  ): Promise<UserRecipe[]> {
-    try {
-      let query = supabase
-        .from("user_recipes")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (limit) {
-        query = query.limit(limit);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error("Error fetching user recipes:", error);
-      return [];
-    }
-  }
-
-  static async getFavoriteRecipes(userId: string): Promise<UserRecipe[]> {
-    try {
-      const { data, error } = await supabase
-        .from("user_recipes")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("is_favorite", true)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error("Error fetching favorite recipes:", error);
-      return [];
-    }
-  }
-
-  static async toggleFavorite(recipeId: string): Promise<void> {
-    try {
-      // First get the current favorite status
-      const { data: recipe, error: fetchError } = await supabase
-        .from("user_recipes")
-        .select("is_favorite")
-        .eq("id", recipeId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Toggle the favorite status
-      const { error: updateError } = await supabase
-        .from("user_recipes")
-        .update({ is_favorite: !recipe.is_favorite })
-        .eq("id", recipeId);
-
-      if (updateError) throw updateError;
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
-      throw error;
-    }
+  static async getUserRecipes(userId: string): Promise<UserRecipe[]> {
+    const { data, error } = await supabase
+      .from("user_recipes")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
   }
 
   static async markAsCooked(recipeId: string): Promise<void> {
     try {
-      // Get current cook count
       const { data: recipe, error: fetchError } = await supabase
         .from("user_recipes")
         .select("cook_count")
         .eq("id", recipeId)
         .single();
-
-      if (fetchError) throw fetchError;
-
-      // Update cook count and last cooked date
+      if (fetchError || !recipe)
+        throw fetchError || new Error("Recipe not found");
+      const newCookCount = (recipe.cook_count || 0) + 1;
       const { error: updateError } = await supabase
         .from("user_recipes")
         .update({
-          cook_count: recipe.cook_count + 1,
+          cook_count: newCookCount,
           last_cooked: new Date().toISOString(),
         })
         .eq("id", recipeId);
-
       if (updateError) throw updateError;
     } catch (error) {
-      console.error("Error marking recipe as cooked:", error);
-      throw error;
+      console.error("Failed to mark as cooked:", error);
     }
   }
 
+  // --- ADD THESE TWO METHODS ---
   static async deleteRecipe(recipeId: string): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from("user_recipes")
-        .delete()
-        .eq("id", recipeId);
+    const { error } = await supabase
+      .from("user_recipes")
+      .delete()
+      .eq("id", recipeId);
+    if (error) throw error;
+  }
 
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error deleting recipe:", error);
-      throw error;
-    }
+  static async toggleFavorite(recipeId: string): Promise<void> {
+    // Read-then-write to safely toggle the boolean
+    const { data: recipe, error: fetchError } = await supabase
+      .from("user_recipes")
+      .select("is_favorite")
+      .eq("id", recipeId)
+      .single();
+    if (fetchError || !recipe)
+      throw fetchError || new Error("Recipe not found");
+
+    const { error: updateError } = await supabase
+      .from("user_recipes")
+      .update({ is_favorite: !recipe.is_favorite })
+      .eq("id", recipeId);
+    if (updateError) throw updateError;
   }
 }
 
-// Cooking Session Service
+// Session Service
 export class SessionService {
   static async startCookingSession(
     userId: string,
     recipeId: string
-  ): Promise<CookingSession> {
+  ): Promise<string | null> {
     try {
-      const newSession = {
-        user_id: userId,
-        recipe_id: recipeId,
-        started_at: new Date().toISOString(),
-        completed_at: null,
-        success_rating: 0,
-        help_requests: {},
-        notes: "",
-      };
-
       const { data, error } = await supabase
         .from("cooking_sessions")
-        .insert([newSession])
-        .select()
+        .insert({ user_id: userId, recipe_id: recipeId })
+        .select("id")
         .single();
-
       if (error) throw error;
-      return data;
+      return data.id;
     } catch (error) {
       console.error("Error starting cooking session:", error);
-      throw error;
+      return null;
     }
   }
-
   static async completeCookingSession(
     sessionId: string,
-    successRating: number,
-    notes?: string
+    successRating: number
   ): Promise<void> {
     try {
       const { error } = await supabase
@@ -436,10 +239,8 @@ export class SessionService {
         .update({
           completed_at: new Date().toISOString(),
           success_rating: successRating,
-          notes: notes || "",
         })
         .eq("id", sessionId);
-
       if (error) throw error;
     } catch (error) {
       console.error("Error completing cooking session:", error);

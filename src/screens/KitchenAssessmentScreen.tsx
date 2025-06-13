@@ -1,4 +1,3 @@
-// src/screens/KitchenAssessmentScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -6,13 +5,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Dimensions,
   Alert,
+  ActivityIndicator,
+  Dimensions,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { UserProfileService } from "../services/userProfile";
-
-const { width } = Dimensions.get("window");
+import { useUserProfile } from "../hooks/useUserProfile";
+import { HapticService } from "../services/haptics";
+import { colors, typography } from "../constants/theme";
 
 interface KitchenTool {
   id: string;
@@ -172,40 +171,48 @@ const stoveTypes = [
 ];
 
 export const KitchenAssessmentScreen: React.FC = () => {
-  const navigation = useNavigation();
-  const [currentStep, setCurrentStep] = useState(0);
+  const { isLoading, completeKitchenAssessment } = useUserProfile();
+
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [stoveType, setStoveType] = useState("");
   const [hasOven, setHasOven] = useState<boolean | null>(null);
   const [spaceLevel, setSpaceLevel] = useState(3);
-
+  const [currentStep, setCurrentStep] = useState(0);
   const totalSteps = 4;
 
-  const toggleTool = (toolId: string) => {
-    if (selectedTools.includes(toolId)) {
-      setSelectedTools((prev) => prev.filter((id) => id !== toolId));
-    } else {
-      setSelectedTools((prev) => [...prev, toolId]);
+  const toggleTool = (toolId: string) =>
+    setSelectedTools((prev) =>
+      prev.includes(toolId)
+        ? prev.filter((id) => id !== toolId)
+        : [...prev, toolId]
+    );
+
+  const handleFinishOnboarding = async () => {
+    HapticService.medium();
+    try {
+      await completeKitchenAssessment({
+        tools: selectedTools,
+        stoveType: stoveType,
+        hasOven: hasOven!,
+        spaceLevel: spaceLevel,
+      });
+      HapticService.success();
+      // No navigation needed! AuthWrapper handles it.
+    } catch (error) {
+      HapticService.error();
+      Alert.alert(
+        "Error",
+        "Could not save your kitchen setup. Please try again."
+      );
     }
   };
 
-  const nextStep = async () => {
+  const handleNextPress = () => {
+    HapticService.light();
     if (currentStep < totalSteps - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      // Save kitchen profile data
-      try {
-        await UserProfileService.updateKitchenData({
-          tools: selectedTools,
-          stoveType,
-          hasOven: hasOven!, // Non-null assertion since canProceed() ensures this
-          spaceLevel,
-        });
-        Alert.alert("Setup Complete!", "Your cooking profile is ready");
-        // TODO: Navigate to main app
-      } catch (error) {
-        Alert.alert("Error", "Failed to save kitchen setup");
-      }
+      handleFinishOnboarding();
     }
   };
 
@@ -437,7 +444,7 @@ export const KitchenAssessmentScreen: React.FC = () => {
             styles.nextButton,
             !canProceed() && styles.nextButtonDisabled,
           ]}
-          onPress={nextStep}
+          onPress={handleNextPress}
           disabled={!canProceed()}
         >
           <Text style={styles.nextButtonText}>
@@ -449,6 +456,7 @@ export const KitchenAssessmentScreen: React.FC = () => {
   );
 };
 
+const { width } = Dimensions.get("window");
 const styles = StyleSheet.create({
   container: {
     flex: 1,

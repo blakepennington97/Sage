@@ -1,4 +1,3 @@
-// src/screens/CookingCoachScreen.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -10,94 +9,92 @@ import {
   Modal,
   TextInput,
 } from "react-native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { GeminiService } from "../services/ai";
+import { useAuthStore } from "../stores/authStore";
+import {
+  SessionService,
+  RecipeService,
+  UserRecipe,
+} from "../services/supabase";
 
+type RootStackParamList = { CookingCoach: { recipe: UserRecipe } };
 interface CookingStep {
   id: number;
   instruction: string;
-  estimatedTime?: number;
-  tips?: string[];
 }
 
-interface CookingCoachProps {
-  route?: {
-    params?: {
-      recipe?: string;
-      recipeName?: string;
-    };
-  };
-}
+export const CookingCoachScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+  const route = useRoute<RouteProp<RootStackParamList, "CookingCoach">>();
+  const { recipe } = route.params;
 
-export const CookingCoachScreen: React.FC<CookingCoachProps> = ({ route }) => {
+  const { user } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState<CookingStep[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpQuestion, setHelpQuestion] = useState("");
   const [helpResponse, setHelpResponse] = useState("");
   const [isGettingHelp, setIsGettingHelp] = useState(false);
-
   const geminiService = new GeminiService();
 
   useEffect(() => {
-    parseRecipeSteps();
-  }, []);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isTimerRunning && timeRemaining > 0) {
-      interval = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            setIsTimerRunning(false);
-            Alert.alert("⏰ Timer Done!", "Check your food");
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerRunning, timeRemaining]);
-
-  const parseRecipeSteps = () => {
-    // Parse recipe content into steps
-    const recipeContent = route?.params?.recipe || "";
-    const lines = recipeContent.split("\n");
-
-    const parsedSteps: CookingStep[] = [];
-    let stepId = 1;
-
-    lines.forEach((line) => {
-      const trimmed = line.trim();
-      if (trimmed.match(/^\d+\./)) {
-        parsedSteps.push({
-          id: stepId++,
-          instruction: trimmed.replace(/^\d+\.\s*/, ""),
-        });
-      }
-    });
-
-    if (parsedSteps.length === 0) {
-      // Fallback if no numbered steps found
-      parsedSteps.push({
-        id: 1,
-        instruction: "Follow the recipe instructions step by step",
+    const parseRecipeSteps = () => {
+      const recipeContent = recipe.recipe_content || "";
+      const lines = recipeContent.split("\n");
+      const parsedSteps: CookingStep[] = [];
+      lines.forEach((line: string) => {
+        if (line.trim().match(/^\d+\./)) {
+          parsedSteps.push({
+            id: parsedSteps.length + 1,
+            instruction: line.trim().replace(/^\d+\.\s*/, ""),
+          });
+        }
       });
-    }
+      setSteps(
+        parsedSteps.length > 0
+          ? parsedSteps
+          : [{ id: 1, instruction: recipeContent }]
+      );
+    };
 
-    setSteps(parsedSteps);
+    const startSession = async () => {
+      if (user && recipe.id) {
+        const newSessionId = await SessionService.startCookingSession(
+          user.id,
+          recipe.id
+        );
+        setSessionId(newSessionId);
+        await RecipeService.markAsCooked(recipe.id);
+      }
+    };
+
+    parseRecipeSteps();
+    startSession();
+  }, [recipe.id, user]);
+
+  const handleSessionComplete = async (rating: number) => {
+    if (sessionId) {
+      await SessionService.completeCookingSession(sessionId, rating);
+    }
+    navigation.navigate("Recipes");
   };
 
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      // Recipe complete
-      Alert.alert("🎉 Recipe Complete!", "Great job! How did it turn out?", [
-        { text: "Awesome!", style: "default" },
-        { text: "Could be better", style: "default" },
+      Alert.alert("🎉 Recipe Complete!", "How did it turn out?", [
+        { text: "Awesome!", onPress: () => handleSessionComplete(5) },
+        {
+          text: "Could be better",
+          onPress: () => handleSessionComplete(3),
+          style: "cancel",
+        },
       ]);
     }
   };
@@ -299,7 +296,7 @@ export const CookingCoachScreen: React.FC<CookingCoachProps> = ({ route }) => {
       <View style={styles.header}>
         <Text style={styles.title}>🔥 Cooking Coach</Text>
         <Text style={styles.subtitle}>
-          {route?.params?.recipeName || "Your Recipe"}
+          {recipe.recipe_name || "Your Recipe"}
         </Text>
         {renderProgressBar()}
       </View>

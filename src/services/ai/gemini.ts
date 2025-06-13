@@ -1,192 +1,141 @@
-// src/services/ai/gemini.ts - Replace your existing gemini.ts with this
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { APIKeyManager } from "./config";
-import { UserProfileService } from "../userProfile";
-import { ResponseCacheService } from "../responseCache";
+import { AuthService, ProfileService, UserProfile } from "../supabase";
+
+const getSkillDescription = (profile: UserProfile): string => {
+  const skillLabels: Record<string, string> = {
+    complete_beginner: "Complete beginner (rarely cooks)",
+    basic_skills: "Basic skills (simple dishes)",
+    developing: "Developing cook (regular cooking)",
+    confident: "Confident cook (experiments often)",
+  };
+  return skillLabels[profile.skill_level || ""] || "Unknown skill level";
+};
+
+const getKitchenSummary = (profile: UserProfile): string => {
+  const userTools = profile.kitchen_tools || [];
+  const hasEssentials = ["chef_knife", "cutting_board", "mixing_bowls"].every(
+    (tool) => userTools.includes(tool)
+  );
+  const stoveDesc: Record<string, string> = {
+    gas: "gas stove",
+    electric: "electric stove",
+    induction: "induction cooktop",
+    none: "no stove/microwave only",
+  };
+  const spaceDesc =
+    profile.space_level <= 2
+      ? "limited"
+      : profile.space_level >= 4
+      ? "spacious"
+      : "moderate";
+  return `${hasEssentials ? "Well-equipped" : "Basic"} kitchen with ${
+    stoveDesc[profile.stove_type] || "unknown stove"
+  }, ${profile.has_oven ? "has an oven" : "no oven"}, and ${spaceDesc} space.`;
+};
 
 export interface CookingCoachResponse {
   message: string;
-  confidence: number;
-  suggestions?: string[];
 }
 
 export class GeminiService {
   private genAI: GoogleGenerativeAI | null = null;
   private model: any = null;
 
-  async initialize(): Promise<void> {
+  private async initialize(): Promise<void> {
+    if (this.model) return;
     const apiKey = await APIKeyManager.getGeminiKey();
-    if (!apiKey) {
-      throw new Error(
-        "Gemini API key not found. Please configure in settings."
-      );
-    }
-
+    if (!apiKey) throw new Error("API key not found in settings.");
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   }
 
-  async getCookingAdvice(
-    userMessage: string,
-    includeProfile: boolean = true
+  private async getUserContext(): Promise<string> {
+    const user = await AuthService.getCurrentUser();
+    if (!user) return "The user is not logged in. Provide generic advice.";
+
+    const profile = await ProfileService.getProfile(user.id);
+    if (!profile || !profile.skill_level) {
+      return "The user has not completed their profile. Provide generic, beginner-friendly advice.";
+    }
+
+    const userFears = profile.cooking_fears || [];
+
+    return `
+      USER PROFILE:
+      - Skill Level: ${getSkillDescription(profile)}
+      - Kitchen Setup: ${getKitchenSummary(profile)}
+      - Confidence: ${profile.confidence_level}/5
+      - Cooking Concerns: ${userFears.join(", ") || "None specified"}
+      
+      CONSTRAINTS:
+      - Match complexity to their skill level.
+      - Only suggest recipes/techniques for their available tools.
+      - ${profile.has_oven ? "" : "NO OVEN - stovetop/microwave only."}
+      - ${
+        profile.stove_type === "none"
+          ? "NO STOVE - microwave/no-cook only."
+          : ""
+      }
+      - ${
+        profile.space_level <= 2
+          ? "Limited prep space - suggest one-pot or minimal dish recipes."
+          : ""
+      }
+    `;
+  }
+
+  public async getCookingAdvice(
+    userMessage: string
   ): Promise<CookingCoachResponse> {
-    if (!this.model) {
-      await this.initialize();
-    }
-
+    await this.initialize();
     try {
-      const prompt = await this.buildCookingPrompt(userMessage, includeProfile);
-
+      const userContext = await this.getUserContext();
+      const prompt = `You are Sage, a friendly and encouraging AI cooking coach. Your goal is to help beginners build confidence.
+      ${userContext}
+      USER MESSAGE: "${userMessage}"
+      COACHING STYLE: Be encouraging, supportive, and patient. Explain techniques simply. Assume beginner knowledge. Give specific, actionable advice. Address their specific concerns and limitations based on their profile. Respond as a helpful mentor.`;
       const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
-      return {
-        message: text,
-        confidence: 0.8,
-        suggestions: [],
-      };
+      return { message: result.response.text() };
     } catch (error) {
-      console.error("Gemini API Error:", error);
-      throw new Error(
-        "Failed to get cooking advice. Please check your API configuration."
-      );
+      console.error("Gemini API Error (getCookingAdvice):", error);
+      throw new Error("Failed to get cooking advice from AI.");
     }
   }
 
-  private async buildCookingPrompt(
-    userMessage: string,
-    includeProfile: boolean
-  ): Promise<string> {
-    let contextPrompt = `You are Sage, a friendly and encouraging AI cooking coach. Your goal is to help beginners build cooking confidence.
-
-USER MESSAGE: ${userMessage}`;
-
-    if (includeProfile) {
-      try {
-        const hasCompleted = await UserProfileService.hasCompletedOnboarding();
-        if (hasCompleted) {
-          const skillDesc = await UserProfileService.getSkillDescription();
-          const kitchenSummary = await UserProfileService.getKitchenSummary();
-          const fears = await UserProfileService.getFearsList();
-          const profile = await UserProfileService.getProfile();
-
-          contextPrompt = `You are Sage, a personalized AI cooking coach. Adapt your response to this specific user's profile.
-
-USER PROFILE:
-- Skill Level: ${skillDesc}
-- Kitchen Setup: ${kitchenSummary}
-- Confidence Level: ${profile.overallConfidence}/5
-${fears.length > 0 ? `- Cooking Concerns: ${fears.join(", ")}` : "- No specific cooking concerns"}
-
-USER MESSAGE: ${userMessage}
-
-PERSONALIZATION GUIDELINES:
-- Match complexity to their skill level (${profile.skillLevel})
-- Only suggest recipes/techniques for their available tools
-- ${profile.overallConfidence <= 2 ? "Provide extra encouragement and basic explanations" : ""}
-- ${fears.includes("using knives") ? "Minimize knife work or provide detailed knife safety tips" : ""}
-- ${fears.includes("timing multiple dishes") ? "Suggest single-pot meals or simple timing" : ""}
-- ${fears.includes("burning food") ? "Include temperature and timing reminders" : ""}
-- ${!profile.hasOven ? "Only suggest stovetop/microwave recipes" : ""}
-- ${profile.stoveType === "none" ? "Focus on microwave and no-cook options" : ""}`;
-        }
-      } catch (error) {
-        console.warn("Could not load profile, using generic prompt");
-      }
-    }
-
-    return `${contextPrompt}
-
-COACHING STYLE:
-- Be encouraging and supportive
-- Explain techniques simply
-- Give specific, actionable advice
-- Keep responses conversational but helpful
-- Address their specific concerns and limitations
-
-Respond as if you're a patient cooking mentor helping a friend in their kitchen.`;
-  }
-
-  async generateRecipe(request: string, difficulty?: number): Promise<any> {
-    if (!this.model) {
-      await this.initialize();
-    }
-
+  public async generateRecipe(request: string): Promise<string> {
+    await this.initialize();
     try {
-      // Check cache first
-      const profile = await UserProfileService.getProfile();
-      const profileHash = ResponseCacheService.generateProfileHash(profile);
-      const cached = await ResponseCacheService.getCachedResponse(
-        request,
-        profileHash
-      );
+      const userContext = await this.getUserContext();
+      const prompt = `You are Sage, an AI cooking coach. Generate a beginner-friendly recipe based on the user's request, tailored to their profile.
 
-      if (cached) {
-        return cached;
-      }
+        USER REQUEST: "${request}"
 
-      const hasCompleted = await UserProfileService.hasCompletedOnboarding();
-      let profileContext = "";
+        ${userContext}
 
-      if (hasCompleted) {
-        const skillDesc = await UserProfileService.getSkillDescription();
-        const kitchenSummary = await UserProfileService.getKitchenSummary();
-        const fears = await UserProfileService.getFearsList();
-
-        profileContext = `
-USER PROFILE:
-- Skill Level: ${skillDesc}
-- Kitchen: ${kitchenSummary}
-- Available Tools: ${profile.tools.join(", ")}
-- Confidence: ${profile.overallConfidence}/5
-${fears.length > 0 ? `- Concerns: ${fears.join(", ")}` : ""}
-
-CONSTRAINTS:
-- ${!profile.hasOven ? "NO OVEN - stovetop/microwave only" : ""}
-- ${profile.stoveType === "none" ? "NO STOVE - microwave/no-cook only" : ""}
-- ${profile.spaceLevel <= 2 ? "Limited prep space - minimal dishes/steps" : ""}
-- Match difficulty to ${profile.skillLevel} level`;
-      }
-
-      const prompt = `You are Sage, an AI cooking coach. Generate a beginner-friendly recipe based on this request: "${request}"
-${profileContext}
-
-RESPONSE FORMAT (return as structured text):
-**Recipe Name:** [Name]
-**Difficulty:** ${difficulty || "Auto-select based on profile"}/5
-**Total Time:** X minutes
-**Why This Recipe:** [Why it fits their profile]
-
-**Ingredients:**
-- [ingredient with amount]
-- [ingredient with amount]
-
-**Instructions:**
-1. [Step with explanation of why/how]
-2. [Step with explanation of why/how]
-
-**Success Tips:**
-- [Tip specific to their concerns]
-- [Encouragement for their skill level]
-
-Make instructions very clear for beginners. Include the "why" behind techniques. Address their specific limitations and fears.`;
+        RESPONSE FORMAT (must be structured markdown):
+        **Recipe Name:** [Catchy Name]
+        **Difficulty:** [1-5]/5 (auto-select based on profile)
+        **Total Time:** [e.g., 30 minutes]
+        **Why This Recipe Is Good For You:** [Explain why it fits their skill, tools, and concerns]
+        
+        **Ingredients:**
+        - [amount] [ingredient]
+        - [amount] [ingredient]
+        
+        **Instructions:**
+        1. [Clear, simple step. Explain the 'why' behind the technique.]
+        2. [Another clear step...]
+        
+        **Success Tips for Beginners:**
+        - [A tip that directly addresses one of their concerns, if applicable]
+        - [A general tip for success with this recipe]`;
 
       const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const content = response.text();
-
-      // Cache the response
-      await ResponseCacheService.setCachedResponse(
-        request,
-        content,
-        profileHash
-      );
-
-      return content;
+      return result.response.text();
     } catch (error) {
       console.error("Recipe generation error:", error);
-      throw error;
+      throw new Error("Failed to generate recipe from AI.");
     }
   }
 }

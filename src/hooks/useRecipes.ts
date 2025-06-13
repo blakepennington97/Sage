@@ -12,7 +12,6 @@ export const useRecipes = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all recipes for the user when the hook is first used
   useEffect(() => {
     if (user) {
       setIsLoading(true);
@@ -32,33 +31,22 @@ export const useRecipes = () => {
         );
         return null;
       }
-
       setIsLoading(true);
       setError(null);
-
       try {
-        // 1. Generate recipe content from AI
         const recipeContent = await geminiService.generateRecipe(request);
-
-        // 2. Extract the name for saving
         const nameMatch = recipeContent.match(/\*\*Recipe Name:\*\*\s*(.*)/);
         const recipeName = nameMatch ? nameMatch[1].trim() : request;
-
-        // 3. Save the new recipe to Supabase
         const newRecipe = await RecipeService.saveRecipe(user.id, {
           recipe_name: recipeName,
           recipe_content: recipeContent,
           recipe_request: request,
         });
-
-        // 4. Update local state
         setRecipes((prev) => [newRecipe, ...prev]);
         return newRecipe;
       } catch (err: any) {
         console.error("Recipe generation/saving failed:", err);
-        const errorMessage =
-          err.message ||
-          "An unknown error occurred. Please check your connection or API key.";
+        const errorMessage = err.message || "An unknown error occurred.";
         setError(errorMessage);
         Alert.alert("Error", errorMessage);
         return null;
