@@ -81,7 +81,7 @@ export const CookingCoachScreen: React.FC = () => {
     if (sessionId) {
       await SessionService.completeCookingSession(sessionId, rating);
     }
-    navigation.navigate("Recipes");
+    navigation.popToTop();
   };
 
   const nextStep = () => {

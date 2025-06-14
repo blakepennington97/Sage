@@ -133,6 +133,8 @@ export class RecipeService {
       recipe_name: string;
       recipe_content: string;
       recipe_request: string;
+      difficulty_level: number;
+      estimated_time: string;
     }
   ): Promise<UserRecipe> {
     const newRecipe = {

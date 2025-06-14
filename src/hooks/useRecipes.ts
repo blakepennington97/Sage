@@ -12,15 +12,23 @@ export const useRecipes = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const refetchRecipes = useCallback(async () => {
     if (user) {
       setIsLoading(true);
-      RecipeService.getUserRecipes(user.id)
-        .then(setRecipes)
-        .catch(() => setError("Could not load your recipes."))
-        .finally(() => setIsLoading(false));
+      try {
+        const data = await RecipeService.getUserRecipes(user.id);
+        setRecipes(data);
+      } catch (err) {
+        setError("Could not load your recipes.");
+      } finally {
+        setIsLoading(false);
+      }
     }
   }, [user]);
+
+  useEffect(() => {
+    refetchRecipes();
+  }, [refetchRecipes]);
 
   const generateAndSaveRecipe = useCallback(
     async (request: string) => {
@@ -36,11 +44,23 @@ export const useRecipes = () => {
       try {
         const recipeContent = await geminiService.generateRecipe(request);
         const nameMatch = recipeContent.match(/\*\*Recipe Name:\*\*\s*(.*)/);
-        const recipeName = nameMatch ? nameMatch[1].trim() : request;
+        const difficultyMatch = recipeContent.match(
+          /\*\*Difficulty:\*\*\s*(\d)/
+        );
+        const timeMatch = recipeContent.match(/\*\*Total Time:\*\*\s*(.*)/);
+
+        const recipeName = nameMatch ? nameMatch[1].trim() : "Untitled Recipe";
+        const difficultyLevel = difficultyMatch
+          ? parseInt(difficultyMatch[1], 10)
+          : 1;
+        const estimatedTime = timeMatch ? timeMatch[1].trim() : "N/A";
+
         const newRecipe = await RecipeService.saveRecipe(user.id, {
           recipe_name: recipeName,
           recipe_content: recipeContent,
           recipe_request: request,
+          difficulty_level: difficultyLevel,
+          estimated_time: estimatedTime,
         });
         setRecipes((prev) => [newRecipe, ...prev]);
         return newRecipe;
@@ -77,18 +97,15 @@ export const useRecipes = () => {
 
   const toggleFavorite = useCallback(
     async (recipeId: string, currentStatus: boolean) => {
-      // Optimistic UI update
       setRecipes((prev) =>
         prev.map((r) =>
           r.id === recipeId ? { ...r, is_favorite: !currentStatus } : r
         )
       );
-
       try {
         await RecipeService.toggleFavorite(recipeId);
       } catch (err) {
         console.error("Failed to toggle favorite:", err);
-        // Revert on failure
         setRecipes((prev) =>
           prev.map((r) =>
             r.id === recipeId ? { ...r, is_favorite: currentStatus } : r
@@ -107,5 +124,6 @@ export const useRecipes = () => {
     generateAndSaveRecipe,
     deleteRecipe,
     toggleFavorite,
+    refetchRecipes,
   };
 };

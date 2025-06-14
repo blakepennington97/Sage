@@ -113,20 +113,17 @@ export class GeminiService {
 
         ${userContext}
 
-        RESPONSE FORMAT (must be structured markdown):
+        RESPONSE FORMAT (must be structured markdown, do not add any other text or introductions):
         **Recipe Name:** [Catchy Name]
-        **Difficulty:** [1-5]/5 (auto-select based on profile)
+        **Difficulty:** [1-5]/5 (auto-select based on user's profile skill level)
         **Total Time:** [e.g., 30 minutes]
         **Why This Recipe Is Good For You:** [Explain why it fits their skill, tools, and concerns]
-        
         **Ingredients:**
         - [amount] [ingredient]
         - [amount] [ingredient]
-        
         **Instructions:**
         1. [Clear, simple step. Explain the 'why' behind the technique.]
         2. [Another clear step...]
-        
         **Success Tips for Beginners:**
         - [A tip that directly addresses one of their concerns, if applicable]
         - [A general tip for success with this recipe]`;
@@ -136,6 +133,39 @@ export class GeminiService {
     } catch (error) {
       console.error("Recipe generation error:", error);
       throw new Error("Failed to generate recipe from AI.");
+    }
+  }
+
+  public async generateGroceryList(recipeContent: string): Promise<string> {
+    await this.initialize();
+    try {
+      const prompt = `You are a helpful kitchen assistant. Analyze the following recipe content and generate a grocery list.
+
+      **Instructions:**
+      1.  Extract **only the ingredients** and their quantities from the recipe.
+      2.  Group the ingredients into logical supermarket categories (e.g., **Produce**, **Meat & Seafood**, **Dairy & Eggs**, **Pantry**, **Spices**).
+      3.  Format the output as a clean markdown list. Use bold for category titles.
+
+      **Recipe Content:**
+      """
+      ${recipeContent}
+      """
+
+      **Example Output:**
+      **Produce**
+      - 1 large onion
+      - 2 cloves garlic
+
+      **Pantry**
+      - 1 cup of rice
+      - 2 tbsp olive oil
+      `;
+
+      const result = await this.model.generateContent(prompt);
+      return result.response.text();
+    } catch (error) {
+      console.error("Grocery list generation error:", error);
+      throw new Error("Failed to generate grocery list from AI.");
     }
   }
 }

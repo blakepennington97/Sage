@@ -25,7 +25,7 @@ export const RecipeGenerationScreen: React.FC = () => {
 
   const { recipes, isLoading, error, generateAndSaveRecipe } = useRecipes();
 
-  const handleGenerateAndCook = async () => {
+  const handleGenerateRecipe = async () => {
     if (!recipeRequest.trim()) {
       HapticService.warning();
       Alert.alert("Enter Request", "Please describe what you'd like to cook.");
@@ -39,19 +39,13 @@ export const RecipeGenerationScreen: React.FC = () => {
       );
       return;
     }
-
     HapticService.medium();
-
     const newRecipe = await generateAndSaveRecipe(recipeRequest);
-
     if (newRecipe) {
       HapticService.success();
-      Alert.alert(
-        "Recipe Saved!",
-        "Your new recipe has been added to your cookbook."
-      );
       setRecipeRequest("");
-      navigation.navigate("CookingCoach", { recipe: newRecipe });
+      // Navigate to the new detail screen instead of the coach
+      navigation.navigate("RecipeDetail", { recipe: newRecipe });
     }
   };
 
@@ -82,7 +76,7 @@ export const RecipeGenerationScreen: React.FC = () => {
             styles.generateButton,
             isLoading && styles.generateButtonDisabled,
           ]}
-          onPress={handleGenerateAndCook}
+          onPress={handleGenerateRecipe}
           disabled={isLoading}
         >
           {isLoading ? (
