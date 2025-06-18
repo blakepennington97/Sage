@@ -40,6 +40,7 @@ export interface UserRecipe {
   recipe_name: string;
   recipe_content: string;
   recipe_request: string;
+  recipe_data: any;
   difficulty_level: number;
   estimated_time: string;
   is_favorite: boolean;
@@ -133,6 +134,7 @@ export class RecipeService {
       recipe_name: string;
       recipe_content: string;
       recipe_request: string;
+      recipe_data: any;
       difficulty_level: number;
       estimated_time: string;
     }

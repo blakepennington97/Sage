@@ -1,6 +1,32 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { APIKeyManager } from "./config";
 import { AuthService, ProfileService, UserProfile } from "../supabase";
+import { APIKeyManager } from "./config";
+
+export interface RecipeInstruction {
+  step: number;
+  text: string;
+}
+
+export interface RecipeIngredient {
+  amount: string;
+  name: string;
+}
+
+export interface RecipeData {
+  recipeName: string;
+  difficulty: number;
+  totalTime: string;
+  whyGood: string;
+  ingredients: RecipeIngredient[];
+  instructions: RecipeInstruction[];
+  tips: string[];
+}
+
+export interface GroceryListCategory {
+  category: string;
+  items: string[];
+}
+export type GroceryListData = GroceryListCategory[];
 
 const getSkillDescription = (profile: UserProfile): string => {
   const skillLabels: Record<string, string> = {
@@ -40,6 +66,7 @@ export interface CookingCoachResponse {
 
 export class GeminiService {
   private genAI: GoogleGenerativeAI | null = null;
+  // This model will be configured for JSON output
   private model: any = null;
 
   private async initialize(): Promise<void> {
@@ -47,7 +74,11 @@ export class GeminiService {
     const apiKey = await APIKeyManager.getGeminiKey();
     if (!apiKey) throw new Error("API key not found in settings.");
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    this.model = this.genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: { responseMimeType: "application/json" },
+    });
   }
 
   private async getUserContext(): Promise<string> {
@@ -90,12 +121,17 @@ export class GeminiService {
   ): Promise<CookingCoachResponse> {
     await this.initialize();
     try {
+      // Because our main `this.model` is in JSON mode, we create a
+      // temporary instance here for this specific text-based request.
+      const textModel = this.genAI!.getGenerativeModel({
+        model: "gemini-1.5-flash",
+      });
       const userContext = await this.getUserContext();
       const prompt = `You are Sage, a friendly and encouraging AI cooking coach. Your goal is to help beginners build confidence.
       ${userContext}
       USER MESSAGE: "${userMessage}"
       COACHING STYLE: Be encouraging, supportive, and patient. Explain techniques simply. Assume beginner knowledge. Give specific, actionable advice. Address their specific concerns and limitations based on their profile. Respond as a helpful mentor.`;
-      const result = await this.model.generateContent(prompt);
+      const result = await textModel.generateContent(prompt);
       return { message: result.response.text() };
     } catch (error) {
       console.error("Gemini API Error (getCookingAdvice):", error);
@@ -103,69 +139,58 @@ export class GeminiService {
     }
   }
 
-  public async generateRecipe(request: string): Promise<string> {
+  public async generateRecipe(request: string): Promise<RecipeData> {
     await this.initialize();
     try {
       const userContext = await this.getUserContext();
-      const prompt = `You are Sage, an AI cooking coach. Generate a beginner-friendly recipe based on the user's request, tailored to their profile.
-
+      // We can now simplify the prompt slightly as the JSON mode handles syntax.
+      const prompt = `Generate a beginner-friendly recipe based on the user's request and profile.
         USER REQUEST: "${request}"
-
         ${userContext}
-
-        RESPONSE FORMAT (must be structured markdown, do not add any other text or introductions):
-        **Recipe Name:** [Catchy Name]
-        **Difficulty:** [1-5]/5 (auto-select based on user's profile skill level)
-        **Total Time:** [e.g., 30 minutes]
-        **Why This Recipe Is Good For You:** [Explain why it fits their skill, tools, and concerns]
-        **Ingredients:**
-        - [amount] [ingredient]
-        - [amount] [ingredient]
-        **Instructions:**
-        1. [Clear, simple step. Explain the 'why' behind the technique.]
-        2. [Another clear step...]
-        **Success Tips for Beginners:**
-        - [A tip that directly addresses one of their concerns, if applicable]
-        - [A general tip for success with this recipe]`;
-
+        The JSON object must match this exact structure:
+        {
+          "recipeName": "A catchy but clear name for the recipe",
+          "difficulty": a number between 1 and 5 (1=easiest),
+          "totalTime": "string (e.g., '30 minutes')",
+          "whyGood": "A short, encouraging sentence explaining why this recipe fits the user's profile.",
+          "ingredients": [ { "amount": "string", "name": "string" } ],
+          "instructions": [ { "step": number, "text": "string" } ],
+          "tips": [ "string" ]
+        }`;
       const result = await this.model.generateContent(prompt);
-      return result.response.text();
+      // The output text is now guaranteed to be a valid JSON string.
+      return JSON.parse(result.response.text()) as RecipeData;
     } catch (error) {
       console.error("Recipe generation error:", error);
-      throw new Error("Failed to generate recipe from AI.");
+      throw new Error(
+        "Failed to generate recipe from AI. The response may not be valid JSON."
+      );
     }
   }
 
-  public async generateGroceryList(recipeContent: string): Promise<string> {
+  public async generateGroceryList(
+    recipeContent: string
+  ): Promise<GroceryListData> {
     await this.initialize();
     try {
-      const prompt = `You are a helpful kitchen assistant. Analyze the following recipe content and generate a grocery list.
-
-      **Instructions:**
-      1.  Extract **only the ingredients** and their quantities from the recipe.
-      2.  Group the ingredients into logical supermarket categories (e.g., **Produce**, **Meat & Seafood**, **Dairy & Eggs**, **Pantry**, **Spices**).
-      3.  Format the output as a clean markdown list. Use bold for category titles.
-
-      **Recipe Content:**
-      """
-      ${recipeContent}
-      """
-
-      **Example Output:**
-      **Produce**
-      - 1 large onion
-      - 2 cloves garlic
-
-      **Pantry**
-      - 1 cup of rice
-      - 2 tbsp olive oil
+      const prompt = `Analyze the recipe and generate a grocery list.
+        **Recipe Content:**
+        """
+        ${recipeContent}
+        """
+        **Required JSON Output Format:**
+        [
+          { "category": "string", "items": ["string"] }
+        ]
       `;
-
       const result = await this.model.generateContent(prompt);
-      return result.response.text();
+      // The output text is now guaranteed to be a valid JSON string.
+      return JSON.parse(result.response.text()) as GroceryListData;
     } catch (error) {
       console.error("Grocery list generation error:", error);
-      throw new Error("Failed to generate grocery list from AI.");
+      throw new Error(
+        "Failed to generate grocery list from AI. The response may not be valid JSON."
+      );
     }
   }
 }

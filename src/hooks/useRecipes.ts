@@ -1,10 +1,38 @@
-import { useState, useCallback, useEffect } from "react";
-import { useAuthStore } from "../stores/authStore";
-import { RecipeService, UserRecipe } from "../services/supabase";
-import { GeminiService } from "../services/ai";
+import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
+import {
+  GeminiService,
+  RecipeData,
+  RecipeIngredient,
+  RecipeInstruction,
+} from "../services/ai/gemini";
+import { RecipeService, UserRecipe } from "../services/supabase";
+import { useAuthStore } from "../stores/authStore";
 
 const geminiService = new GeminiService();
+
+const reconstructMarkdownFromData = (data: RecipeData): string => {
+  let content = `**Why This Recipe Is Good For You:**\n${data.whyGood}\n\n`;
+
+  content += "**Ingredients:**\n";
+  data.ingredients.forEach((ing: RecipeIngredient) => {
+    content += `- ${ing.amount} ${ing.name}\n`;
+  });
+  content += "\n";
+
+  content += "**Instructions:**\n";
+  data.instructions.forEach((inst: RecipeInstruction) => {
+    content += `${inst.step}. ${inst.text}\n`;
+  });
+  content += "\n";
+
+  content += "**Success Tips for Beginners:**\n";
+  data.tips.forEach((tip: string) => {
+    content += `- ${tip}\n`;
+  });
+
+  return content;
+};
 
 export const useRecipes = () => {
   const { user } = useAuthStore();
@@ -42,26 +70,22 @@ export const useRecipes = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const recipeContent = await geminiService.generateRecipe(request);
-        const nameMatch = recipeContent.match(/\*\*Recipe Name:\*\*\s*(.*)/);
-        const difficultyMatch = recipeContent.match(
-          /\*\*Difficulty:\*\*\s*(\d)/
-        );
-        const timeMatch = recipeContent.match(/\*\*Total Time:\*\*\s*(.*)/);
+        // 1. Get structured data from the AI
+        const recipeData = await geminiService.generateRecipe(request);
 
-        const recipeName = nameMatch ? nameMatch[1].trim() : "Untitled Recipe";
-        const difficultyLevel = difficultyMatch
-          ? parseInt(difficultyMatch[1], 10)
-          : 1;
-        const estimatedTime = timeMatch ? timeMatch[1].trim() : "N/A";
+        // 2. Reconstruct the human-readable markdown content
+        const recipeContent = reconstructMarkdownFromData(recipeData);
 
+        // 3. Save the new recipe to the database
         const newRecipe = await RecipeService.saveRecipe(user.id, {
-          recipe_name: recipeName,
+          recipe_name: recipeData.recipeName,
           recipe_content: recipeContent,
           recipe_request: request,
-          difficulty_level: difficultyLevel,
-          estimated_time: estimatedTime,
+          recipe_data: recipeData, // Save the structured JSON
+          difficulty_level: recipeData.difficulty,
+          estimated_time: recipeData.totalTime,
         });
+
         setRecipes((prev) => [newRecipe, ...prev]);
         return newRecipe;
       } catch (err: any) {

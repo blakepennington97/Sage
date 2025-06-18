@@ -40,10 +40,29 @@ export const CookingCoachScreen: React.FC = () => {
   const [helpQuestion, setHelpQuestion] = useState("");
   const [helpResponse, setHelpResponse] = useState("");
   const [isGettingHelp, setIsGettingHelp] = useState(false);
+
   const geminiService = new GeminiService();
 
   useEffect(() => {
+    // REPLACE THIS FUNCTION
     const parseRecipeSteps = () => {
+      // Prioritize structured data if it exists (for new recipes)
+      if (recipe.recipe_data && recipe.recipe_data.instructions) {
+        const parsedSteps = recipe.recipe_data.instructions.map(
+          (inst: any) => ({
+            id: inst.step,
+            instruction: inst.text,
+          })
+        );
+        setSteps(parsedSteps);
+        return;
+      }
+
+      // Fallback for older recipes without structured data
+      console.warn(
+        "Falling back to legacy recipe parsing for recipe:",
+        recipe.id
+      );
       const recipeContent = recipe.recipe_content || "";
       const lines = recipeContent.split("\n");
       const parsedSteps: CookingStep[] = [];
@@ -75,7 +94,7 @@ export const CookingCoachScreen: React.FC = () => {
 
     parseRecipeSteps();
     startSession();
-  }, [recipe.id, user]);
+  }, [recipe.id, user, recipe.recipe_content, recipe.recipe_data]);
 
   const handleSessionComplete = async (rating: number) => {
     if (sessionId) {

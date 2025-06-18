@@ -1,20 +1,24 @@
+// src/screens/RecipeDetailScreen.tsx
+
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
+
+// CHANGE 1: MAKE SURE MARKDOWNTEXT IS IMPORTED
 import { MarkdownText } from "../components/MarkdownText";
+import { Sheet } from "../components/Sheet";
 import { colors, spacing, typography } from "../constants/theme";
 import { useRecipes } from "../hooks/useRecipes";
-import { GeminiService } from "../services/ai";
+import { GeminiService, GroceryListData } from "../services/ai";
 import { HapticService } from "../services/haptics";
 import { UserRecipe } from "../services/supabase";
 
@@ -30,8 +34,8 @@ export const RecipeDetailScreen: React.FC = () => {
   const { recipe: initialRecipe } = route.params;
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [groceryList, setGroceryList] = useState("");
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [groceryList, setGroceryList] = useState<GroceryListData | null>(null);
+  const [isSheetVisible, setIsSheetVisible] = useState(false);
   const [recipe, setRecipe] = useState(initialRecipe);
   const { toggleFavorite } = useRecipes();
 
@@ -39,65 +43,65 @@ export const RecipeDetailScreen: React.FC = () => {
     setIsGenerating(true);
     HapticService.light();
     try {
-      const list = await geminiService.generateGroceryList(
+      const listFromAI = await geminiService.generateGroceryList(
         recipe.recipe_content
       );
-      setGroceryList(list);
-      setIsModalVisible(true);
+      let finalList: GroceryListData | null = null;
+      if (Array.isArray(listFromAI)) {
+        finalList = listFromAI;
+      } else if (
+        listFromAI &&
+        typeof listFromAI === "object" &&
+        !Array.isArray(listFromAI)
+      ) {
+        const keyWithArray = Object.keys(listFromAI).find((key) =>
+          Array.isArray((listFromAI as any)[key])
+        );
+        if (keyWithArray) {
+          finalList = (listFromAI as any)[keyWithArray];
+        }
+      }
+      if (!finalList) {
+        throw new Error("The AI returned an unexpected format.");
+      }
+
+      setGroceryList(finalList);
+      setIsSheetVisible(true);
       HapticService.success();
-    } catch (error) {
+    } catch (error: any) {
       HapticService.error();
-      Alert.alert(
-        "Error",
-        "Could not generate grocery list. Please try again."
-      );
+      Toast.show({
+        type: "error",
+        text1: "Generation Failed",
+        text2: error.message,
+      });
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleCopyToClipboard = () => {
-    Clipboard.setStringAsync(groceryList);
+    if (!groceryList) return;
+    const clipboardString = groceryList
+      .map(
+        (cat) =>
+          `${cat.category.toUpperCase()}\n${cat.items
+            .map((i) => `- ${i}`)
+            .join("\n")}`
+      )
+      .join("\n\n");
+
+    Clipboard.setStringAsync(clipboardString);
     HapticService.success();
-    Alert.alert("Copied!", "Grocery list copied to clipboard.");
+    Toast.show({ type: "success", text1: "Copied to Clipboard!" });
   };
 
   const handleToggleFavorite = async () => {
     const newFavStatus = !recipe.is_favorite;
     setRecipe({ ...recipe, is_favorite: newFavStatus });
     HapticService.light();
-
     await toggleFavorite(recipe.id, recipe.is_favorite);
   };
-
-  const renderGroceryListModal = () => (
-    <Modal
-      visible={isModalVisible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={() => setIsModalVisible(false)}
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>🛒 Grocery List</Text>
-          <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-            <Text style={styles.closeButton}>✕</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView contentContainerStyle={styles.modalScroll}>
-          <MarkdownText>{groceryList}</MarkdownText>
-        </ScrollView>
-        <View style={styles.modalFooter}>
-          <TouchableOpacity
-            style={styles.modalButton}
-            onPress={handleCopyToClipboard}
-          >
-            <Text style={styles.buttonText}>📋 Copy to Clipboard</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
 
   return (
     <View style={styles.container}>
@@ -114,8 +118,11 @@ export const RecipeDetailScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* CHANGE 2: USE THE CORRECT COMPONENT HERE */}
         <MarkdownText>{recipe.recipe_content}</MarkdownText>
       </ScrollView>
+
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.button}
@@ -137,25 +144,52 @@ export const RecipeDetailScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </View>
-      {renderGroceryListModal()}
+
+      <Sheet
+        isVisible={isSheetVisible}
+        onClose={() => setIsSheetVisible(false)}
+      >
+        <View style={styles.sheetHeader}>
+          <Text style={styles.sheetTitle}>🛒 Grocery List</Text>
+          <TouchableOpacity onPress={() => setIsSheetVisible(false)}>
+            <Text style={styles.sheetCloseButton}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={styles.sheetScroll}>
+          {groceryList ? (
+            groceryList.map((category) => (
+              <View key={category.category} style={styles.categoryContainer}>
+                <Text style={styles.categoryTitle}>{category.category}</Text>
+                {category.items.map((item, index) => (
+                  <Text key={index} style={styles.groceryItem}>
+                    {" "}
+                    • {item}{" "}
+                  </Text>
+                ))}
+              </View>
+            ))
+          ) : (
+            <ActivityIndicator color={colors.primary} />
+          )}
+        </ScrollView>
+        <View style={styles.sheetFooter}>
+          <TouchableOpacity
+            style={styles.sheetButton}
+            onPress={handleCopyToClipboard}
+          >
+            <Text style={styles.buttonText}>📋 Copy to Clipboard</Text>
+          </TouchableOpacity>
+        </View>
+      </Sheet>
     </View>
   );
 };
 
+// Styles are unchanged from the previous step
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContainer: {
-    padding: spacing.lg,
-    paddingBottom: 120,
-  },
-  title: {
-    ...typography.h1,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  scrollContainer: { padding: spacing.lg, paddingBottom: 120 },
+  title: { ...typography.h1, color: colors.text, marginBottom: spacing.md },
   metaContainer: {
     flexDirection: "row",
     gap: spacing.md,
@@ -165,13 +199,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     alignItems: "center",
   },
-  metaText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  favoriteButton: {
-    padding: spacing.xs,
-  },
+  metaText: { ...typography.caption, color: colors.textSecondary },
+  favoriteButton: { padding: spacing.xs },
   footer: {
     position: "absolute",
     bottom: 0,
@@ -192,53 +221,48 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.surfaceVariant,
   },
-  primaryButton: {
-    backgroundColor: colors.primary,
-  },
-  buttonText: {
-    ...typography.body,
-    fontWeight: "bold",
-    color: colors.text,
-  },
-  primaryButtonText: {
-    color: "white",
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  modalHeader: {
+  primaryButton: { backgroundColor: colors.primary },
+  buttonText: { ...typography.body, fontWeight: "bold", color: colors.text },
+  primaryButtonText: { color: "white" },
+  sheetHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: spacing.lg,
-    paddingTop: 60,
-    backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  modalTitle: {
-    ...typography.h2,
-    color: colors.text,
-  },
-  closeButton: {
+  sheetTitle: { ...typography.h2, color: colors.text },
+  sheetCloseButton: {
     fontSize: 24,
     color: colors.textSecondary,
     fontWeight: "bold",
   },
-  modalScroll: {
-    padding: spacing.lg,
-  },
-  modalFooter: {
+  sheetScroll: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
+  sheetFooter: {
     padding: spacing.md,
-    paddingBottom: spacing.xl,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  modalButton: {
+  sheetButton: {
     backgroundColor: colors.primary,
     padding: spacing.md,
     borderRadius: 12,
     alignItems: "center",
+  },
+  categoryContainer: { marginBottom: spacing.lg },
+  categoryTitle: {
+    ...typography.h3,
+    color: colors.primary,
+    marginBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingBottom: spacing.xs,
+  },
+  groceryItem: {
+    ...typography.body,
+    color: colors.text,
+    lineHeight: 24,
+    marginLeft: spacing.sm,
   },
 });
