@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, TouchableOpacity } from 'react-native';
-import { Box, Text, Button, Card } from './ui';
+import { Box, Text, Button, Card, Slider } from './ui';
 import { Sheet } from './Sheet';
 import { useUserPreferences } from '../hooks/useUserPreferences';
 
@@ -504,37 +504,19 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
                   <Text variant="body" flex={1}>{label}</Text>
                   <Text variant="body" fontWeight="600">{currentLevel}/5</Text>
                 </Box>
-                <Box flexDirection="row" gap="xs">
-                  {[1, 2, 3, 4, 5].map((level) => (
-                    <TouchableOpacity
-                      key={level}
-                      onPress={() => updateKitchenCapabilities({
-                        techniqueComfort: {
-                          ...preferences?.kitchenCapabilities.techniqueComfort,
-                          [key]: level
-                        }
-                      })}
-                      style={{ flex: 1 }}
-                    >
-                      <Box
-                        height={36}
-                        backgroundColor={level <= currentLevel ? "primary" : "surface"}
-                        borderRadius="sm"
-                        alignItems="center"
-                        justifyContent="center"
-                        borderWidth={1}
-                        borderColor={level <= currentLevel ? "primary" : "border"}
-                      >
-                        <Text
-                          variant="body"
-                          color={level <= currentLevel ? "primaryButtonText" : "primaryText"}
-                          fontWeight="600"
-                        >
-                          {level}
-                        </Text>
-                      </Box>
-                    </TouchableOpacity>
-                  ))}
+                <Box alignItems="center" marginTop="sm">
+                  <Slider
+                    value={currentLevel}
+                    onValueChange={(level) => updateKitchenCapabilities({
+                      techniqueComfort: {
+                        ...preferences?.kitchenCapabilities.techniqueComfort,
+                        [key]: level
+                      }
+                    })}
+                    minimumValue={1}
+                    maximumValue={5}
+                    step={1}
+                  />
                 </Box>
               </Box>
             );

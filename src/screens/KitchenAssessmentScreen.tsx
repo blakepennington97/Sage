@@ -447,8 +447,8 @@ export const KitchenAssessmentScreen: React.FC = () => {
           onPress={handleNextPress}
           disabled={!canProceed()}
         >
-          <Text style={styles.nextButtonText}>
-            {currentStep === totalSteps - 1 ? "Start Cooking!" : "Next"}
+          <Text style={styles.nextButtonText} numberOfLines={1}>
+            {currentStep === totalSteps - 1 ? "🔥 Start Cooking!" : "Next"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -707,5 +707,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+    textAlign: "center",
   },
 });

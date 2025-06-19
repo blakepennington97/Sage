@@ -85,3 +85,4 @@ export const Input = createRestyleComponent<InputProps, Theme>([
 // Re-export utility components
 export { LoadingSpinner } from './LoadingSpinner';
 export { ErrorMessage } from './ErrorMessage';
+export { Slider } from './Slider';

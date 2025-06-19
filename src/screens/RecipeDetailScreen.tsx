@@ -199,7 +199,9 @@ export const RecipeDetailScreen: React.FC = () => {
           {isGenerating ? (
             <ActivityIndicator color={theme.colors.primary} />
           ) : (
-            <Text variant="button" color="primaryText">🛒 Grocery List</Text>
+            <Text variant="button" color="primaryText" numberOfLines={1} textAlign="center">
+              🛒 Grocery List
+            </Text>
           )}
         </Button>
         
@@ -208,7 +210,9 @@ export const RecipeDetailScreen: React.FC = () => {
           flex={1}
           onPress={() => navigation.navigate("CookingCoach", { recipe })}
         >
-          <Text variant="button" color="primaryButtonText">🔥 Start Cooking</Text>
+          <Text variant="button" color="primaryButtonText" numberOfLines={1} textAlign="center">
+            🔥 Start Cooking
+          </Text>
         </Button>
       </Box>
 
@@ -260,7 +264,9 @@ export const RecipeDetailScreen: React.FC = () => {
           
           <Box marginTop="lg">
             <Button variant="primary" onPress={handleCopyToClipboard}>
-              <Text variant="button" color="primaryButtonText">📋 Copy to Clipboard</Text>
+              <Text variant="button" color="primaryButtonText" numberOfLines={1} textAlign="center">
+                📋 Copy to Clipboard
+              </Text>
             </Button>
           </Box>
         </Box>

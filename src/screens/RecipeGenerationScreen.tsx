@@ -59,9 +59,27 @@ export const RecipeGenerationScreen: React.FC = () => {
   const renderRecipeInput = () => {
     const quickSuggestions = [
       "Easy pasta dinner",
-      "Healthy 15-minute lunch",
+      "Healthy 15-minute lunch", 
       "Comfort food dessert",
     ];
+
+    const handleSmartSuggestion = () => {
+      const suggestions = [
+        "A quick and healthy weeknight dinner using whatever vegetables I have",
+        "Something comforting and warm for a cozy evening",
+        "A simple one-pot meal that won't make too many dishes",
+        "A nutritious lunch I can make in under 20 minutes",
+        "An impressive dish that's easier than it looks",
+        "Something with bold flavors to try a new cuisine",
+        "A filling breakfast that will give me energy for the day",
+        "A light and fresh meal perfect for today's weather",
+        "Something I can meal prep for the week ahead",
+        "A satisfying dinner using pantry staples I probably have"
+      ];
+      
+      const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+      setRecipeRequest(randomSuggestion);
+    };
     return (
       <View style={styles.inputSection}>
         <TextInput
@@ -71,6 +89,16 @@ export const RecipeGenerationScreen: React.FC = () => {
           placeholder="e.g., 'A simple chicken dish with rice for a beginner...'"
           multiline
         />
+        
+        {/* Smart Suggestion Button */}
+        {!recipeRequest && (
+          <TouchableOpacity
+            style={styles.suggestionButton}
+            onPress={handleSmartSuggestion}
+          >
+            <Text style={styles.suggestionButtonText}>✨ Suggest me something</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={[
             styles.generateButton,
@@ -188,6 +216,21 @@ const styles = StyleSheet.create({
   },
   generateButtonDisabled: { backgroundColor: colors.disabled },
   generateButtonText: { color: colors.text, fontSize: 18, fontWeight: "bold" },
+  suggestionButton: {
+    backgroundColor: colors.surface,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: borderRadius.md,
+    alignItems: "center",
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  suggestionButtonText: { 
+    color: colors.primary, 
+    fontSize: 16, 
+    fontWeight: "600" 
+  },
   suggestionChip: {
     backgroundColor: colors.surfaceVariant,
     paddingHorizontal: 16,

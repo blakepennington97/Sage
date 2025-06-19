@@ -25,18 +25,39 @@ const AppStack = createStackNavigator(); // New main stack
 const Tab = createBottomTabNavigator();
 
 const AuthNavigator = () => (
-  <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+  <AuthStack.Navigator 
+    screenOptions={{ 
+      headerShown: false,
+      gestureEnabled: true,
+      gestureDirection: 'horizontal',
+    }}
+  >
     <AuthStack.Screen name="Login" component={LoginScreen} />
-    <AuthStack.Screen name="SignUp" component={SignUpScreen} />
+    <AuthStack.Screen 
+      name="SignUp" 
+      component={SignUpScreen}
+      options={{
+        gestureEnabled: true,
+      }}
+    />
   </AuthStack.Navigator>
 );
 
 const OnboardingNavigator = () => (
-  <OnboardingStack.Navigator screenOptions={{ headerShown: false }}>
+  <OnboardingStack.Navigator 
+    screenOptions={{ 
+      headerShown: false,
+      gestureEnabled: true,
+      gestureDirection: 'horizontal',
+    }}
+  >
     <OnboardingStack.Screen name="Skills" component={SkillEvaluationScreen} />
     <OnboardingStack.Screen
       name="Kitchen"
       component={KitchenAssessmentScreen}
+      options={{
+        gestureEnabled: true,
+      }}
     />
   </OnboardingStack.Navigator>
 );
@@ -74,15 +95,64 @@ const MainTabs = () => (
 
 // This is the main App Navigator after login
 const AppNavigator = () => (
-  <AppStack.Navigator screenOptions={{ headerShown: false }}>
+  <AppStack.Navigator 
+    screenOptions={{ 
+      headerShown: false,
+      gestureEnabled: true,
+      gestureDirection: 'horizontal',
+    }}
+  >
     <AppStack.Screen name="Main" component={MainTabs} />
-    <AppStack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+    <AppStack.Screen 
+      name="RecipeDetail" 
+      component={RecipeDetailScreen}
+      options={{
+        headerShown: true,
+        title: "Recipe Details",
+        headerStyle: {
+          backgroundColor: colors.surface,
+        },
+        headerTintColor: colors.text,
+        headerTitleStyle: {
+          color: colors.text,
+        },
+        gestureEnabled: true,
+      }}
+    />
     <AppStack.Screen
       name="RecipeGeneration"
       component={RecipeGenerationScreen}
-      options={{ presentation: "modal" }} // Present as a modal
+      options={{ 
+        presentation: "modal",
+        headerShown: true,
+        title: "Generate Recipe",
+        headerStyle: {
+          backgroundColor: colors.surface,
+        },
+        headerTintColor: colors.text,
+        headerTitleStyle: {
+          color: colors.text,
+        },
+        gestureEnabled: true,
+        gestureDirection: 'vertical',
+      }}
     />
-    <AppStack.Screen name="CookingCoach" component={CookingCoachScreen} />
+    <AppStack.Screen 
+      name="CookingCoach" 
+      component={CookingCoachScreen}
+      options={{
+        headerShown: true,
+        title: "Cooking Guide",
+        headerStyle: {
+          backgroundColor: colors.surface,
+        },
+        headerTintColor: colors.text,
+        headerTitleStyle: {
+          color: colors.text,
+        },
+        gestureEnabled: true,
+      }}
+    />
   </AppStack.Navigator>
 );
 

@@ -15,6 +15,7 @@ import { useUserProfile } from "../hooks/useUserProfile";
 import { HapticService } from "../services/haptics";
 import { colors, typography } from "../constants/theme";
 import { OnboardingStackParamList } from "../types/navigation";
+import { Box, Slider } from "../components/ui";
 
 type SkillEvaluationNavigationProp = StackNavigationProp<
   OnboardingStackParamList,
@@ -116,7 +117,6 @@ export const SkillEvaluationScreen: React.FC = () => {
           overallConfidence: confidence,
         });
         HapticService.success();
-        navigation.navigate("Kitchen");
       } catch (error) {
         HapticService.error();
         Alert.alert("Error", "Could not save your skills. Please try again.");
@@ -231,35 +231,22 @@ export const SkillEvaluationScreen: React.FC = () => {
         On a scale of 1-5, where do you see yourself?
       </Text>
 
-      <View style={styles.confidenceContainer}>
-        <View style={styles.confidenceScale}>
-          {[1, 2, 3, 4, 5].map((level) => (
-            <TouchableOpacity
-              key={level}
-              style={[
-                styles.confidenceButton,
-                confidence === level && styles.confidenceButtonSelected,
-              ]}
-              onPress={() => setConfidence(level)}
-            >
-              <Text
-                style={[
-                  styles.confidenceNumber,
-                  confidence === level && styles.confidenceNumberSelected,
-                ]}
-              >
-                {level}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+      <Box marginVertical="lg" alignItems="center">
+        <Slider
+          value={confidence}
+          onValueChange={(value) => {
+            setConfidence(value);
+            HapticService.light();
+          }}
+          minimumValue={1}
+          maximumValue={5}
+          step={1}
+          showLabels={true}
+          labels={["😰 Nervous", "", "", "", "😊 Excited"]}
+        />
+      </Box>
 
-        <View style={styles.confidenceLabels}>
-          <Text style={styles.confidenceLabel}>😰 Nervous</Text>
-          <Text style={styles.confidenceLabel}>😊 Excited</Text>
-        </View>
-
-        <View style={styles.confidenceDescription}>
+      <View style={styles.confidenceDescription}>
           {confidence <= 2 && (
             <Text style={styles.confidenceDescText}>
               No worries! I'll start with the absolute basics and build your
@@ -279,7 +266,6 @@ export const SkillEvaluationScreen: React.FC = () => {
             </Text>
           )}
         </View>
-      </View>
     </View>
   );
 
