@@ -174,3 +174,47 @@ src/
 ## Business Context
 
 The app targets "kitchen anxious" users transitioning from takeout to home cooking. Features include personalized recipe generation, step-by-step cooking guidance, and skill development tracking. The freemium model offers 2 free guided sessions per week, with premium unlimited access at $9.99/month.
+
+## Post-Launch Technical Requirements
+
+### Navigation Patterns
+- **Standard App Gestures**: Implement iOS/Android standard swipe-back navigation
+- **Header Navigation**: Proper back button handling in stack navigators
+- **Route Management**: Ensure all navigation routes are properly registered
+- **Error Recovery**: Graceful handling of navigation errors without app crashes
+
+### API Key Management (Production)
+- **Centralized Management**: Move from user-managed to app-managed Gemini API keys
+- **Secure Storage**: Store API keys in backend service, not client-side
+- **Rate Limiting**: Implement proper API usage controls and monitoring
+- **Cost Management**: Track and optimize API usage across user base
+
+### AI Response Caching Strategy
+- **Intelligent Caching**: Cache responses based on recipe similarity and user preferences
+- **Cache Invalidation**: Smart cache management based on user preference changes
+- **Cost Optimization**: Reuse appropriate cached responses to reduce API calls
+- **Quality Maintenance**: Ensure cached responses maintain personalization quality
+
+### Responsive UI Patterns
+- **Dynamic Sizing**: Components that adapt to different screen sizes and orientations
+- **Text Wrapping**: Proper text constraints to prevent UI breaking
+- **Layout Flexibility**: Use of flex and responsive design principles
+- **Safe Area Handling**: Proper handling of device notches and navigation bars
+
+### Cost Calculation Services
+- **Geographic Pricing**: Location-based ingredient cost estimation
+- **AI Cost Analysis**: Use AI to calculate dish costs and savings
+- **Tracking Dashboard**: User profile integration for savings visualization
+- **Comparison Logic**: Restaurant vs home cooking cost comparisons
+
+### Enhanced User Input Patterns
+- **Custom Preference Options**: Allow users to add custom cuisines, ingredients, appliances
+- **Smart Suggestions**: AI-powered recipe inspiration based on user context
+- **Direct Generation Flow**: Recipe generation integrated into all relevant contexts
+- **Progressive Disclosure**: Advanced options available without overwhelming new users
+
+### Modern UI Components
+- **Slider Components**: Replace button arrays with modern slider interfaces
+- **Gesture Support**: Touch-friendly interactions with proper hit targets
+- **Loading States**: Skeleton screens and progressive loading patterns
+- **Error Boundaries**: Comprehensive error handling with recovery options
