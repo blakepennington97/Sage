@@ -1,7 +1,7 @@
 // src/components/AuthWrapper.tsx
 
 import React, { useEffect } from "react";
-import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
+import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { AuthService, ProfileService } from "../services/supabase";
@@ -16,6 +16,7 @@ import { RecipeBookScreen } from "../screens/RecipeBookScreen"; // Import new sc
 import { RecipeDetailScreen } from "../screens/RecipeDetailScreen"; // Import new screen
 import { colors, spacing, typography } from "../constants/theme";
 import { useAuthStore } from "../stores/authStore";
+import { Text } from "./ui";
 
 const AuthStack = createStackNavigator();
 const OnboardingStack = createStackNavigator();
@@ -55,12 +56,12 @@ const MainTabs = () => (
     <Tab.Screen
       name="RecipeBook"
       component={RecipeBookScreen} // The new home screen
-      options={{ tabBarIcon: () => <Text>📚</Text>, title: "Recipes" }}
+      options={{ tabBarIcon: () => <Text variant="body">📚</Text>, title: "Recipes" }}
     />
     <Tab.Screen
       name="Settings"
       component={SettingsScreen}
-      options={{ tabBarIcon: () => <Text>⚙️</Text>, title: "Settings" }}
+      options={{ tabBarIcon: () => <Text variant="body">⚙️</Text>, title: "Settings" }}
     />
   </Tab.Navigator>
 );
@@ -122,7 +123,7 @@ export const AuthWrapper: React.FC = () => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.logo}>🧠 Sage</Text>
+        <Text variant="h1" style={styles.logo}>🧠 Sage</Text>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -136,7 +137,7 @@ export const AuthWrapper: React.FC = () => {
     return isProfileLoading ? (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading your profile...</Text>
+        <Text variant="body" style={styles.loadingText}>Loading your profile...</Text>
       </View>
     ) : (
       <OnboardingNavigator />
