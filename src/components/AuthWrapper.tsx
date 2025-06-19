@@ -55,7 +55,7 @@ const MainTabs = () => (
     <Tab.Screen
       name="RecipeBook"
       component={RecipeBookScreen} // The new home screen
-      options={{ tabBarIcon: () => <Text>📚</Text>, title: "Recipe Book" }}
+      options={{ tabBarIcon: () => <Text>📚</Text>, title: "Recipes" }}
     />
     <Tab.Screen
       name="Settings"

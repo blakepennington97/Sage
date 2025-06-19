@@ -36,7 +36,7 @@ export const RecipeBookScreen: React.FC = () => {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.title}>📚 My Recipe Book</Text>
+      <Text style={styles.title}>📚 Recipes</Text>
     </View>
   );
 

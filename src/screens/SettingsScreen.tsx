@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
   Alert,
   ScrollView,
   ActivityIndicator,
@@ -14,11 +9,14 @@ import { useAuthStore } from "../stores/authStore";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { AuthService } from "../services/supabase";
 import { HapticService } from "../services/haptics";
-import { colors, typography } from "../constants/theme";
+import { Box, Text, Button, Input, Card } from "../components/ui";
+import { useTheme } from "@shopify/restyle";
+import { Theme } from "../constants/restyleTheme";
 
 export const SettingsScreen: React.FC = () => {
   const { user } = useAuthStore();
   const { updateProfile, isLoading: isProfileLoading } = useUserProfile();
+  const theme = useTheme<Theme>();
 
   const [apiKey, setApiKey] = useState("");
   const [hasKey, setHasKey] = useState(false);
@@ -92,170 +90,107 @@ export const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>⚙️ Settings</Text>
-      </View>
-      <ScrollView style={styles.content}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <Text style={styles.emailText}>{user?.email}</Text>
-          <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-            <Text style={styles.buttonText}>Sign Out</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cooking Profile</Text>
-          <TouchableOpacity
-            style={[styles.button, styles.dangerButton]}
+    <Box flex={1} backgroundColor="mainBackground">
+      <Box 
+        backgroundColor="primary" 
+        padding="lg" 
+        paddingTop="xxl"
+      >
+        <Text 
+          variant="h2" 
+          color="primaryButtonText" 
+          textAlign="center"
+        >
+          ⚙️ Settings
+        </Text>
+      </Box>
+      
+      <ScrollView style={{ flex: 1, padding: 20 }}>
+        <Card variant="primary" marginBottom="lg">
+          <Text variant="h3" marginBottom="sm">Account</Text>
+          <Text 
+            variant="body" 
+            color="secondaryText" 
+            marginBottom="md"
+          >
+            {user?.email}
+          </Text>
+          <Button variant="secondary" onPress={handleSignOut}>
+            <Text variant="button" color="primaryText">
+              Sign Out
+            </Text>
+          </Button>
+        </Card>
+
+        <Card variant="primary" marginBottom="lg">
+          <Text variant="h3" marginBottom="sm">Cooking Profile</Text>
+          <Button 
+            variant="danger" 
+            marginTop="sm"
             onPress={resetProfile}
             disabled={isProfileLoading}
           >
             {isProfileLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Reset Profile & Onboarding</Text>
+              <Text variant="button" color="dangerButtonText">
+                Reset Profile & Onboarding
+              </Text>
             )}
-          </TouchableOpacity>
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Gemini API Key</Text>
-          <Text style={styles.statusText}>
+          </Button>
+        </Card>
+
+        <Card variant="primary" marginBottom="lg">
+          <Text variant="h3" marginBottom="sm">Gemini API Key</Text>
+          <Text 
+            variant="body" 
+            fontWeight="600" 
+            marginBottom="md"
+            color={hasKey ? "success" : "error"}
+          >
             {hasKey ? "✅ API Key Configured" : "❌ No API Key"}
           </Text>
           {!hasKey ? (
-            <>
-              <TextInput
-                style={styles.input}
+            <Box>
+              <Input
+                backgroundColor="surface"
+                borderRadius="md"
+                padding="md"
+                fontSize={16}
+                color="text"
+                borderWidth={1}
+                borderColor="border"
+                marginBottom="md"
+                placeholder="Paste your key here"
+                placeholderTextColor={theme.colors.textSecondary}
                 value={apiKey}
                 onChangeText={setApiKey}
-                placeholder="Paste your key here"
                 secureTextEntry
               />
-              <TouchableOpacity
-                style={[styles.button, styles.saveButton]}
+              <Button
+                variant="primary"
                 onPress={saveApiKey}
                 disabled={isKeyLoading}
               >
                 {isKeyLoading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>Save API Key</Text>
+                  <Text variant="button" color="primaryButtonText">
+                    Save API Key
+                  </Text>
                 )}
-              </TouchableOpacity>
-            </>
+              </Button>
+            </Box>
           ) : (
-            <TouchableOpacity
-              style={[styles.button, styles.dangerButton]}
-              onPress={removeApiKey}
-            >
-              <Text style={styles.buttonText}>Remove API Key</Text>
-            </TouchableOpacity>
+            <Button variant="danger" onPress={removeApiKey}>
+              <Text variant="button" color="dangerButtonText">
+                Remove API Key
+              </Text>
+            </Button>
           )}
-        </View>
+        </Card>
       </ScrollView>
-    </View>
+    </Box>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-  },
-  header: {
-    backgroundColor: "#4CAF50",
-    padding: 20,
-    paddingTop: 60,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "white",
-    textAlign: "center",
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  section: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 10,
-    color: "#333",
-  },
-  description: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 15,
-    lineHeight: 20,
-  },
-  statusContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  statusLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-  },
-  statusText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  statusActive: {
-    color: "#4CAF50",
-  },
-  statusInactive: {
-    color: "#f44336",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 15,
-  },
-  button: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  saveButton: {
-    backgroundColor: "#4CAF50",
-  },
-  removeButton: {
-    backgroundColor: "#f44336",
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  helpTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 10,
-    color: "#333",
-  },
-  helpText: {
-    fontSize: 14,
-    color: "#666",
-    lineHeight: 20,
-  },
-  emailText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: 15,
-  },
-  dangerButton: { backgroundColor: colors.error, marginTop: 10 }
-});
