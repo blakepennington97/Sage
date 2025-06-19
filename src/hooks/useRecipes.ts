@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { Alert } from "react-native";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   GeminiService,
   RecipeData,
@@ -34,29 +35,66 @@ const reconstructMarkdownFromData = (data: RecipeData): string => {
   return content;
 };
 
+// Query Keys
+const QUERY_KEYS = {
+  recipes: (userId: string) => ['recipes', userId],
+} as const;
+
 export const useRecipes = () => {
   const { user } = useAuthStore();
-  const [recipes, setRecipes] = useState<UserRecipe[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const refetchRecipes = useCallback(async () => {
-    if (user) {
-      setIsLoading(true);
-      try {
-        const data = await RecipeService.getUserRecipes(user.id);
-        setRecipes(data);
-      } catch (err) {
-        setError("Could not load your recipes.");
-      } finally {
-        setIsLoading(false);
+  // Fetch recipes with TanStack Query
+  const {
+    data: recipes = [],
+    isLoading,
+    error,
+    refetch: refetchRecipes,
+  } = useQuery({
+    queryKey: QUERY_KEYS.recipes(user?.id || ''),
+    queryFn: () => RecipeService.getUserRecipes(user!.id),
+    enabled: !!user, // Only run query if user exists
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Generate and save recipe mutation
+  const generateRecipeMutation = useMutation({
+    mutationFn: async (request: string) => {
+      if (!user) {
+        throw new Error("User must be authenticated");
       }
-    }
-  }, [user]);
 
-  useEffect(() => {
-    refetchRecipes();
-  }, [refetchRecipes]);
+      // 1. Get structured data from the AI
+      const recipeData = await geminiService.generateRecipe(request);
+
+      // 2. Reconstruct the human-readable markdown content
+      const recipeContent = reconstructMarkdownFromData(recipeData);
+
+      // 3. Save the new recipe to the database
+      const newRecipe = await RecipeService.saveRecipe(user.id, {
+        recipe_name: recipeData.recipeName,
+        recipe_content: recipeContent,
+        recipe_request: request,
+        recipe_data: recipeData,
+        difficulty_level: recipeData.difficulty,
+        estimated_time: recipeData.totalTime,
+      });
+
+      return newRecipe;
+    },
+    onSuccess: (newRecipe) => {
+      // Optimistically update the cache
+      queryClient.setQueryData(
+        QUERY_KEYS.recipes(user!.id),
+        (oldData: UserRecipe[] = []) => [newRecipe, ...oldData]
+      );
+    },
+    onError: (error: any) => {
+      console.error("Recipe generation/saving failed:", error);
+      const errorMessage = error.message || "An unknown error occurred.";
+      Alert.alert("Error", errorMessage);
+    },
+  });
 
   const generateAndSaveRecipe = useCallback(
     async (request: string) => {
@@ -67,87 +105,102 @@ export const useRecipes = () => {
         );
         return null;
       }
-      setIsLoading(true);
-      setError(null);
+
       try {
-        // 1. Get structured data from the AI
-        const recipeData = await geminiService.generateRecipe(request);
-
-        // 2. Reconstruct the human-readable markdown content
-        const recipeContent = reconstructMarkdownFromData(recipeData);
-
-        // 3. Save the new recipe to the database
-        const newRecipe = await RecipeService.saveRecipe(user.id, {
-          recipe_name: recipeData.recipeName,
-          recipe_content: recipeContent,
-          recipe_request: request,
-          recipe_data: recipeData, // Save the structured JSON
-          difficulty_level: recipeData.difficulty,
-          estimated_time: recipeData.totalTime,
-        });
-
-        setRecipes((prev) => [newRecipe, ...prev]);
-        return newRecipe;
-      } catch (err: any) {
-        console.error("Recipe generation/saving failed:", err);
-        const errorMessage = err.message || "An unknown error occurred.";
-        setError(errorMessage);
-        Alert.alert("Error", errorMessage);
+        return await generateRecipeMutation.mutateAsync(request);
+      } catch {
         return null;
-      } finally {
-        setIsLoading(false);
       }
     },
-    [user]
+    [user, generateRecipeMutation]
   );
 
-  const deleteRecipe = useCallback(
-    async (recipeId: string) => {
-      // Optimistic UI update
-      const originalRecipes = recipes;
-      setRecipes((prev) => prev.filter((r) => r.id !== recipeId));
+  // Delete recipe mutation
+  const deleteRecipeMutation = useMutation({
+    mutationFn: (recipeId: string) => RecipeService.deleteRecipe(recipeId),
+    onMutate: async (recipeId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.recipes(user!.id) });
 
-      try {
-        await RecipeService.deleteRecipe(recipeId);
-      } catch (err) {
-        console.error("Failed to delete recipe:", err);
-        // Revert if API call fails
-        setRecipes(originalRecipes);
-        Alert.alert("Error", "Could not delete the recipe. Please try again.");
-      }
+      // Snapshot the previous value
+      const previousRecipes = queryClient.getQueryData(QUERY_KEYS.recipes(user!.id));
+
+      // Optimistically update
+      queryClient.setQueryData(
+        QUERY_KEYS.recipes(user!.id),
+        (oldData: UserRecipe[] = []) => oldData.filter((r) => r.id !== recipeId)
+      );
+
+      return { previousRecipes };
     },
-    [recipes]
+    onError: (err, recipeId, context) => {
+      // Revert on error
+      queryClient.setQueryData(QUERY_KEYS.recipes(user!.id), context?.previousRecipes);
+      Alert.alert("Error", "Could not delete the recipe. Please try again.");
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.recipes(user!.id) });
+    },
+  });
+
+  // Toggle favorite mutation
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: ({ recipeId }: { recipeId: string; currentStatus: boolean }) => RecipeService.toggleFavorite(recipeId),
+    onMutate: async ({ recipeId, currentStatus }: { recipeId: string; currentStatus: boolean }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.recipes(user!.id) });
+
+      // Snapshot the previous value
+      const previousRecipes = queryClient.getQueryData(QUERY_KEYS.recipes(user!.id));
+
+      // Optimistically update
+      queryClient.setQueryData(
+        QUERY_KEYS.recipes(user!.id),
+        (oldData: UserRecipe[] = []) =>
+          oldData.map((r) =>
+            r.id === recipeId ? { ...r, is_favorite: !currentStatus } : r
+          )
+      );
+
+      return { previousRecipes };
+    },
+    onError: (err, variables, context) => {
+      // Revert on error
+      queryClient.setQueryData(QUERY_KEYS.recipes(user!.id), context?.previousRecipes);
+      Alert.alert("Error", "Could not update favorite status.");
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.recipes(user!.id) });
+    },
+  });
+
+  const deleteRecipe = useCallback(
+    (recipeId: string) => {
+      deleteRecipeMutation.mutate(recipeId);
+    },
+    [deleteRecipeMutation]
   );
 
   const toggleFavorite = useCallback(
-    async (recipeId: string, currentStatus: boolean) => {
-      setRecipes((prev) =>
-        prev.map((r) =>
-          r.id === recipeId ? { ...r, is_favorite: !currentStatus } : r
-        )
-      );
-      try {
-        await RecipeService.toggleFavorite(recipeId);
-      } catch (err) {
-        console.error("Failed to toggle favorite:", err);
-        setRecipes((prev) =>
-          prev.map((r) =>
-            r.id === recipeId ? { ...r, is_favorite: currentStatus } : r
-          )
-        );
-        Alert.alert("Error", "Could not update favorite status.");
-      }
+    (recipeId: string, currentStatus: boolean) => {
+      toggleFavoriteMutation.mutate({ recipeId, currentStatus });
     },
-    []
+    [toggleFavoriteMutation]
   );
 
   return {
     recipes,
-    isLoading,
-    error,
+    isLoading: isLoading || generateRecipeMutation.isPending,
+    error: error?.message || null,
     generateAndSaveRecipe,
     deleteRecipe,
     toggleFavorite,
     refetchRecipes,
+    // Additional loading states for specific operations
+    isGenerating: generateRecipeMutation.isPending,
+    isDeleting: deleteRecipeMutation.isPending,
+    isTogglingFavorite: toggleFavoriteMutation.isPending,
   };
 };

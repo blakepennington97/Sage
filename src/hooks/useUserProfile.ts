@@ -1,34 +1,36 @@
 import { useCallback } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/authStore";
 import { ProfileService, UserProfile } from "../services/supabase";
 
 export const useUserProfile = () => {
-  const { user, setProfile, setProfileLoading, isProfileLoading } =
-    useAuthStore();
+  const { user, setProfile, profile, isProfileLoading } = useAuthStore();
+  const queryClient = useQueryClient();
 
-  const updateProfile = useCallback(
-    async (
-      updates: Partial<Omit<UserProfile, "id" | "email" | "created_at">>
-    ) => {
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updates: Partial<Omit<UserProfile, "id" | "email" | "created_at">>) => {
       if (!user) {
         throw new Error("User not authenticated");
       }
-      setProfileLoading(true);
-      try {
-        const updatedProfile = await ProfileService.updateProfile(
-          user.id,
-          updates
-        );
-        setProfile(updatedProfile);
-        return updatedProfile;
-      } catch (error) {
-        console.error("Failed to update profile:", error);
-        throw error;
-      } finally {
-        setProfileLoading(false);
-      }
+      return await ProfileService.updateProfile(user.id, updates);
     },
-    [user, setProfile, setProfileLoading]
+    onSuccess: (updatedProfile) => {
+      // Update Zustand store
+      setProfile(updatedProfile);
+      // Invalidate any profile-related queries if we add them later
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+    },
+    onError: (error) => {
+      console.error("Failed to update profile:", error);
+    },
+  });
+
+  const updateProfile = useCallback(
+    async (updates: Partial<Omit<UserProfile, "id" | "email" | "created_at">>) => {
+      return await updateProfileMutation.mutateAsync(updates);
+    },
+    [updateProfileMutation]
   );
 
   const completeSkillAssessment = async (data: {
@@ -61,10 +63,12 @@ export const useUserProfile = () => {
   };
 
   return {
-    profile: useAuthStore.getState().profile,
-    isLoading: isProfileLoading,
+    profile,
+    isLoading: isProfileLoading || updateProfileMutation.isPending,
     updateProfile,
     completeSkillAssessment,
     completeKitchenAssessment,
+    // Additional loading state for profile operations
+    isUpdating: updateProfileMutation.isPending,
   };
 };
