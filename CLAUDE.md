@@ -19,12 +19,14 @@ npm run android    # Android development
 
 # Code quality
 npm run lint       # Run ESLint
+npx tsc --noEmit   # TypeScript compilation check
 ```
 
-### Testing on Device
-- Install Expo Go app on iOS device
-- Scan QR code from development server
-- Requires physical iOS device (currently iOS-first development)
+### Development Workflow
+1. **Always run TypeScript check** before committing: `npx tsc --noEmit`
+2. **Test on device**: Use Expo Go app on iOS device (scan QR code)
+3. **At checkpoints**: Update documentation, commit changes, clear context
+
 
 ## Environment Setup
 
@@ -50,16 +52,20 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 - **Backend**: Supabase (PostgreSQL + Auth)
 - **AI Service**: Google Gemini (gemini-1.5-flash model)
 - **Navigation**: React Navigation v7 (Stack + Bottom Tabs)
+- **Theming**: Shopify Restyle (type-safe design system)
 
 ### Code Organization
 ```
 src/
 ├── components/     # Reusable UI components
+│   └── ui/         # Restyle design system components
 ├── screens/        # Application screens
 ├── services/       # External integrations (AI, Supabase)
 ├── stores/         # Zustand state management
 ├── hooks/          # Custom React hooks
 ├── constants/      # Theme and configuration
+│   ├── theme.ts         # Legacy theme (being phased out)
+│   └── restyleTheme.ts  # New Restyle theme configuration
 ├── config/         # Environment configuration
 ├── types/          # TypeScript definitions
 └── utils/          # Utility functions
@@ -91,18 +97,38 @@ src/
 
 ## Design System
 
-### Theme (`src/constants/theme.ts`)
-- **Colors**: Dark theme with green primary (#4CAF50)
+### Restyle Theme (`src/constants/restyleTheme.ts`)
+- **Type-Safe Components**: `Box`, `Text`, `Button`, `Input`, `Card` with semantic props
+- **Colors**: Dark theme with semantic mappings (`primaryText`, `surface`, `border`)
 - **Spacing**: 8px grid system (xs:4, sm:8, md:16, lg:24, xl:32, xxl:48)
-- **Typography**: Consistent font scales and weights
+- **Typography**: Variants (h1, h2, h3, body, caption, button)
+- **Component Variants**: Button (primary, secondary, danger), Card (primary, secondary)
+
+### Usage Pattern
+```tsx
+// Type-safe, semantic styling
+<Box backgroundColor="surface" padding="md" borderRadius="lg">
+  <Text variant="h2" color="primaryText">Title</Text>
+  <Button variant="primary" marginTop="sm">
+    <Text variant="button" color="primaryButtonText">Action</Text>
+  </Button>
+</Box>
+```
 
 ## Development Workflow
+
+### Core Principles
+1. **Continuous Improvement**: At any checkpoint, improve design, architecture, or code flow
+2. **Documentation-Driven**: Update CLAUDE.md and DEVELOPMENT_PLAN.md after major changes
+3. **Checkpoint Pattern**: After solid progress, commit changes and clear context
+4. **Type Safety First**: Always run `npx tsc --noEmit` before committing
 
 ### File Conventions
 - **Components**: PascalCase with descriptive names
 - **Hooks**: Prefixed with `use` (e.g., `useRecipes`, `useUserProfile`)
 - **Services**: Functional modules with clear separation
 - **Types**: Organized by feature domain
+- **Styling**: Use Restyle components instead of StyleSheet (prefer `Box` over `View`)
 
 ### Code Quality
 - TypeScript strict mode enabled
