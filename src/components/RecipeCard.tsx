@@ -11,22 +11,36 @@ interface RecipeCardProps {
 }
 
 const DifficultyIndicator: React.FC<{ level: number }> = ({ level }) => {
-  const theme = useTheme<Theme>();
+  const difficultyMap = {
+    1: { label: "Beginner", emoji: "🥄", color: "#10B981" },
+    2: { label: "Easy", emoji: "🍳", color: "#3B82F6" },
+    3: { label: "Medium", emoji: "👨‍🍳", color: "#F59E0B" },
+    4: { label: "Hard", emoji: "🔥", color: "#EF4444" },
+    5: { label: "Expert", emoji: "⭐", color: "#8B5CF6" }
+  };
+  
+  const difficulty = difficultyMap[level as keyof typeof difficultyMap] || difficultyMap[1];
   
   return (
-    <Box flexDirection="row" alignItems="center" marginBottom="sm">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Box
-          key={i}
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: i <= level ? theme.colors.primary : theme.colors.surfaceVariant,
-            marginRight: i < 5 ? 4 : 0,
-          }}
-        />
-      ))}
+    <Box 
+      flexDirection="row" 
+      alignItems="center" 
+      marginBottom="sm"
+      style={{
+        backgroundColor: `${difficulty.color}20`,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
+      }}
+    >
+      <Text style={{ fontSize: 10, marginRight: 4 }}>{difficulty.emoji}</Text>
+      <Text 
+        variant="small" 
+        style={{ color: difficulty.color, fontWeight: '600', fontSize: 11 }}
+      >
+        {difficulty.label}
+      </Text>
     </Box>
   );
 };

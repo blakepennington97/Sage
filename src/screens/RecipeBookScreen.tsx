@@ -116,50 +116,72 @@ export const RecipeBookScreen: React.FC = () => {
         autoCorrect={false}
       />
       
-      <Box flexDirection="row" justifyContent="space-between" alignItems="center">
+      <Box flexDirection="column" gap="md">
         <TouchableOpacity 
           onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
           style={{
             backgroundColor: showFavoritesOnly ? theme.colors.primary : theme.colors.surface,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 8,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: 12,
             borderWidth: 1,
             borderColor: theme.colors.border,
+            alignSelf: 'flex-start',
           }}
         >
           <Text 
             variant="caption" 
             color={showFavoritesOnly ? "primaryButtonText" : "text"}
+            fontWeight="600"
           >
-            ❤️ Favorites
+            ❤️ Favorites Only
           </Text>
         </TouchableOpacity>
         
-        <Box flexDirection="row" gap="xs">
-          {[1, 2, 3, 4, 5].map((level) => (
-            <TouchableOpacity
-              key={level}
-              onPress={() => setDifficultyFilter(difficultyFilter === level ? null : level)}
-              style={{
-                backgroundColor: difficultyFilter === level ? theme.colors.primary : theme.colors.surface,
-                paddingHorizontal: 8,
-                paddingVertical: 6,
-                borderRadius: 6,
-                borderWidth: 1,
-                borderColor: theme.colors.border,
-                minWidth: 32,
-                alignItems: 'center',
-              }}
-            >
-              <Text 
-                variant="caption" 
-                color={difficultyFilter === level ? "primaryButtonText" : "text"}
+        <Box>
+          <Text variant="caption" color="secondaryText" marginBottom="sm" fontWeight="600">
+            Difficulty Level
+          </Text>
+          <Box flexDirection="row" flexWrap="wrap" gap="xs">
+            {[
+              { level: 1, label: "Beginner", emoji: "🥄", color: "#10B981" },
+              { level: 2, label: "Easy", emoji: "🍳", color: "#3B82F6" },
+              { level: 3, label: "Medium", emoji: "👨‍🍳", color: "#F59E0B" },
+              { level: 4, label: "Hard", emoji: "🔥", color: "#EF4444" },
+              { level: 5, label: "Expert", emoji: "⭐", color: "#8B5CF6" }
+            ].map(({ level, label, emoji, color }) => (
+              <TouchableOpacity
+                key={level}
+                onPress={() => setDifficultyFilter(difficultyFilter === level ? null : level)}
+                style={{
+                  backgroundColor: difficultyFilter === level ? color : theme.colors.surface,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: difficultyFilter === level ? color : theme.colors.border,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  shadowColor: difficultyFilter === level ? color : 'transparent',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 4,
+                  elevation: difficultyFilter === level ? 3 : 0,
+                }}
               >
-                {level}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text style={{ fontSize: 12, marginRight: 4 }}>{emoji}</Text>
+                <Text 
+                  variant="caption" 
+                  style={{ 
+                    color: difficultyFilter === level ? "white" : theme.colors.text,
+                    fontWeight: difficultyFilter === level ? "bold" : "normal"
+                  }}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </Box>
         </Box>
       </Box>
     </Box>
