@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
-  View,
-  Text,
   TouchableOpacity,
   ScrollView,
-  StyleSheet,
   Alert,
-  Modal,
   TextInput,
 } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
@@ -17,6 +13,10 @@ import {
   RecipeService,
   UserRecipe,
 } from "../services/supabase";
+import { Box, Text, Button, Card } from "../components/ui";
+import { Sheet } from "../components/Sheet";
+import { useTheme } from "@shopify/restyle";
+import { Theme } from "../constants/restyleTheme";
 
 type RootStackParamList = { CookingCoach: { recipe: UserRecipe } };
 interface CookingStep {
@@ -28,6 +28,7 @@ export const CookingCoachScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<RootStackParamList, "CookingCoach">>();
   const { recipe } = route.params;
+  const theme = useTheme<Theme>();
 
   const { user } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(0);
@@ -96,6 +97,24 @@ export const CookingCoachScreen: React.FC = () => {
     startSession();
   }, [recipe.id, user, recipe.recipe_content, recipe.recipe_data]);
 
+  // Timer countdown effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isTimerRunning && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            setIsTimerRunning(false);
+            Alert.alert("⏰ Timer Complete!", "Time's up!");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timeRemaining]);
+
   const handleSessionComplete = async (rating: number) => {
     if (sessionId) {
       await SessionService.completeCookingSession(sessionId, rating);
@@ -103,26 +122,6 @@ export const CookingCoachScreen: React.FC = () => {
     navigation.popToTop();
   };
 
-  const nextStep = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep((prev) => prev + 1);
-    } else {
-      Alert.alert("🎉 Recipe Complete!", "How did it turn out?", [
-        { text: "Awesome!", onPress: () => handleSessionComplete(5) },
-        {
-          text: "Could be better",
-          onPress: () => handleSessionComplete(3),
-          style: "cancel",
-        },
-      ]);
-    }
-  };
-
-  const prevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep((prev) => prev - 1);
-    }
-  };
 
   const startTimer = (minutes: number) => {
     setTimeRemaining(minutes * 60);
@@ -160,401 +159,229 @@ export const CookingCoachScreen: React.FC = () => {
     }
   };
 
-  const closeHelpModal = () => {
-    setShowHelpModal(false);
-    setHelpQuestion("");
-    setHelpResponse("");
+  const completeSession = () => {
+    Alert.alert("🎉 Recipe Complete!", "How did it turn out?", [
+      { text: "Awesome!", onPress: () => handleSessionComplete(5) },
+      {
+        text: "Could be better",
+        onPress: () => handleSessionComplete(3),
+        style: "cancel",
+      },
+    ]);
   };
-
-  const renderProgressBar = () => (
-    <View style={styles.progressContainer}>
-      <View style={styles.progressBar}>
-        <View
-          style={[
-            styles.progressFill,
-            { width: `${((currentStep + 1) / steps.length) * 100}%` },
-          ]}
-        />
-      </View>
-      <Text style={styles.progressText}>
-        Step {currentStep + 1} of {steps.length}
-      </Text>
-    </View>
-  );
-
-  const renderCurrentStep = () => {
-    const step = steps[currentStep];
-    if (!step) return null;
-
-    return (
-      <View style={styles.stepContainer}>
-        <Text style={styles.stepNumber}>Step {step.id}</Text>
-        <Text style={styles.stepInstruction}>{step.instruction}</Text>
-
-        <View style={styles.stepActions}>
-          <TouchableOpacity
-            style={styles.helpButton}
-            onPress={() => setShowHelpModal(true)}
-          >
-            <Text style={styles.helpButtonText}>🤔 Need Help?</Text>
-          </TouchableOpacity>
-
-          <View style={styles.timerSection}>
-            {!isTimerRunning ? (
-              <View style={styles.timerButtons}>
-                <TouchableOpacity
-                  style={styles.timerButton}
-                  onPress={() => startTimer(5)}
-                >
-                  <Text style={styles.timerButtonText}>5 min</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.timerButton}
-                  onPress={() => startTimer(10)}
-                >
-                  <Text style={styles.timerButtonText}>10 min</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.timerButton}
-                  onPress={() => startTimer(15)}
-                >
-                  <Text style={styles.timerButtonText}>15 min</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.activeTimer}>
-                <Text style={styles.timerDisplay}>
-                  {formatTime(timeRemaining)}
-                </Text>
-                <TouchableOpacity
-                  style={styles.stopTimerButton}
-                  onPress={stopTimer}
-                >
-                  <Text style={styles.stopTimerText}>Stop</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </View>
-      </View>
-    );
-  };
-
-  const renderNavigation = () => (
-    <View style={styles.navigation}>
-      <TouchableOpacity
-        style={[
-          styles.navButton,
-          currentStep === 0 && styles.navButtonDisabled,
-        ]}
-        onPress={prevStep}
-        disabled={currentStep === 0}
-      >
-        <Text style={styles.navButtonText}>← Previous</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.nextButton} onPress={nextStep}>
-        <Text style={styles.nextButtonText}>
-          {currentStep === steps.length - 1 ? "Complete!" : "Next →"}
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderHelpModal = () => (
-    <Modal
-      visible={showHelpModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>🆘 Cooking Help</Text>
-          <TouchableOpacity onPress={closeHelpModal}>
-            <Text style={styles.closeButton}>✕</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView style={styles.modalContent}>
-          <Text style={styles.modalLabel}>What do you need help with?</Text>
-          <TextInput
-            style={styles.helpInput}
-            value={helpQuestion}
-            onChangeText={setHelpQuestion}
-            placeholder="e.g., 'How do I know when it's done?' or 'My sauce is too thick'"
-            multiline
-            numberOfLines={3}
-          />
-
-          <TouchableOpacity
-            style={[
-              styles.getHelpButton,
-              isGettingHelp && styles.getHelpButtonDisabled,
-            ]}
-            onPress={getHelp}
-            disabled={isGettingHelp}
-          >
-            <Text style={styles.getHelpButtonText}>
-              {isGettingHelp ? "Getting Help..." : "Ask Sage"}
-            </Text>
-          </TouchableOpacity>
-
-          {helpResponse ? (
-            <View style={styles.helpResponseContainer}>
-              <Text style={styles.helpResponseTitle}>Sage's Advice:</Text>
-              <Text style={styles.helpResponseText}>{helpResponse}</Text>
-            </View>
-          ) : null}
-        </ScrollView>
-      </View>
-    </Modal>
-  );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>🔥 Cooking Coach</Text>
-        <Text style={styles.subtitle}>
+    <Box flex={1} backgroundColor="mainBackground">
+      {/* Header */}
+      <Box 
+        backgroundColor="primary" 
+        padding="lg" 
+        paddingTop="xxl"
+        borderBottomWidth={1}
+        borderBottomColor="border"
+      >
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          style={{ position: 'absolute', left: 20, top: 60, zIndex: 1 }}
+        >
+          <Text fontSize={24}>←</Text>
+        </TouchableOpacity>
+        
+        <Text variant="h2" color="primaryButtonText" textAlign="center">
+          🔥 Cooking Coach
+        </Text>
+        <Text variant="body" color="primaryButtonText" textAlign="center" opacity={0.9}>
           {recipe.recipe_name || "Your Recipe"}
         </Text>
-        {renderProgressBar()}
-      </View>
+        
+        {/* Progress Bar */}
+        <Box marginTop="md">
+          <Text variant="caption" color="primaryButtonText" textAlign="center" marginBottom="xs">
+            Step {currentStep + 1} of {steps.length}
+          </Text>
+          <Box 
+            height={4}
+            backgroundColor="primaryButtonText"
+            borderRadius="sm"
+            opacity={0.3}
+          >
+            <Box
+              height={4}
+              backgroundColor="primaryButtonText"
+              borderRadius="sm"
+              style={{
+                width: `${((currentStep + 1) / steps.length) * 100}%`,
+              }}
+            />
+          </Box>
+        </Box>
+      </Box>
 
-      <ScrollView style={styles.content}>{renderCurrentStep()}</ScrollView>
+      {/* Current Step Content */}
+      <ScrollView style={{ flex: 1 }}>
+        <Box padding="lg">
+          {steps.length > 0 && (
+            <Card variant="primary" marginBottom="lg">
+              <Text variant="h3" marginBottom="md">
+                Step {currentStep + 1}
+              </Text>
+              <Text variant="body" lineHeight={24}>
+                {steps[currentStep]?.instruction}
+              </Text>
+            </Card>
+          )}
 
-      {renderNavigation()}
-      {renderHelpModal()}
-    </View>
+          {/* Timer Section */}
+          <Card variant="secondary" marginBottom="lg">
+            <Text variant="h3" marginBottom="md">⏱️ Timer</Text>
+            {!isTimerRunning ? (
+              <Box flexDirection="row" flexWrap="wrap" gap="sm">
+                {[5, 10, 15, 30].map((minutes) => (
+                  <Button
+                    key={minutes}
+                    variant="secondary"
+                    onPress={() => startTimer(minutes)}
+                    style={{ flex: 1, minWidth: 70 }}
+                  >
+                    <Text variant="button" color="primaryText">
+                      {minutes} min
+                    </Text>
+                  </Button>
+                ))}
+              </Box>
+            ) : (
+              <Box alignItems="center">
+                <Text variant="h1" textAlign="center" marginBottom="md">
+                  {formatTime(timeRemaining)}
+                </Text>
+                <Button variant="danger" onPress={stopTimer}>
+                  <Text variant="button" color="dangerButtonText">
+                    Stop Timer
+                  </Text>
+                </Button>
+              </Box>
+            )}
+          </Card>
+
+          {/* Help Section */}
+          <Card variant="primary">
+            <Text variant="h3" marginBottom="md">🤔 Need Help?</Text>
+            <Button 
+              variant="secondary" 
+              onPress={() => setShowHelpModal(true)}
+            >
+              <Text variant="button" color="primaryText">
+                Ask Sage for Cooking Advice
+              </Text>
+            </Button>
+          </Card>
+        </Box>
+      </ScrollView>
+
+      {/* Navigation */}
+      <Box 
+        flexDirection="row" 
+        padding="lg" 
+        backgroundColor="surface"
+        borderTopWidth={1}
+        borderTopColor="border"
+        gap="md"
+      >
+        <Button
+          variant="secondary"
+          flex={1}
+          disabled={currentStep === 0}
+          onPress={() => setCurrentStep(Math.max(0, currentStep - 1))}
+        >
+          <Text variant="button" color={currentStep === 0 ? "textSecondary" : "primaryText"}>
+            ← Previous
+          </Text>
+        </Button>
+
+        {currentStep === steps.length - 1 ? (
+          <Button
+            variant="primary"
+            flex={1}
+            onPress={completeSession}
+          >
+            <Text variant="button" color="primaryButtonText">
+              Complete! 🎉
+            </Text>
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            flex={1}
+            onPress={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))}
+          >
+            <Text variant="button" color="primaryButtonText">
+              Next →
+            </Text>
+          </Button>
+        )}
+      </Box>
+
+      {/* Help Modal */}
+      <Sheet 
+        isVisible={showHelpModal} 
+        onClose={() => {
+          setShowHelpModal(false);
+          setHelpQuestion("");
+          setHelpResponse("");
+        }}
+      >
+        <Box padding="lg">
+          <Text variant="h2" textAlign="center" marginBottom="lg">
+            🤔 Ask Sage
+          </Text>
+          
+          <Text variant="body" marginBottom="md">
+            Having trouble with this step? Describe what&apos;s going wrong and I&apos;ll help!
+          </Text>
+          
+          <Box
+            backgroundColor="surface"
+            borderRadius="md"
+            padding="md"
+            borderWidth={1}
+            borderColor="border"
+            marginBottom="md"
+            minHeight={80}
+          >
+            <TextInput
+              value={helpQuestion}
+              onChangeText={setHelpQuestion}
+              placeholder="e.g., 'How do I know when it's done?' or 'My sauce is too thick'"
+              multiline
+              numberOfLines={3}
+              style={{
+                color: theme.colors.text,
+                fontSize: 16,
+                textAlignVertical: 'top',
+              }}
+              placeholderTextColor={theme.colors.textSecondary}
+            />
+          </Box>
+
+          <Button
+            variant="primary"
+            onPress={getHelp}
+            disabled={isGettingHelp}
+            marginBottom="md"
+          >
+            <Text variant="button" color="primaryButtonText">
+              {isGettingHelp ? "Getting Help..." : "Ask Sage"}
+            </Text>
+          </Button>
+
+          {helpResponse && (
+            <Card variant="secondary">
+              <Text variant="h3" marginBottom="sm">💡 Sage&apos;s Advice:</Text>
+              <Text variant="body">{helpResponse}</Text>
+            </Card>
+          )}
+        </Box>
+      </Sheet>
+    </Box>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-  },
-  header: {
-    backgroundColor: "#FF6B35",
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "white",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "white",
-    textAlign: "center",
-    marginTop: 5,
-    opacity: 0.9,
-  },
-  progressContainer: {
-    marginTop: 20,
-    alignItems: "center",
-  },
-  progressBar: {
-    width: "100%",
-    height: 4,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "white",
-    borderRadius: 2,
-  },
-  progressText: {
-    color: "white",
-    fontSize: 12,
-    marginTop: 8,
-    opacity: 0.8,
-  },
-  content: {
-    flex: 1,
-  },
-  stepContainer: {
-    margin: 20,
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 24,
-  },
-  stepNumber: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#FF6B35",
-    marginBottom: 8,
-  },
-  stepInstruction: {
-    fontSize: 18,
-    lineHeight: 26,
-    color: "#333",
-    marginBottom: 24,
-  },
-  stepActions: {
-    gap: 16,
-  },
-  helpButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignSelf: "flex-start",
-  },
-  helpButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  timerSection: {
-    alignItems: "center",
-  },
-  timerButtons: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  timerButton: {
-    backgroundColor: "#2196F3",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  timerButtonText: {
-    color: "white",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  activeTimer: {
-    alignItems: "center",
-    gap: 10,
-  },
-  timerDisplay: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#2196F3",
-  },
-  stopTimerButton: {
-    backgroundColor: "#f44336",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-  },
-  stopTimerText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  navigation: {
-    flexDirection: "row",
-    padding: 20,
-    backgroundColor: "white",
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-    gap: 12,
-  },
-  navButton: {
-    flex: 1,
-    backgroundColor: "#ddd",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  navButtonDisabled: {
-    backgroundColor: "#f0f0f0",
-  },
-  navButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#666",
-  },
-  nextButton: {
-    flex: 2,
-    backgroundColor: "#FF6B35",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  nextButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "white",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: "#4CAF50",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "white",
-  },
-  closeButton: {
-    fontSize: 24,
-    color: "white",
-    fontWeight: "bold",
-  },
-  modalContent: {
-    flex: 1,
-    padding: 20,
-  },
-  modalLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 10,
-  },
-  helpInput: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    textAlignVertical: "top",
-    minHeight: 80,
-  },
-  getHelpButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  getHelpButtonDisabled: {
-    backgroundColor: "#ccc",
-  },
-  getHelpButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  helpResponseContainer: {
-    backgroundColor: "#f8fff9",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#4CAF50",
-  },
-  helpResponseTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#4CAF50",
-    marginBottom: 8,
-  },
-  helpResponseText: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: "#333",
-  },
-});

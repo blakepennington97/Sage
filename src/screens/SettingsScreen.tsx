@@ -12,6 +12,7 @@ import { useAchievements } from "../hooks/useAchievements";
 import { AuthService } from "../services/supabase";
 import { HapticService } from "../services/haptics";
 import { Box, Text, Button, Input, Card } from "../components/ui";
+import { Sheet } from "../components/Sheet";
 import { useTheme } from "@shopify/restyle";
 import { Theme } from "../constants/restyleTheme";
 import { 
@@ -41,7 +42,7 @@ export const SettingsScreen: React.FC = () => {
   const [apiKey, setApiKey] = useState("");
   const [hasKey, setHasKey] = useState(false);
   const [isKeyLoading, setIsKeyLoading] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettingsSheet, setShowSettingsSheet] = useState(false);
 
   useEffect(() => {
     const checkExistingKey = async () => {
@@ -139,7 +140,7 @@ export const SettingsScreen: React.FC = () => {
           <Text variant="h2" color="primaryButtonText">
             {userLevel.emoji} Profile
           </Text>
-          <TouchableOpacity onPress={() => setShowSettings(!showSettings)}>
+          <TouchableOpacity onPress={() => setShowSettingsSheet(true)}>
             <Text fontSize={24}>⚙️</Text>
           </TouchableOpacity>
         </Box>
@@ -235,84 +236,86 @@ export const SettingsScreen: React.FC = () => {
           })}
         </Box>
 
-        {/* Settings Section (Collapsible) */}
-        {showSettings && (
-          <Box paddingHorizontal="lg" marginBottom="lg">
-            <Text variant="h3" marginBottom="md">⚙️ Settings</Text>
-            
-            <Card variant="primary" marginBottom="md">
-              <Text variant="h3" marginBottom="sm">Account</Text>
-              <Text variant="body" color="secondaryText" marginBottom="md">
-                {user?.email}
-              </Text>
-              <Button variant="secondary" onPress={handleSignOut}>
-                <Text variant="button" color="primaryText">Sign Out</Text>
-              </Button>
-            </Card>
-
-            <Card variant="primary" marginBottom="md">
-              <Text variant="h3" marginBottom="sm">Cooking Profile</Text>
-              <Button 
-                variant="danger" 
-                onPress={resetProfile}
-                disabled={isProfileLoading}
-              >
-                {isProfileLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text variant="button" color="dangerButtonText">
-                    Reset Profile & Onboarding
-                  </Text>
-                )}
-              </Button>
-            </Card>
-
-            <Card variant="primary" marginBottom="md">
-              <Text variant="h3" marginBottom="sm">Gemini API Key</Text>
-              <Text 
-                variant="body" 
-                fontWeight="600" 
-                marginBottom="md"
-                color={hasKey ? "success" : "error"}
-              >
-                {hasKey ? "✅ API Key Configured" : "❌ No API Key"}
-              </Text>
-              {!hasKey ? (
-                <Box>
-                  <Input
-                    backgroundColor="surface"
-                    borderRadius="md"
-                    padding="md"
-                    fontSize={16}
-                    color="text"
-                    borderWidth={1}
-                    borderColor="border"
-                    marginBottom="md"
-                    placeholder="Paste your key here"
-                    placeholderTextColor={theme.colors.textSecondary}
-                    value={apiKey}
-                    onChangeText={setApiKey}
-                    secureTextEntry
-                  />
-                  <Button variant="primary" onPress={saveApiKey} disabled={isKeyLoading}>
-                    {isKeyLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text variant="button" color="primaryButtonText">Save API Key</Text>
-                    )}
-                  </Button>
-                </Box>
-              ) : (
-                <Button variant="danger" onPress={removeApiKey}>
-                  <Text variant="button" color="dangerButtonText">Remove API Key</Text>
-                </Button>
-              )}
-            </Card>
-          </Box>
-        )}
-        
         <Box height={50} />
       </ScrollView>
+
+      {/* Settings Sheet */}
+      <Sheet isVisible={showSettingsSheet} onClose={() => setShowSettingsSheet(false)}>
+        <Box padding="lg">
+          <Text variant="h2" textAlign="center" marginBottom="lg">
+            ⚙️ Settings
+          </Text>
+          
+          <Card variant="primary" marginBottom="md">
+            <Text variant="h3" marginBottom="sm">Account</Text>
+            <Text variant="body" color="secondaryText" marginBottom="md">
+              {user?.email}
+            </Text>
+            <Button variant="secondary" onPress={handleSignOut}>
+              <Text variant="button" color="primaryText">Sign Out</Text>
+            </Button>
+          </Card>
+
+          <Card variant="primary" marginBottom="md">
+            <Text variant="h3" marginBottom="sm">Cooking Profile</Text>
+            <Button 
+              variant="danger" 
+              onPress={resetProfile}
+              disabled={isProfileLoading}
+            >
+              {isProfileLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text variant="button" color="dangerButtonText">
+                  Reset Profile & Onboarding
+                </Text>
+              )}
+            </Button>
+          </Card>
+
+          <Card variant="primary" marginBottom="md">
+            <Text variant="h3" marginBottom="sm">Gemini API Key</Text>
+            <Text 
+              variant="body" 
+              fontWeight="600" 
+              marginBottom="md"
+              color={hasKey ? "success" : "error"}
+            >
+              {hasKey ? "✅ API Key Configured" : "❌ No API Key"}
+            </Text>
+            {!hasKey ? (
+              <Box>
+                <Input
+                  backgroundColor="surface"
+                  borderRadius="md"
+                  padding="md"
+                  fontSize={16}
+                  color="text"
+                  borderWidth={1}
+                  borderColor="border"
+                  marginBottom="md"
+                  placeholder="Paste your key here"
+                  placeholderTextColor={theme.colors.textSecondary}
+                  value={apiKey}
+                  onChangeText={setApiKey}
+                  secureTextEntry
+                />
+                <Button variant="primary" onPress={saveApiKey} disabled={isKeyLoading}>
+                  {isKeyLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text variant="button" color="primaryButtonText">Save API Key</Text>
+                  )}
+                </Button>
+              </Box>
+            ) : (
+              <Button variant="danger" onPress={removeApiKey}>
+                <Text variant="button" color="dangerButtonText">Remove API Key</Text>
+              </Button>
+            )}
+          </Card>
+        </Box>
+      </Sheet>
     </Box>
   );
 };

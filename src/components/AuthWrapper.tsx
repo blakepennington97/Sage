@@ -61,7 +61,7 @@ const MainTabs = () => (
     <Tab.Screen
       name="Settings"
       component={SettingsScreen}
-      options={{ tabBarIcon: () => <Text variant="body">⚙️</Text>, title: "Settings" }}
+      options={{ tabBarIcon: () => <Text variant="body">👤</Text>, title: "Profile" }}
     />
   </Tab.Navigator>
 );
