@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollView, TouchableOpacity } from 'react-native';
-import { Box, Text, Button, Card, Slider } from './ui';
+import { ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { Box, Text, Button, Card, Slider, Input } from './ui';
 import { Sheet } from './Sheet';
 import { useUserPreferences } from '../hooks/useUserPreferences';
 
@@ -24,6 +24,8 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   } = useUserPreferences();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [customCuisineInput, setCustomCuisineInput] = useState('');
+  const [showCustomCuisineInput, setShowCustomCuisineInput] = useState(false);
 
   // Initialize preferences if they don't exist
   React.useEffect(() => {
@@ -209,6 +211,284 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
             </TouchableOpacity>
           </Box>
         </Card>
+
+        {/* Allergies */}
+        <Card variant="primary" marginBottom="md">
+          <Text variant="h3" marginBottom="sm">Allergies</Text>
+          <Text variant="body" color="secondaryText" marginBottom="md">
+            Foods that cause allergic reactions
+          </Text>
+          <Box flexDirection="row" flexWrap="wrap" gap="xs">
+            {[
+              { key: 'nuts', label: 'Tree Nuts', emoji: '🥜' },
+              { key: 'peanuts', label: 'Peanuts', emoji: '🥜' },
+              { key: 'dairy', label: 'Dairy', emoji: '🥛' },
+              { key: 'eggs', label: 'Eggs', emoji: '🥚' },
+              { key: 'gluten', label: 'Gluten', emoji: '🌾' },
+              { key: 'shellfish', label: 'Shellfish', emoji: '🦐' },
+              { key: 'fish', label: 'Fish', emoji: '🐟' },
+              { key: 'soy', label: 'Soy', emoji: '🫘' },
+            ].map(({ key, label, emoji }) => {
+              const isSelected = preferences?.dietary.allergies.includes(key) || false;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => {
+                    const currentAllergies = preferences?.dietary.allergies || [];
+                    const newAllergies = isSelected
+                      ? currentAllergies.filter(a => a !== key)
+                      : [...currentAllergies, key];
+                    
+                    updateDietaryPreferences({
+                      allergies: newAllergies
+                    });
+                  }}
+                  style={{ width: '48%', marginBottom: 8 }}
+                >
+                  <Box
+                    padding="sm"
+                    backgroundColor={isSelected ? "primary" : "surface"}
+                    borderRadius="md"
+                    flexDirection="row"
+                    alignItems="center"
+                  >
+                    <Text fontSize={16} marginRight="xs">{emoji}</Text>
+                    <Text
+                      variant="body"
+                      color={isSelected ? "primaryButtonText" : "primaryText"}
+                      fontSize={14}
+                    >
+                      {label}
+                    </Text>
+                  </Box>
+                </TouchableOpacity>
+              );
+            })}
+          </Box>
+          
+          {/* Custom Allergies Display */}
+          {preferences?.dietary.allergies
+            .filter(allergy => ![
+              'nuts', 'peanuts', 'dairy', 'eggs', 'gluten', 'shellfish', 'fish', 'soy'
+            ].includes(allergy))
+            .map((customAllergy) => {
+              return (
+                <TouchableOpacity
+                  key={customAllergy}
+                  onPress={() => {
+                    const currentAllergies = preferences?.dietary.allergies || [];
+                    const newAllergies = currentAllergies.filter(a => a !== customAllergy);
+                    
+                    updateDietaryPreferences({
+                      allergies: newAllergies
+                    });
+                  }}
+                  style={{ width: '48%', marginBottom: 8 }}
+                >
+                  <Box
+                    padding="sm"
+                    backgroundColor="primary"
+                    borderRadius="md"
+                    flexDirection="row"
+                    alignItems="center"
+                  >
+                    <Text fontSize={16} marginRight="xs">⚠️</Text>
+                    <Text
+                      variant="body"
+                      color="primaryButtonText"
+                      fontSize={14}
+                      flex={1}
+                      numberOfLines={1}
+                      textTransform="capitalize"
+                    >
+                      {customAllergy}
+                    </Text>
+                  </Box>
+                </TouchableOpacity>
+              );
+            })}
+          
+          {/* Add Custom Allergy Button */}
+          <TouchableOpacity
+            onPress={() => {
+              Alert.prompt(
+                'Add Custom Allergy',
+                'Enter a food allergy you have',
+                (text) => {
+                  if (text && text.trim()) {
+                    const currentAllergies = preferences?.dietary.allergies || [];
+                    const customAllergy = text.trim().toLowerCase();
+                    
+                    if (!currentAllergies.includes(customAllergy)) {
+                      updateDietaryPreferences({
+                        allergies: [...currentAllergies, customAllergy]
+                      });
+                    }
+                  }
+                },
+                'plain-text',
+                '',
+                'default'
+              );
+            }}
+            style={{ width: '100%', marginTop: 8 }}
+          >
+            <Box
+              padding="sm"
+              backgroundColor="surface"
+              borderRadius="md"
+              flexDirection="row"
+              alignItems="center"
+              justifyContent="center"
+              borderWidth={1}
+              borderColor="border"
+              borderStyle="dashed"
+            >
+              <Text fontSize={16} marginRight="xs">➕</Text>
+              <Text variant="body" color="primaryText">
+                Add Custom Allergy
+              </Text>
+            </Box>
+          </TouchableOpacity>
+        </Card>
+
+        {/* Health Objectives */}
+        <Card variant="primary" marginBottom="md">
+          <Text variant="h3" marginBottom="sm">Health Objectives</Text>
+          <Text variant="body" color="secondaryText" marginBottom="md">
+            Your health and wellness goals
+          </Text>
+          <Box flexDirection="row" flexWrap="wrap" gap="xs">
+            {[
+              { key: 'weight_loss', label: 'Weight Loss', emoji: '📉' },
+              { key: 'muscle_gain', label: 'Muscle Gain', emoji: '💪' },
+              { key: 'heart_healthy', label: 'Heart Healthy', emoji: '❤️' },
+              { key: 'diabetic_friendly', label: 'Diabetic Friendly', emoji: '🩺' },
+              { key: 'energy_boost', label: 'Energy Boost', emoji: '⚡' },
+              { key: 'digestive_health', label: 'Digestive Health', emoji: '🌱' },
+            ].map(({ key, label, emoji }) => {
+              const isSelected = preferences?.dietary.healthObjectives.includes(key) || false;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => {
+                    const currentObjectives = preferences?.dietary.healthObjectives || [];
+                    const newObjectives = isSelected
+                      ? currentObjectives.filter(o => o !== key)
+                      : [...currentObjectives, key];
+                    
+                    updateDietaryPreferences({
+                      healthObjectives: newObjectives
+                    });
+                  }}
+                  style={{ width: '48%', marginBottom: 8 }}
+                >
+                  <Box
+                    padding="sm"
+                    backgroundColor={isSelected ? "primary" : "surface"}
+                    borderRadius="md"
+                    flexDirection="row"
+                    alignItems="center"
+                  >
+                    <Text fontSize={16} marginRight="xs">{emoji}</Text>
+                    <Text
+                      variant="body"
+                      color={isSelected ? "primaryButtonText" : "primaryText"}
+                      fontSize={14}
+                    >
+                      {label}
+                    </Text>
+                  </Box>
+                </TouchableOpacity>
+              );
+            })}
+          </Box>
+          
+          {/* Custom Health Objectives Display */}
+          {preferences?.dietary.healthObjectives
+            .filter(objective => ![
+              'weight_loss', 'muscle_gain', 'heart_healthy', 'diabetic_friendly', 'energy_boost', 'digestive_health'
+            ].includes(objective))
+            .map((customObjective) => {
+              return (
+                <TouchableOpacity
+                  key={customObjective}
+                  onPress={() => {
+                    const currentObjectives = preferences?.dietary.healthObjectives || [];
+                    const newObjectives = currentObjectives.filter(o => o !== customObjective);
+                    
+                    updateDietaryPreferences({
+                      healthObjectives: newObjectives
+                    });
+                  }}
+                  style={{ width: '48%', marginBottom: 8 }}
+                >
+                  <Box
+                    padding="sm"
+                    backgroundColor="primary"
+                    borderRadius="md"
+                    flexDirection="row"
+                    alignItems="center"
+                  >
+                    <Text fontSize={16} marginRight="xs">🎯</Text>
+                    <Text
+                      variant="body"
+                      color="primaryButtonText"
+                      fontSize={14}
+                      flex={1}
+                      numberOfLines={1}
+                      textTransform="capitalize"
+                    >
+                      {customObjective.replace(/_/g, ' ')}
+                    </Text>
+                  </Box>
+                </TouchableOpacity>
+              );
+            })}
+          
+          {/* Add Custom Health Objective Button */}
+          <TouchableOpacity
+            onPress={() => {
+              Alert.prompt(
+                'Add Health Objective',
+                'Enter a health goal you have',
+                (text) => {
+                  if (text && text.trim()) {
+                    const currentObjectives = preferences?.dietary.healthObjectives || [];
+                    const customObjective = text.trim().toLowerCase().replace(/\s+/g, '_');
+                    
+                    if (!currentObjectives.includes(customObjective)) {
+                      updateDietaryPreferences({
+                        healthObjectives: [...currentObjectives, customObjective]
+                      });
+                    }
+                  }
+                },
+                'plain-text',
+                '',
+                'default'
+              );
+            }}
+            style={{ width: '100%', marginTop: 8 }}
+          >
+            <Box
+              padding="sm"
+              backgroundColor="surface"
+              borderRadius="md"
+              flexDirection="row"
+              alignItems="center"
+              justifyContent="center"
+              borderWidth={1}
+              borderColor="border"
+              borderStyle="dashed"
+            >
+              <Text fontSize={16} marginRight="xs">➕</Text>
+              <Text variant="body" color="primaryText">
+                Add Health Goal
+              </Text>
+            </Box>
+          </TouchableOpacity>
+        </Card>
       </Box>
     </ScrollView>
   );
@@ -379,6 +659,98 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
               );
             })}
           </Box>
+          
+          {/* Custom Appliances Display */}
+          {preferences?.kitchenCapabilities.appliances.specialty
+            .filter(appliance => ![
+              'air_fryer', 'instant_pot', 'food_processor', 'stand_mixer',
+              'slow_cooker', 'rice_cooker', 'blender'
+            ].includes(appliance))
+            .map((customAppliance) => {
+              return (
+                <TouchableOpacity
+                  key={customAppliance}
+                  onPress={() => {
+                    const currentAppliances = preferences?.kitchenCapabilities.appliances.specialty || [];
+                    const newAppliances = currentAppliances.filter(a => a !== customAppliance);
+                    
+                    updateKitchenCapabilities({
+                      appliances: {
+                        ...preferences?.kitchenCapabilities.appliances,
+                        specialty: newAppliances
+                      }
+                    });
+                  }}
+                  style={{ width: '48%', marginBottom: 8 }}
+                >
+                  <Box
+                    padding="sm"
+                    backgroundColor="primary"
+                    borderRadius="md"
+                    flexDirection="row"
+                    alignItems="center"
+                  >
+                    <Text fontSize={16} marginRight="xs">⚙️</Text>
+                    <Text
+                      variant="body"
+                      color="primaryButtonText"
+                      fontSize={14}
+                      flex={1}
+                      numberOfLines={1}
+                      textTransform="capitalize"
+                    >
+                      {customAppliance.replace(/_/g, ' ')}
+                    </Text>
+                  </Box>
+                </TouchableOpacity>
+              );
+            })}
+          
+          {/* Add Custom Appliance Button */}
+          <TouchableOpacity
+            onPress={() => {
+              Alert.prompt(
+                'Add Custom Appliance',
+                'Enter a kitchen appliance you have',
+                (text) => {
+                  if (text && text.trim()) {
+                    const currentAppliances = preferences?.kitchenCapabilities.appliances.specialty || [];
+                    const customAppliance = text.trim().toLowerCase().replace(/\s+/g, '_');
+                    
+                    if (!currentAppliances.includes(customAppliance)) {
+                      updateKitchenCapabilities({
+                        appliances: {
+                          ...preferences?.kitchenCapabilities.appliances,
+                          specialty: [...currentAppliances, customAppliance]
+                        }
+                      });
+                    }
+                  }
+                },
+                'plain-text',
+                '',
+                'default'
+              );
+            }}
+            style={{ width: '100%', marginTop: 8 }}
+          >
+            <Box
+              padding="sm"
+              backgroundColor="surface"
+              borderRadius="md"
+              flexDirection="row"
+              alignItems="center"
+              justifyContent="center"
+              borderWidth={1}
+              borderColor="border"
+              borderStyle="dashed"
+            >
+              <Text fontSize={16} marginRight="xs">➕</Text>
+              <Text variant="body" color="primaryText">
+                Add Custom Appliance
+              </Text>
+            </Box>
+          </TouchableOpacity>
         </Card>
 
         {/* Storage Space */}
@@ -595,6 +967,123 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
               );
             })}
           </Box>
+          
+          {/* Custom Cuisines Display */}
+          {preferences?.cookingStyles.preferredCuisines
+            .filter(cuisine => ![
+              'italian', 'asian', 'mexican', 'american', 'indian', 'mediterranean',
+              'french', 'thai', 'japanese', 'greek', 'chinese', 'middle_eastern'
+            ].includes(cuisine))
+            .map((customCuisine) => {
+              return (
+                <TouchableOpacity
+                  key={customCuisine}
+                  onPress={() => {
+                    const currentCuisines = preferences?.cookingStyles.preferredCuisines || [];
+                    const newCuisines = currentCuisines.filter(c => c !== customCuisine);
+                    
+                    updateCookingStyles({
+                      preferredCuisines: newCuisines
+                    });
+                  }}
+                  style={{ width: '48%', marginBottom: 8 }}
+                >
+                  <Box
+                    padding="sm"
+                    backgroundColor="primary"
+                    borderRadius="md"
+                    flexDirection="row"
+                    alignItems="center"
+                  >
+                    <Text fontSize={16} marginRight="xs">🍴</Text>
+                    <Text
+                      variant="body"
+                      color="primaryButtonText"
+                      fontSize={14}
+                      flex={1}
+                      numberOfLines={1}
+                      textTransform="capitalize"
+                    >
+                      {customCuisine}
+                    </Text>
+                  </Box>
+                </TouchableOpacity>
+              );
+            })}
+          
+          {/* Add Custom Cuisine Button */}
+          <TouchableOpacity
+            onPress={() => setShowCustomCuisineInput(!showCustomCuisineInput)}
+            style={{ width: '100%', marginTop: 8 }}
+          >
+            <Box
+              padding="sm"
+              backgroundColor="surface"
+              borderRadius="md"
+              flexDirection="row"
+              alignItems="center"
+              justifyContent="center"
+              borderWidth={1}
+              borderColor="border"
+              borderStyle="dashed"
+            >
+              <Text fontSize={16} marginRight="xs">➕</Text>
+              <Text variant="body" color="primaryText">
+                Add Custom Cuisine
+              </Text>
+            </Box>
+          </TouchableOpacity>
+          
+          {/* Custom Cuisine Input */}
+          {showCustomCuisineInput && (
+            <Box marginTop="md">
+              <Input
+                value={customCuisineInput}
+                onChangeText={setCustomCuisineInput}
+                placeholder="Enter cuisine name (e.g., Korean, Ethiopian)"
+                backgroundColor="surface"
+                borderRadius="md"
+                padding="sm"
+                borderWidth={1}
+                borderColor="border"
+                color="primaryText"
+                marginBottom="sm"
+              />
+              <Box flexDirection="row" gap="sm">
+                <Button
+                  variant="primary"
+                  flex={1}
+                  onPress={() => {
+                    if (customCuisineInput.trim()) {
+                      const currentCuisines = preferences?.cookingStyles.preferredCuisines || [];
+                      const customCuisine = customCuisineInput.trim().toLowerCase();
+                      
+                      if (!currentCuisines.includes(customCuisine)) {
+                        updateCookingStyles({
+                          preferredCuisines: [...currentCuisines, customCuisine]
+                        });
+                      }
+                      
+                      setCustomCuisineInput('');
+                      setShowCustomCuisineInput(false);
+                    }
+                  }}
+                >
+                  <Text variant="button" color="primaryButtonText">Add</Text>
+                </Button>
+                <Button
+                  variant="secondary"
+                  flex={1}
+                  onPress={() => {
+                    setCustomCuisineInput('');
+                    setShowCustomCuisineInput(false);
+                  }}
+                >
+                  <Text variant="button" color="primaryText">Cancel</Text>
+                </Button>
+              </Box>
+            </Box>
+          )}
         </Card>
 
         {/* Cooking Moods */}
@@ -707,6 +1196,92 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
               );
             })}
           </Box>
+          
+          {/* Custom Favorite Ingredients Display */}
+          {preferences?.cookingStyles.favoriteIngredients
+            .filter(ingredient => ![
+              'garlic', 'lemon', 'herbs', 'cheese', 'tomatoes', 'mushrooms',
+              'avocado', 'coconut', 'ginger', 'chili', 'olive_oil', 'onions'
+            ].includes(ingredient))
+            .map((customIngredient) => {
+              return (
+                <TouchableOpacity
+                  key={customIngredient}
+                  onPress={() => {
+                    const currentFavorites = preferences?.cookingStyles.favoriteIngredients || [];
+                    const newFavorites = currentFavorites.filter(i => i !== customIngredient);
+                    
+                    updateCookingStyles({
+                      favoriteIngredients: newFavorites
+                    });
+                  }}
+                  style={{ width: '48%', marginBottom: 8 }}
+                >
+                  <Box
+                    padding="sm"
+                    backgroundColor="primary"
+                    borderRadius="md"
+                    flexDirection="row"
+                    alignItems="center"
+                  >
+                    <Text fontSize={16} marginRight="xs">🥘</Text>
+                    <Text
+                      variant="body"
+                      color="primaryButtonText"
+                      fontSize={14}
+                      flex={1}
+                      numberOfLines={1}
+                      textTransform="capitalize"
+                    >
+                      {customIngredient}
+                    </Text>
+                  </Box>
+                </TouchableOpacity>
+              );
+            })}
+          
+          {/* Add Custom Favorite Ingredient Button */}
+          <TouchableOpacity
+            onPress={() => {
+              Alert.prompt(
+                'Add Favorite Ingredient',
+                'Enter an ingredient you love to cook with',
+                (text) => {
+                  if (text && text.trim()) {
+                    const currentFavorites = preferences?.cookingStyles.favoriteIngredients || [];
+                    const customIngredient = text.trim().toLowerCase();
+                    
+                    if (!currentFavorites.includes(customIngredient)) {
+                      updateCookingStyles({
+                        favoriteIngredients: [...currentFavorites, customIngredient]
+                      });
+                    }
+                  }
+                },
+                'plain-text',
+                '',
+                'default'
+              );
+            }}
+            style={{ width: '100%', marginTop: 8 }}
+          >
+            <Box
+              padding="sm"
+              backgroundColor="surface"
+              borderRadius="md"
+              flexDirection="row"
+              alignItems="center"
+              justifyContent="center"
+              borderWidth={1}
+              borderColor="border"
+              borderStyle="dashed"
+            >
+              <Text fontSize={16} marginRight="xs">➕</Text>
+              <Text variant="body" color="primaryText">
+                Add Custom Ingredient
+              </Text>
+            </Box>
+          </TouchableOpacity>
         </Card>
 
         {/* Avoided Ingredients */}
@@ -764,6 +1339,92 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
               );
             })}
           </Box>
+          
+          {/* Custom Avoided Ingredients Display */}
+          {preferences?.cookingStyles.avoidedIngredients
+            .filter(ingredient => ![
+              'cilantro', 'blue_cheese', 'liver', 'anchovies', 'olives',
+              'mushrooms_avoid', 'fish_sauce', 'pickles', 'tofu', 'organ_meat'
+            ].includes(ingredient))
+            .map((customIngredient) => {
+              return (
+                <TouchableOpacity
+                  key={customIngredient}
+                  onPress={() => {
+                    const currentAvoided = preferences?.cookingStyles.avoidedIngredients || [];
+                    const newAvoided = currentAvoided.filter(i => i !== customIngredient);
+                    
+                    updateCookingStyles({
+                      avoidedIngredients: newAvoided
+                    });
+                  }}
+                  style={{ width: '48%', marginBottom: 8 }}
+                >
+                  <Box
+                    padding="sm"
+                    backgroundColor="primary"
+                    borderRadius="md"
+                    flexDirection="row"
+                    alignItems="center"
+                  >
+                    <Text fontSize={16} marginRight="xs">🚫</Text>
+                    <Text
+                      variant="body"
+                      color="primaryButtonText"
+                      fontSize={14}
+                      flex={1}
+                      numberOfLines={1}
+                      textTransform="capitalize"
+                    >
+                      {customIngredient}
+                    </Text>
+                  </Box>
+                </TouchableOpacity>
+              );
+            })}
+          
+          {/* Add Custom Avoided Ingredient Button */}
+          <TouchableOpacity
+            onPress={() => {
+              Alert.prompt(
+                'Add Avoided Ingredient',
+                'Enter an ingredient you prefer to avoid (for taste, not allergies)',
+                (text) => {
+                  if (text && text.trim()) {
+                    const currentAvoided = preferences?.cookingStyles.avoidedIngredients || [];
+                    const customIngredient = text.trim().toLowerCase();
+                    
+                    if (!currentAvoided.includes(customIngredient)) {
+                      updateCookingStyles({
+                        avoidedIngredients: [...currentAvoided, customIngredient]
+                      });
+                    }
+                  }
+                },
+                'plain-text',
+                '',
+                'default'
+              );
+            }}
+            style={{ width: '100%', marginTop: 8 }}
+          >
+            <Box
+              padding="sm"
+              backgroundColor="surface"
+              borderRadius="md"
+              flexDirection="row"
+              alignItems="center"
+              justifyContent="center"
+              borderWidth={1}
+              borderColor="border"
+              borderStyle="dashed"
+            >
+              <Text fontSize={16} marginRight="xs">➕</Text>
+              <Text variant="body" color="primaryText">
+                Add Custom Ingredient
+              </Text>
+            </Box>
+          </TouchableOpacity>
         </Card>
       </Box>
     </ScrollView>

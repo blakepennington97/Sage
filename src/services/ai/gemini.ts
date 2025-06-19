@@ -134,7 +134,8 @@ export class GeminiService {
       
       DIETARY PREFERENCES:
       - Dietary Style: ${dietary.dietaryStyle}
-      - Allergies: ${dietary.allergies.length > 0 ? dietary.allergies.join(", ") : "None"}
+      - Allergies: ${dietary.allergies.length > 0 ? dietary.allergies.map(a => a.replace(/_/g, ' ')).join(", ") : "None"}
+      - Intolerances: ${dietary.intolerances.length > 0 ? dietary.intolerances.map(i => i.replace(/_/g, ' ')).join(", ") : "None"}
       - Spice Tolerance: ${dietary.spiceTolerance}
       - Health Goals: ${[
           dietary.nutritionGoals.lowSodium && "Low Sodium",
@@ -142,7 +143,8 @@ export class GeminiService {
           dietary.nutritionGoals.targetProtein && `${dietary.nutritionGoals.targetProtein}g protein per meal`,
           dietary.nutritionGoals.targetCalories && `${dietary.nutritionGoals.targetCalories} daily calories`
         ].filter(Boolean).join(", ") || "None specified"}
-      - Health Objectives: ${dietary.healthObjectives.join(", ") || "None"}
+      - Health Objectives: ${dietary.healthObjectives.length > 0 ? dietary.healthObjectives.map(o => o.replace(/_/g, ' ')).join(", ") : "None"}
+      - Flavor Preferences: ${dietary.flavorPreferences.length > 0 ? dietary.flavorPreferences.map(f => f.replace(/_/g, ' ')).join(", ") : "None"}
       
       COOKING CONTEXT:
       - Typical Cooking Time: ${cookingContext.typicalCookingTime.replace('_', ' ')}
@@ -152,29 +154,35 @@ export class GeminiService {
       - Lifestyle: ${cookingContext.lifestyleFactors.join(", ") || "Not specified"}
       
       KITCHEN CAPABILITIES:
-      - Specialty Appliances: ${kitchenCapabilities.appliances.specialty.join(", ") || "None"}
-      - Pantry Staples: ${kitchenCapabilities.pantryStaples.join(", ")}
+      - Specialty Appliances: ${kitchenCapabilities.appliances.specialty.length > 0 ? 
+          kitchenCapabilities.appliances.specialty.map(a => a.replace(/_/g, ' ')).join(", ") : "None"}
+      - Pantry Staples: ${kitchenCapabilities.pantryStaples.map(p => p.replace(/_/g, ' ')).join(", ")}
       - Storage: ${kitchenCapabilities.storageSpace.refrigerator} fridge, ${kitchenCapabilities.storageSpace.freezer} freezer, ${kitchenCapabilities.storageSpace.pantry} pantry
       - Technique Comfort: ${Object.entries(kitchenCapabilities.techniqueComfort)
           .map(([technique, level]) => `${technique.replace('_', ' ')}: ${level}/5`)
           .join(", ")}
       
       COOKING STYLE:
-      - Preferred Cuisines: ${cookingStyles.preferredCuisines.join(", ")}
-      - Cooking Moods: ${cookingStyles.cookingMoods.join(", ")}
-      - Favorite Ingredients: ${cookingStyles.favoriteIngredients.length > 0 ? cookingStyles.favoriteIngredients.join(", ") : "None specified"}
-      - Avoided Ingredients: ${cookingStyles.avoidedIngredients.length > 0 ? cookingStyles.avoidedIngredients.join(", ") : "None"}
+      - Preferred Cuisines: ${cookingStyles.preferredCuisines.length > 0 ? 
+          cookingStyles.preferredCuisines.map(c => c.replace(/_/g, ' ')).join(", ") : "None"}
+      - Cooking Moods: ${cookingStyles.cookingMoods.length > 0 ? 
+          cookingStyles.cookingMoods.map(m => m.replace(/_/g, ' ')).join(", ") : "None"}
+      - Favorite Ingredients: ${cookingStyles.favoriteIngredients.length > 0 ? 
+          cookingStyles.favoriteIngredients.map(i => i.replace(/_/g, ' ')).join(", ") : "None specified"}
+      - Avoided Ingredients: ${cookingStyles.avoidedIngredients.length > 0 ? 
+          cookingStyles.avoidedIngredients.map(i => i.replace(/_/g, ' ')).join(", ") : "None"}
       
       PERSONALIZATION REQUIREMENTS:
-      - STRICTLY respect all dietary restrictions and allergies
-      - Match the user's preferred cuisine styles and cooking moods
+      - STRICTLY respect all dietary restrictions, allergies, and intolerances (including custom ones)
+      - Match the user's preferred cuisine styles and cooking moods (including custom cuisines)
       - Consider their typical cooking time and budget constraints
-      - Adapt recipes to their available appliances and storage
+      - Adapt recipes to their available appliances and storage (including custom appliances)
       - Suggest techniques within their comfort level, but offer growth opportunities
-      - Include their favorite ingredients when possible
-      - Avoid ingredients they dislike
-      - Match spice level to their tolerance
-      - Consider their health and nutrition goals
+      - Include their favorite ingredients when possible (including custom ingredients)
+      - Avoid ingredients they dislike (including custom avoided ingredients)
+      - Match spice level to their tolerance and flavor preferences
+      - Consider their health objectives and nutrition goals (including custom health goals)
+      - Honor both standard and user-defined preferences with equal importance
       `;
     } else {
       context += `
