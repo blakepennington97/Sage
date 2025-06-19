@@ -14,6 +14,7 @@ import { CookingCoachScreen } from "../screens/CookingCoachScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { RecipeBookScreen } from "../screens/RecipeBookScreen"; // Import new screen
 import { RecipeDetailScreen } from "../screens/RecipeDetailScreen"; // Import new screen
+import { MealPlannerScreen } from "../screens/MealPlannerScreen";
 import { colors, spacing, typography } from "../constants/theme";
 import { useAuthStore } from "../stores/authStore";
 import { Text } from "./ui";
@@ -57,6 +58,11 @@ const MainTabs = () => (
       name="RecipeBook"
       component={RecipeBookScreen} // The new home screen
       options={{ tabBarIcon: () => <Text variant="body">📚</Text>, title: "Recipes" }}
+    />
+    <Tab.Screen
+      name="MealPlanner"
+      component={MealPlannerScreen}
+      options={{ tabBarIcon: () => <Text variant="body">📅</Text>, title: "Meal Plan" }}
     />
     <Tab.Screen
       name="Settings"

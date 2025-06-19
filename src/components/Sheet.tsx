@@ -8,11 +8,13 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Box, Text } from "./ui";
 
 interface SheetProps {
   isVisible: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  title?: string;
 }
 
 const SPRING_CONFIG = {
@@ -24,6 +26,7 @@ export const Sheet: React.FC<SheetProps> = ({
   isVisible,
   onClose,
   children,
+  title,
 }) => {
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(500);
@@ -65,6 +68,19 @@ export const Sheet: React.FC<SheetProps> = ({
           sheetAnimatedStyle,
         ]}
       >
+        {title && (
+          <Box 
+            backgroundColor="surface" 
+            paddingHorizontal="lg" 
+            paddingVertical="md"
+            borderBottomWidth={1}
+            borderBottomColor="border"
+          >
+            <Text variant="h3" color="primaryText" textAlign="center">
+              {title}
+            </Text>
+          </Box>
+        )}
         {children}
       </Animated.View>
     </View>
