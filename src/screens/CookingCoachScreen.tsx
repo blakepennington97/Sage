@@ -13,6 +13,7 @@ import {
   RecipeService,
   UserRecipe,
 } from "../services/supabase";
+import { CostEstimationService } from "../services/costEstimation";
 import { Box, Text, Button, Card } from "../components/ui";
 import { Sheet } from "../components/Sheet";
 import { useTheme } from "@shopify/restyle";
@@ -117,7 +118,25 @@ export const CookingCoachScreen: React.FC = () => {
 
   const handleSessionComplete = async (rating: number) => {
     if (sessionId) {
-      await SessionService.completeCookingSession(sessionId, rating);
+      const recipeCost = recipe.recipe_data?.costPerServing;
+      const servings = recipe.recipe_data?.servings || 1;
+      const totalRecipeCost = recipeCost ? recipeCost * servings : 0;
+      
+      let savingsData = undefined;
+      if (recipeCost) {
+        const restaurantMultiplier = CostEstimationService.getRestaurantMultiplier();
+        const restaurantCost = recipeCost * restaurantMultiplier;
+        const totalRestaurantCost = restaurantCost * servings;
+        const estimatedSavings = totalRestaurantCost - totalRecipeCost;
+        
+        savingsData = {
+          recipeCost: totalRecipeCost,
+          restaurantCost: totalRestaurantCost,
+          estimatedSavings,
+        };
+      }
+      
+      await SessionService.completeCookingSession(sessionId, rating, savingsData);
     }
     navigation.popToTop();
   };
@@ -160,14 +179,32 @@ export const CookingCoachScreen: React.FC = () => {
   };
 
   const completeSession = () => {
-    Alert.alert("🎉 Recipe Complete!", "How did it turn out?", [
-      { text: "Awesome!", onPress: () => handleSessionComplete(5) },
-      {
-        text: "Could be better",
-        onPress: () => handleSessionComplete(3),
-        style: "cancel",
-      },
-    ]);
+    const recipeCost = recipe.recipe_data?.costPerServing;
+    const servings = recipe.recipe_data?.servings || 1;
+    
+    // Estimate restaurant cost using regional multiplier
+    const restaurantMultiplier = CostEstimationService.getRestaurantMultiplier();
+    const restaurantCost = recipeCost ? recipeCost * restaurantMultiplier : null;
+    const totalSavings = restaurantCost && recipeCost 
+      ? (restaurantCost - recipeCost) * servings 
+      : null;
+    
+    const savingsMessage = totalSavings 
+      ? `\n💰 You saved approximately $${totalSavings.toFixed(2)} vs. restaurant!` 
+      : "";
+    
+    Alert.alert(
+      "🎉 Recipe Complete!", 
+      `How did it turn out?${savingsMessage}`, 
+      [
+        { text: "Awesome!", onPress: () => handleSessionComplete(5) },
+        {
+          text: "Could be better",
+          onPress: () => handleSessionComplete(3),
+          style: "cancel",
+        },
+      ]
+    );
   };
 
   return (

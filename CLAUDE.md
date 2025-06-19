@@ -36,6 +36,20 @@ git push origin main
 ```
 **Note**: User should provide their GitHub Personal Access Token for push access to the repository
 
+## Database Migrations
+
+### Database Schema Setup
+All database migrations are organized in the `database_migrations/` folder:
+
+```bash
+database_migrations/
+├── README.md                    # Migration documentation and instructions
+├── 01_user_preferences.sql      # User preferences table (Advanced Personalization)
+├── 02_meal_planning.sql         # Meal planning tables (Premium Feature)
+└── 03_cost_analysis.sql         # Cost tracking and savings (Financial Motivation)
+```
+
+**Important:** Run migrations in numerical order in your Supabase SQL Editor. Each migration is idempotent and safe to run multiple times. See `database_migrations/README.md` for detailed instructions.
 
 ## Environment Setup
 

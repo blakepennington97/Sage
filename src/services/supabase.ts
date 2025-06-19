@@ -67,6 +67,9 @@ export interface CookingSession {
   success_rating: number;
   help_requests: any;
   notes: string;
+  estimated_savings?: number;
+  recipe_cost?: number;
+  restaurant_cost?: number;
 }
 
 // Auth Service
@@ -319,20 +322,79 @@ export class SessionService {
   }
   static async completeCookingSession(
     sessionId: string,
-    successRating: number
+    successRating: number,
+    savingsData?: {
+      recipeCost: number;
+      restaurantCost: number;
+      estimatedSavings: number;
+    }
   ): Promise<void> {
     try {
+      const updateData: any = {
+        completed_at: new Date().toISOString(),
+        success_rating: successRating,
+      };
+      
+      if (savingsData) {
+        updateData.recipe_cost = savingsData.recipeCost;
+        updateData.restaurant_cost = savingsData.restaurantCost;
+        updateData.estimated_savings = savingsData.estimatedSavings;
+      }
+      
       const { error } = await supabase
         .from("cooking_sessions")
-        .update({
-          completed_at: new Date().toISOString(),
-          success_rating: successRating,
-        })
+        .update(updateData)
         .eq("id", sessionId);
       if (error) throw error;
     } catch (error) {
       console.error("Error completing cooking session:", error);
       throw error;
+    }
+  }
+
+  static async getUserSavings(userId: string): Promise<{
+    totalSavings: number;
+    totalCookingSessions: number;
+    averageSavingsPerMeal: number;
+    monthlySavings: number;
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from("cooking_sessions")
+        .select("estimated_savings, recipe_cost, restaurant_cost, completed_at")
+        .eq("user_id", userId)
+        .not("completed_at", "is", null)
+        .not("estimated_savings", "is", null);
+      
+      if (error) throw error;
+      
+      const sessions = data || [];
+      const totalSavings = sessions.reduce((sum, session) => sum + (session.estimated_savings || 0), 0);
+      const totalCookingSessions = sessions.length;
+      const averageSavingsPerMeal = totalCookingSessions > 0 ? totalSavings / totalCookingSessions : 0;
+      
+      // Calculate monthly savings (sessions in last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const recentSessions = sessions.filter(session => 
+        new Date(session.completed_at) >= thirtyDaysAgo
+      );
+      const monthlySavings = recentSessions.reduce((sum, session) => sum + (session.estimated_savings || 0), 0);
+      
+      return {
+        totalSavings,
+        totalCookingSessions,
+        averageSavingsPerMeal,
+        monthlySavings,
+      };
+    } catch (error) {
+      console.error("Error getting user savings:", error);
+      return {
+        totalSavings: 0,
+        totalCookingSessions: 0,
+        averageSavingsPerMeal: 0,
+        monthlySavings: 0,
+      };
     }
   }
 }

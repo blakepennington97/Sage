@@ -9,6 +9,7 @@ import { APIKeyManager } from "../services/ai/config";
 import { useAuthStore } from "../stores/authStore";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { useAchievements } from "../hooks/useAchievements";
+import { useSavings } from "../hooks/useSavings";
 import { AuthService } from "../services/supabase";
 import { HapticService } from "../services/haptics";
 import { Box, Text, Button, Input, Card } from "../components/ui";
@@ -23,6 +24,7 @@ import {
   StatsCard 
 } from "../components/AchievementComponents";
 import { Achievement, getCategoryColor, getCategoryTitle } from "../types/achievements";
+import { CostEstimationService } from "../services/costEstimation";
 
 export const SettingsScreen: React.FC = () => {
   const { user } = useAuthStore();
@@ -38,6 +40,7 @@ export const SettingsScreen: React.FC = () => {
     completionPercentage,
     isLoading: achievementsLoading 
   } = useAchievements();
+  const { savingsData, isLoading: savingsLoading } = useSavings();
   const theme = useTheme<Theme>();
 
   const [apiKey, setApiKey] = useState("");
@@ -198,6 +201,36 @@ export const SettingsScreen: React.FC = () => {
             />
           </Box>
         </Box>
+
+        {/* Savings Dashboard */}
+        {!savingsLoading && savingsData.totalCookingSessions > 0 && (
+          <Box paddingHorizontal="lg" marginBottom="lg">
+            <Text variant="h3" marginBottom="md">💰 Money Saved</Text>
+            <Card variant="primary" marginBottom="md">
+              <Box flexDirection="row" justifyContent="space-between" marginBottom="sm">
+                <Text variant="body" color="primaryText">Total saved:</Text>
+                <Text variant="h3" color="primary" fontWeight="bold">
+                  {CostEstimationService.formatCurrency(savingsData.totalSavings)}
+                </Text>
+              </Box>
+              <Box flexDirection="row" justifyContent="space-between" marginBottom="sm">
+                <Text variant="body" color="primaryText">This month:</Text>
+                <Text variant="body" color="secondaryText">
+                  {CostEstimationService.formatCurrency(savingsData.monthlySavings)}
+                </Text>
+              </Box>
+              <Box flexDirection="row" justifyContent="space-between">
+                <Text variant="body" color="primaryText">Average per meal:</Text>
+                <Text variant="body" color="secondaryText">
+                  {CostEstimationService.formatCurrency(savingsData.averageSavingsPerMeal)}
+                </Text>
+              </Box>
+            </Card>
+            <Text variant="caption" color="secondaryText" textAlign="center">
+              💡 Compared to restaurant prices • {savingsData.totalCookingSessions} meals cooked
+            </Text>
+          </Box>
+        )}
 
         {/* Recent Achievements */}
         {recentAchievements.length > 0 && (

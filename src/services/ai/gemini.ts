@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AuthService, ProfileService, UserProfile, UserPreferencesService } from "../supabase";
 import { APIKeyManager } from "./config";
 import { UserPreferences, migratePreferences } from "../../types/userPreferences";
+import { CostEstimationService } from "../costEstimation";
 
 export interface RecipeInstruction {
   step: number;
@@ -21,6 +22,13 @@ export interface RecipeData {
   ingredients: RecipeIngredient[];
   instructions: RecipeInstruction[];
   tips: string[];
+  costPerServing?: number;
+  totalCost?: number;
+  servings?: number;
+  costBreakdown?: {
+    ingredient: string;
+    estimatedCost: number;
+  }[];
 }
 
 export interface GroceryListCategory {
@@ -223,7 +231,7 @@ export class GeminiService {
     try {
       const userContext = await this.getUserContext();
       // We can now simplify the prompt slightly as the JSON mode handles syntax.
-      const prompt = `Generate a beginner-friendly recipe based on the user's request and profile.
+      const prompt = `Generate a beginner-friendly recipe based on the user's request and profile, including cost analysis.
         USER REQUEST: "${request}"
         ${userContext}
         The JSON object must match this exact structure:
@@ -234,11 +242,39 @@ export class GeminiService {
           "whyGood": "A short, encouraging sentence explaining why this recipe fits the user's profile.",
           "ingredients": [ { "amount": "string", "name": "string" } ],
           "instructions": [ { "step": number, "text": "string" } ],
-          "tips": [ "string" ]
-        }`;
+          "tips": [ "string" ],
+          "servings": number (how many servings this recipe makes),
+          "totalCost": number (estimated total cost in USD for all ingredients),
+          "costPerServing": number (estimated cost per serving in USD),
+          "costBreakdown": [ { "ingredient": "string", "estimatedCost": number } ]
+        }
+        
+        COST ESTIMATION GUIDELINES:
+        - Use average US grocery store prices for ingredients
+        - Consider typical package sizes (e.g., if recipe needs 1 onion, estimate cost of 1 onion from a 3lb bag)
+        - Account for pantry staples at reduced cost (spices, oil, etc.)
+        - Be realistic and helpful with cost estimates
+        - Round costs to nearest $0.05 for readability`;
       const result = await this.model.generateContent(prompt);
       // The output text is now guaranteed to be a valid JSON string.
-      return JSON.parse(result.response.text()) as RecipeData;
+      const recipeData = JSON.parse(result.response.text()) as RecipeData;
+      
+      // Apply regional cost adjustments
+      const currentRegion = CostEstimationService.getCurrentRegion();
+      if (recipeData.totalCost) {
+        recipeData.totalCost = CostEstimationService.adjustCostForRegion(recipeData.totalCost);
+      }
+      if (recipeData.costPerServing) {
+        recipeData.costPerServing = CostEstimationService.adjustCostForRegion(recipeData.costPerServing);
+      }
+      if (recipeData.costBreakdown) {
+        recipeData.costBreakdown = recipeData.costBreakdown.map(item => ({
+          ...item,
+          estimatedCost: CostEstimationService.adjustCostForRegion(item.estimatedCost),
+        }));
+      }
+      
+      return recipeData;
     } catch (error) {
       console.error("Recipe generation error:", error);
       throw new Error(

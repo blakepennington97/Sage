@@ -19,6 +19,7 @@ import { useRecipes } from "../hooks/useRecipes";
 import { GeminiService, GroceryListData } from "../services/ai";
 import { HapticService } from "../services/haptics";
 import { UserRecipe } from "../services/supabase";
+import { CostEstimationService } from "../services/costEstimation";
 
 type RootStackParamList = {
   RecipeDetail: { recipe: UserRecipe };
@@ -153,6 +154,37 @@ export const RecipeDetailScreen: React.FC = () => {
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <Box padding="lg" paddingBottom="xxl">
+          {/* Cost Information */}
+          {recipe.recipe_data?.costPerServing && (
+            <Card variant="primary" marginBottom="lg">
+              <Text variant="h3" marginBottom="md">💰 Cost Breakdown</Text>
+              <Box flexDirection="row" justifyContent="space-between" marginBottom="sm">
+                <Text variant="body" color="primaryText">Cost per serving:</Text>
+                <Text variant="body" color="primary" fontWeight="bold">
+                  {CostEstimationService.formatCurrency(recipe.recipe_data.costPerServing)}
+                </Text>
+              </Box>
+              <Box flexDirection="row" justifyContent="space-between" marginBottom="sm">
+                <Text variant="body" color="primaryText">Total recipe cost:</Text>
+                <Text variant="body" color="secondaryText">
+                  {recipe.recipe_data.totalCost 
+                    ? CostEstimationService.formatCurrency(recipe.recipe_data.totalCost)
+                    : 'N/A'
+                  }
+                </Text>
+              </Box>
+              <Box flexDirection="row" justifyContent="space-between" marginBottom="md">
+                <Text variant="body" color="primaryText">Servings:</Text>
+                <Text variant="body" color="secondaryText">
+                  {recipe.recipe_data.servings || 'N/A'}
+                </Text>
+              </Box>
+              <Text variant="caption" color="secondaryText">
+                💡 Estimated costs based on average US grocery prices
+              </Text>
+            </Card>
+          )}
+
           {/* Rating Section */}
           <Card variant="primary" marginBottom="lg">
             <Text variant="h3" marginBottom="md">Rate This Recipe</Text>
