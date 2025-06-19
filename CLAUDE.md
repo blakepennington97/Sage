@@ -64,6 +64,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 - **Theming**: Shopify Restyle (type-safe design system)
 - **Data Fetching**: TanStack Query (caching, optimistic updates)
 - **Form Handling**: React Hook Form (declarative validation, performance)
+- **User Preferences**: Advanced customization with dynamic custom options
 
 ### Code Organization
 ```
@@ -75,8 +76,7 @@ src/
 ├── stores/         # Zustand state management
 ├── hooks/          # Custom React hooks
 ├── constants/      # Theme and configuration
-│   ├── theme.ts         # Legacy theme (being phased out)
-│   └── restyleTheme.ts  # New Restyle theme configuration
+│   └── restyleTheme.ts  # Restyle theme configuration
 ├── config/         # Environment configuration
 ├── types/          # TypeScript definitions
 └── utils/          # Utility functions
@@ -94,7 +94,8 @@ src/
 ### AI Integration (`src/services/ai/`)
 - **Gemini Service**: Recipe generation and cooking guidance
 - **Response Caching**: Optimized API usage
-- **Context Awareness**: Adapts to user skill level and kitchen equipment
+- **Advanced Personalization**: Adapts to user skill level, kitchen equipment, and custom preferences
+- **Custom Preference Integration**: Processes custom cuisines, ingredients, appliances, and dietary restrictions
 
 ### Data Fetching (`src/hooks/`)
 - **TanStack Query**: Intelligent caching with 5-minute stale time
@@ -175,46 +176,22 @@ src/
 
 The app targets "kitchen anxious" users transitioning from takeout to home cooking. Features include personalized recipe generation, step-by-step cooking guidance, and skill development tracking. The freemium model offers 2 free guided sessions per week, with premium unlimited access at $9.99/month.
 
-## Post-Launch Technical Requirements
+## Advanced Features
 
-### Navigation Patterns
-- **Standard App Gestures**: Implement iOS/Android standard swipe-back navigation
-- **Header Navigation**: Proper back button handling in stack navigators
-- **Route Management**: Ensure all navigation routes are properly registered
-- **Error Recovery**: Graceful handling of navigation errors without app crashes
+### User Preference System (`src/components/PreferencesEditor.tsx`)
+- **Custom Cuisines**: Dynamic input fields for user-defined cuisine preferences
+- **Custom Ingredients**: Favorite and avoided ingredient management with Alert.prompt interface
+- **Custom Appliances**: Kitchen equipment beyond preset options with normalized storage
+- **Custom Dietary Restrictions**: Allergies, intolerances, and health objectives
+- **AI Integration**: Custom preferences processed with equal priority to preset options
 
-### API Key Management (Production)
-- **Centralized Management**: Move from user-managed to app-managed Gemini API keys
-- **Secure Storage**: Store API keys in backend service, not client-side
-- **Rate Limiting**: Implement proper API usage controls and monitoring
-- **Cost Management**: Track and optimize API usage across user base
+### Production Infrastructure
+- **API Key Management**: Centralized Gemini API key management for production scale
+- **Intelligent Caching**: Smart response caching based on recipe similarity and user preferences
+- **Cost Optimization**: Usage monitoring and cost reduction strategies
+- **Performance**: Optimized data fetching and background processing
 
-### AI Response Caching Strategy
-- **Intelligent Caching**: Cache responses based on recipe similarity and user preferences
-- **Cache Invalidation**: Smart cache management based on user preference changes
-- **Cost Optimization**: Reuse appropriate cached responses to reduce API calls
-- **Quality Maintenance**: Ensure cached responses maintain personalization quality
-
-### Responsive UI Patterns
-- **Dynamic Sizing**: Components that adapt to different screen sizes and orientations
-- **Text Wrapping**: Proper text constraints to prevent UI breaking
-- **Layout Flexibility**: Use of flex and responsive design principles
-- **Safe Area Handling**: Proper handling of device notches and navigation bars
-
-### Cost Calculation Services
-- **Geographic Pricing**: Location-based ingredient cost estimation
-- **AI Cost Analysis**: Use AI to calculate dish costs and savings
-- **Tracking Dashboard**: User profile integration for savings visualization
-- **Comparison Logic**: Restaurant vs home cooking cost comparisons
-
-### Enhanced User Input Patterns
-- **Custom Preference Options**: Allow users to add custom cuisines, ingredients, appliances
-- **Smart Suggestions**: AI-powered recipe inspiration based on user context
-- **Direct Generation Flow**: Recipe generation integrated into all relevant contexts
-- **Progressive Disclosure**: Advanced options available without overwhelming new users
-
-### Modern UI Components
-- **Slider Components**: Replace button arrays with modern slider interfaces
-- **Gesture Support**: Touch-friendly interactions with proper hit targets
-- **Loading States**: Skeleton screens and progressive loading patterns
-- **Error Boundaries**: Comprehensive error handling with recovery options
+### Future Development Priorities
+1. **Cost Analysis Features**: Recipe cost estimation and savings tracking
+2. **Enhanced Meal Planning**: Advanced premium features and social sharing
+3. **Infrastructure Optimization**: Scalable API management and intelligent caching

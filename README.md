@@ -8,50 +8,56 @@ Transform "kitchen anxious" beginners into confident home cooks through AI-power
 
 ## 🚀 Current Status
 
-**Phase 1 Complete:** Foundation & AI Integration
+**Production Ready:** Advanced AI Personalization
 
-- ✅ React Native + Expo development environment
-- ✅ Google Gemini AI integration working
-- ✅ Test interface functional on iOS
-- ✅ Cost-effective API setup (free tier)
+- ✅ Complete React Native app with Expo SDK 53
+- ✅ Advanced user preference system with custom options
+- ✅ Google Gemini AI integration with enhanced personalization
+- ✅ Recipe generation, meal planning, and cooking guidance
+- ✅ Achievement system and progress tracking
+- ✅ Modern UI with gesture-based navigation
+- ✅ Comprehensive error handling and offline support
 
-**Phase 2 In Progress:** Core App Features
+**Enhancement Phase:** Advanced Features
 
-- 🔄 User onboarding flow
-- 🔄 Recipe generation system
-- 🔄 Step-by-step cooking guidance
+- 🔄 Cost analysis and savings tracking
+- 🔄 Infrastructure optimization
+- 🔄 Premium feature expansion
 
 ## 🏗 Tech Stack
 
-- **Frontend:** React Native + TypeScript + Expo
+- **Frontend:** React Native + TypeScript + Expo SDK 53
 - **AI Service:** Google Gemini (gemini-1.5-flash)
-- **State Management:** Zustand
-- **Navigation:** React Navigation
+- **Backend:** Supabase (PostgreSQL + Auth)
+- **State Management:** Zustand + TanStack Query
+- **Navigation:** React Navigation v7
+- **UI System:** Shopify Restyle (type-safe theming)
+- **Forms:** React Hook Form
 - **Storage:** AsyncStorage + Expo SecureStore
-- **Platform:** iOS first, Android later
+- **Platform:** iOS + Android
 
-## 💡 Key Features (Planned)
+## 💡 Key Features
 
-### Smart Onboarding
+### Advanced Personalization
 
-- Kitchen tool assessment via photo recognition
-- Skill level evaluation through interactive questions
-- Dietary preferences and restrictions setup
-- Time and budget constraint configuration
+- **Custom Preferences**: Users can add custom cuisines, ingredients, appliances, and dietary restrictions
+- **Smart Onboarding**: Skill level evaluation and kitchen capability assessment
+- **AI Integration**: Custom preferences processed with equal priority to preset options
+- **Dietary Management**: Comprehensive allergy, intolerance, and health objective tracking
 
-### AI Recipe Coach
+### AI-Powered Cooking
 
-- Personalized recipe recommendations
-- Real-time cooking guidance with help buttons
-- Ingredient substitution suggestions
-- Technique explanations for beginners
+- **Recipe Generation**: Personalized recipes based on user profile and custom preferences
+- **Real-time Guidance**: Step-by-step cooking assistance with contextual help
+- **Meal Planning**: Premium weekly meal planning with grocery list generation
+- **Cooking Coach**: Interactive assistance adapted to skill level and equipment
 
-### Confidence Building
+### User Experience
 
-- Progress tracking and skill development
-- Success celebration and encouragement
-- Recipe history and favorites
-- Gradually increasing difficulty levels
+- **Achievement System**: Gamified progress tracking with 16 achievements across 5 categories
+- **Modern UI**: Gesture-based navigation with Restyle theming system
+- **Offline Support**: Comprehensive error handling and network detection
+- **Profile Management**: Granular preference editing with achievement preservation
 
 ## 🎪 Target Users
 
@@ -101,31 +107,37 @@ npx expo start
 
 ### Environment Setup
 
-1. Get Google Gemini API key from [Google AI Studio](https://aistudio.google.com/)
-2. Add API key to `src/services/ai/gemini.ts` (will be moved to secure storage)
-3. Enable billing in Google Cloud Console (free tier available)
+1. Create `.env` file with Supabase credentials:
+   ```
+   EXPO_PUBLIC_SUPABASE_URL=your_supabase_url_here
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+   ```
+2. Get Google Gemini API key from [Google AI Studio](https://aistudio.google.com/)
+3. Add API key through the app's settings screen
+4. Set up Supabase database using `docs/DATABASE_MIGRATION.md`
 
 ## 📁 Project Structure
 
 ```
 src/
-├── components/
-│   ├── ui/           # Reusable UI components
-│   └── cooking/      # Cooking-specific components
-├── screens/          # App screens
-├── services/
-│   └── ai/          # AI service integrations
-├── hooks/           # Custom React hooks
-├── types/           # TypeScript type definitions
-├── utils/           # Utility functions
-└── constants/       # App constants and prompts
+├── components/      # Reusable UI components
+│   └── ui/         # Restyle design system components  
+├── screens/        # Application screens
+├── services/       # External integrations (AI, Supabase)
+├── hooks/          # Custom React hooks  
+├── stores/         # Zustand state management
+├── types/          # TypeScript type definitions
+├── constants/      # Theme and configuration
+├── config/         # Environment configuration
+└── utils/          # Utility functions
 ```
 
 ## 🔐 Security Notes
 
-- API keys will be moved to Expo SecureStore before production
-- User data handled according to privacy best practices
+- API keys stored in Expo SecureStore
+- Supabase RLS policies protect user data
 - No sensitive information committed to repository
+- User data handled according to privacy best practices
 
 ## 📈 Success Metrics
 
