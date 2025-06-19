@@ -62,6 +62,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 - **AI Service**: Google Gemini (gemini-1.5-flash model)
 - **Navigation**: React Navigation v7 (Stack + Bottom Tabs)
 - **Theming**: Shopify Restyle (type-safe design system)
+- **Data Fetching**: TanStack Query (caching, optimistic updates)
 
 ### Code Organization
 ```
@@ -94,14 +95,20 @@ src/
 - **Response Caching**: Optimized API usage
 - **Context Awareness**: Adapts to user skill level and kitchen equipment
 
+### Data Fetching (`src/hooks/`)
+- **TanStack Query**: Intelligent caching with 5-minute stale time
+- **Optimistic Updates**: Instant UI feedback for mutations
+- **Query Keys**: Organized cache invalidation (`['recipes', userId]`)
+- **Automatic Retry**: Built-in error recovery and background refetching
+
 ### Supabase Integration (`src/services/supabase.ts`)
 - **Authentication**: Email/password with persistent sessions
 - **Database**: User profiles, recipes, cooking sessions
 - **Real-time Features**: Live cooking guidance
 
 ### State Management (`src/stores/`)
-- **Zustand Stores**: Lightweight alternative to Redux
-- **Auth Store**: User authentication and profile data
+- **Zustand Stores**: Global state (auth, profile)
+- **TanStack Query**: Server state with caching
 - **Persistent Storage**: AsyncStorage + SecureStore for sensitive data
 
 ## Design System
