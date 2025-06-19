@@ -1,52 +1,51 @@
 // src/screens/SignUpScreen.tsx
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useForm, Controller } from "react-hook-form";
 import { AuthService } from "../services/supabase";
-import { colors, spacing, borderRadius, typography } from "../constants/theme";
 import { HapticService } from "../services/haptics";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { Box, Text, Button, Input } from "../components/ui";
+import { useTheme } from "@shopify/restyle";
+import { Theme } from "../constants/restyleTheme";
+
+interface SignUpFormData {
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
 
 export const SignUpScreen: React.FC = () => {
   const navigation = useNavigation();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const theme = useTheme<Theme>();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignUp = async () => {
-    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      HapticService.warning();
-      Alert.alert("Missing Fields", "Please fill in all fields");
-      return;
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors }
+  } = useForm<SignUpFormData>({
+    defaultValues: {
+      email: "",
+      password: "",
+      confirmPassword: ""
     }
+  });
 
-    if (password !== confirmPassword) {
-      HapticService.warning();
-      Alert.alert("Password Mismatch", "Passwords do not match");
-      return;
-    }
+  const watchedPassword = watch("password");
 
-    if (password.length < 6) {
-      HapticService.warning();
-      Alert.alert("Weak Password", "Password must be at least 6 characters");
-      return;
-    }
-
+  const onSubmit = async (data: SignUpFormData) => {
     HapticService.medium();
     setIsLoading(true);
 
     try {
-      const { data, error } = await AuthService.signUp(email.trim(), password);
+      const { data: authData, error } = await AuthService.signUp(data.email.trim(), data.password);
 
       if (error) {
         HapticService.error();
@@ -78,134 +77,175 @@ export const SignUpScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.header}>
-        <Text style={styles.logo}>🧠 Sage</Text>
-        <Text style={styles.tagline}>Your Personal Cooking Coach</Text>
-      </View>
-
-      <View style={styles.form}>
-        <Text style={styles.title}>Create Account</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor={colors.textSecondary}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor={colors.textSecondary}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm Password"
-          placeholderTextColor={colors.textSecondary}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-          autoCapitalize="none"
-        />
-
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={handleSignUp}
-          disabled={isLoading}
+      <Box flex={1} backgroundColor="mainBackground">
+        <Box 
+          flex={1} 
+          justifyContent="center" 
+          alignItems="center" 
+          paddingHorizontal="xl"
         >
-          <Text style={styles.loginButtonText}>Create Account</Text>
-        </TouchableOpacity>
+          <Text fontSize={64} textAlign="center" marginBottom="md">
+            🧠 Sage
+          </Text>
+          <Text 
+            variant="h3" 
+            color="secondaryText" 
+            textAlign="center"
+          >
+            Your Personal Cooking Coach
+          </Text>
+        </Box>
 
-        <View style={styles.signUpPrompt}>
-          <Text style={styles.signUpText}>Already have an account? </Text>
-          <TouchableOpacity onPress={navigateToLogin}>
-            <Text style={styles.signUpLink}>Sign In</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+        <Box 
+          flex={1} 
+          paddingHorizontal="xl" 
+          paddingBottom="xxl"
+        >
+          <Text 
+            variant="h1" 
+            textAlign="center" 
+            marginBottom="xl"
+          >
+            Create Account
+          </Text>
+
+          <Controller
+            control={control}
+            name="email"
+            rules={{
+              required: "Email is required",
+              pattern: {
+                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                message: "Please enter a valid email"
+              }
+            }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                backgroundColor="surface"
+                borderRadius="md"
+                padding="md"
+                fontSize={16}
+                color="text"
+                borderWidth={1}
+                borderColor={errors.email ? "error" : "border"}
+                marginBottom="xs"
+                placeholder="Email"
+                placeholderTextColor={theme.colors.textSecondary}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            )}
+          />
+          {errors.email && (
+            <Text variant="caption" color="error" marginBottom="md">
+              {errors.email.message}
+            </Text>
+          )}
+
+          <Controller
+            control={control}
+            name="password"
+            rules={{
+              required: "Password is required",
+              minLength: {
+                value: 6,
+                message: "Password must be at least 6 characters"
+              }
+            }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                backgroundColor="surface"
+                borderRadius="md"
+                padding="md"
+                fontSize={16}
+                color="text"
+                borderWidth={1}
+                borderColor={errors.password ? "error" : "border"}
+                marginBottom="xs"
+                placeholder="Password"
+                placeholderTextColor={theme.colors.textSecondary}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            )}
+          />
+          {errors.password && (
+            <Text variant="caption" color="error" marginBottom="md">
+              {errors.password.message}
+            </Text>
+          )}
+
+          <Controller
+            control={control}
+            name="confirmPassword"
+            rules={{
+              required: "Please confirm your password",
+              validate: (value) => value === watchedPassword || "Passwords do not match"
+            }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                backgroundColor="surface"
+                borderRadius="md"
+                padding="md"
+                fontSize={16}
+                color="text"
+                borderWidth={1}
+                borderColor={errors.confirmPassword ? "error" : "border"}
+                marginBottom="xs"
+                placeholder="Confirm Password"
+                placeholderTextColor={theme.colors.textSecondary}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            )}
+          />
+          {errors.confirmPassword && (
+            <Text variant="caption" color="error" marginBottom="md">
+              {errors.confirmPassword.message}
+            </Text>
+          )}
+
+          <Button
+            variant="primary"
+            marginTop="lg"
+            marginBottom="xl"
+            onPress={handleSubmit(onSubmit)}
+            disabled={isLoading}
+          >
+            <Text variant="button" color="primaryButtonText">
+              Create Account
+            </Text>
+          </Button>
+
+          <Box 
+            flexDirection="row" 
+            justifyContent="center" 
+            alignItems="center"
+          >
+            <Text variant="body" color="secondaryText">
+              Already have an account?{" "}
+            </Text>
+            <Button variant="text" onPress={navigateToLogin}>
+              <Text variant="body" color="primary" fontWeight="bold">
+                Sign In
+              </Text>
+            </Button>
+          </Box>
+        </Box>
+      </Box>
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: spacing.xl,
-  },
-  logo: {
-    fontSize: 64,
-    textAlign: "center",
-    marginBottom: spacing.md,
-  },
-  tagline: {
-    ...typography.h3,
-    color: colors.textSecondary,
-    textAlign: "center",
-  },
-  form: {
-    flex: 1,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl,
-  },
-  title: {
-    ...typography.h1,
-    color: colors.text,
-    textAlign: "center",
-    marginBottom: spacing.xl,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    ...typography.body,
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  loginButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: "center",
-    marginTop: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  loginButtonText: {
-    ...typography.body,
-    color: colors.text,
-    fontWeight: "bold",
-  },
-  signUpPrompt: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  signUpText: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  signUpLink: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: "bold",
-  },
-});

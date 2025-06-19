@@ -1,4 +1,4 @@
-﻿// src/services/ai/index.ts - AI SERVICES FOLDER - REPLACE ALL CONTENT
+// src/services/ai/index.ts - AI SERVICES FOLDER - REPLACE ALL CONTENT
 export { GeminiService } from "./gemini";
 export type {
   CookingCoachResponse,

@@ -25,9 +25,9 @@ _This section is a meta-guide on how to maintain this document._
 
 **Vision:** To transform "kitchen anxious" beginners into confident home cooks through a delightful, AI-powered companion that adapts to their skill level, available tools, and preferences.
 
-**Current Status (as of June 19, 2025): Data Fetching Optimization Complete**
+**Current Status (as of June 19, 2025): Foundational Architecture Complete**
 
-Phase 2.5 Priorities 1 & 2 have been successfully completed. The application now has both a type-safe Restyle theming system AND optimized data fetching with TanStack Query. The useRecipes and useUserProfile hooks have been completely modernized with intelligent caching, optimistic updates, and automatic error handling. This creates a significantly more responsive user experience and a much cleaner, maintainable codebase. Ready to proceed with Priority 3: React Hook Form integration, or move to Phase 3 feature development.
+All Phase 2.5 priorities have been successfully completed! The application now has a complete modern architecture foundation with: (1) type-safe Restyle theming system, (2) optimized data fetching with TanStack Query, and (3) modern form handling with React Hook Form. The auth screens (LoginScreen and SignUpScreen) now use declarative validation with proper error handling and improved performance. Ready to proceed with Phase 3 feature development.
 
 ---
 
@@ -66,6 +66,10 @@ _This section details what has been built and the technical decisions made. It i
   - **Description:** The app now uses Shopify's Restyle library for type-safe, consistent theming. A comprehensive theme configuration (`restyleTheme.ts`) defines semantic color mappings, typography variants, and component variants. Reusable components (`Box`, `Text`, `Button`, `Input`, `Card`) replace primitive React Native components.
   - **Rationale:** Restyle provides compile-time type safety for all theme properties, enforces design consistency, and makes theme switching trivial. The semantic color system (e.g., `backgroundColor="surface"`) makes the codebase more maintainable and the UI more professional. LoginScreen and SettingsScreen serve as reference implementations.
 
+- **Form Handling: React Hook Form**
+  - **Description:** All forms now use React Hook Form with the `useForm` hook and `Controller` components for field management. The auth screens implement declarative validation rules with proper error handling and accessibility. Form state is separated from component rendering logic.
+  - **Rationale:** React Hook Form provides superior performance with fewer re-renders, built-in validation with clear error messaging, and a scalable pattern for complex forms. The `Controller` wrapper integrates seamlessly with our Restyle Input components while maintaining type safety and consistent theming.
+
 ### **UI Components & User Experience**
 
 - **Component System: Restyle-Based Design System**
@@ -100,10 +104,10 @@ _This section outlines the planned next phases of development, prioritized by va
   - **Implemented Solution:** Successfully integrated **TanStack Query** with QueryClient provider, intelligent caching (5-minute stale time), and optimistic updates. Refactored `useRecipes` and `useUserProfile` to use `useQuery` and `useMutation` patterns with proper error handling.
   - **Results Achieved:** Eliminated 100+ lines of manual state management, added automatic caching and background refetching, implemented optimistic updates for instant UI feedback, granular loading states, and automatic retry logic. App now feels significantly more responsive.
 
-- 🎯 **Priority 3: Modernize Form Handling**
-  - **Problem:** Our auth forms use basic `useState` for each field, with manual validation logic. This pattern is not scalable for more complex forms (e.g., user profile editing, recipe feedback).
-  - **Proposed Solution:** Integrate **React Hook Form**. We will refactor `LoginScreen.tsx` and `SignUpScreen.tsx` to use the `useForm` hook, separating form state and validation logic from the component rendering.
-  - **Justification:** This improves form performance (fewer re-renders), simplifies complex validation logic (especially when paired with a schema library like Zod), and provides a clean, scalable pattern for all future forms.
+- ✅ **Priority 3: Modernize Form Handling** *(COMPLETED)*
+  - **Problem:** Our auth forms used basic `useState` for each field, with manual validation logic. This pattern was not scalable for more complex forms.
+  - **Implemented Solution:** Successfully integrated **React Hook Form** with the `useForm` hook and `Controller` components. Refactored both `LoginScreen.tsx` and `SignUpScreen.tsx` to use declarative validation rules with proper error handling and consistent Restyle theming.
+  - **Results Achieved:** Improved form performance with fewer re-renders, simplified validation logic with built-in error display, established scalable patterns for future forms, and eliminated manual validation boilerplate. Forms now provide instant feedback and proper accessibility.
 
 ### **PHASE 3: Drive Retention & Deeper Engagement**
 
@@ -125,6 +129,6 @@ _This section outlines the planned next phases of development, prioritized by va
 
 ## ❓ Open Questions for Next Session
 
-1.  **Next Step Confirmation:** Are we aligned and ready to proceed with **Priority 3: React Hook Form integration** to complete Phase 2.5? The proposed approach is to install React Hook Form, refactor LoginScreen and SignUpScreen forms, and establish patterns for future form development.
-2.  **Implementation Strategy:** Should we refactor both auth forms in the same session, or start with one as proof-of-concept? (Recommendation: Start with LoginScreen since it's simpler, then apply learnings to SignUpScreen.)
-3.  **Phase Completion:** After React Hook Form integration, should we commit the architectural improvements and proceed with Phase 3 feature development, or tackle any remaining technical debt first?
+1.  **Phase 3 Prioritization:** With the foundational architecture complete, which Phase 3 feature should we tackle first? Options include: Search & Filtering in Recipe Book, User Profile & Progress Tracking, or Recipe Ratings & Feedback Loop.
+2.  **Implementation Approach:** Should we focus on one feature at a time for maximum impact, or work on multiple features in parallel to create a more comprehensive user experience?
+3.  **Technical Debt:** Are there any remaining pre-existing linting issues or architectural concerns we should address before diving into new feature development?

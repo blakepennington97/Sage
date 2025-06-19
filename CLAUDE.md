@@ -63,6 +63,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 - **Navigation**: React Navigation v7 (Stack + Bottom Tabs)
 - **Theming**: Shopify Restyle (type-safe design system)
 - **Data Fetching**: TanStack Query (caching, optimistic updates)
+- **Form Handling**: React Hook Form (declarative validation, performance)
 
 ### Code Organization
 ```
