@@ -2,7 +2,7 @@
 
 **Document Purpose:** This is the living strategic plan for the Sage application. It serves as the single source of truth for the project's status, architecture, and future plans. It is designed to provide complete context for any developer, including future AI assistants, joining the project.
 
-**Last Updated:** June 19, 2025
+**Last Updated:** June 19, 2025 (Phase 3 Major Features Complete)
 
 ---
 
@@ -25,9 +25,9 @@ _This section is a meta-guide on how to maintain this document._
 
 **Vision:** To transform "kitchen anxious" beginners into confident home cooks through a delightful, AI-powered companion that adapts to their skill level, available tools, and preferences.
 
-**Current Status (as of June 19, 2025): Foundational Architecture Complete**
+**Current Status (as of June 19, 2025): Phase 3 Major Features Complete**
 
-All Phase 2.5 priorities have been successfully completed! The application now has a complete modern architecture foundation with: (1) type-safe Restyle theming system, (2) optimized data fetching with TanStack Query, and (3) modern form handling with React Hook Form. The auth screens (LoginScreen and SignUpScreen) now use declarative validation with proper error handling and improved performance. Ready to proceed with Phase 3 feature development.
+Phase 2.5 foundational architecture AND Phase 3 Priority 1 & 2 have been successfully completed! The application now features: (1) comprehensive search & filtering system for recipes, (2) complete achievement system with gamification, (3) modern Profile screen with progress tracking, and (4) consistent design system throughout. UI/UX has been polished based on user feedback with modal-based settings and unified theming. Ready for Phase 3 Priority 3 (Recipe Ratings) or Phase 4 monetization features.
 
 ---
 
@@ -70,12 +70,23 @@ _This section details what has been built and the technical decisions made. It i
   - **Description:** All forms now use React Hook Form with the `useForm` hook and `Controller` components for field management. The auth screens implement declarative validation rules with proper error handling and accessibility. Form state is separated from component rendering logic.
   - **Rationale:** React Hook Form provides superior performance with fewer re-renders, built-in validation with clear error messaging, and a scalable pattern for complex forms. The `Controller` wrapper integrates seamlessly with our Restyle Input components while maintaining type safety and consistent theming.
 
+- **Achievement System: Gamification & Progress Tracking**
+  - **Description:** Comprehensive achievement system with 16 achievements across 5 categories, user leveling (Kitchen Newbie → Culinary Legend), progress rings, and detailed statistics. Achievement service calculates progress in real-time based on user activity (recipes generated, cooking sessions, skill progression, streaks, favorites).
+  - **Rationale:** Gamification significantly improves user retention and engagement by providing clear goals, visual feedback, and celebration of progress. Achievement categories target different user motivations, from skill development to consistency building, creating multiple pathways for users to feel accomplished and motivated to continue cooking.
+
 ### **UI Components & User Experience**
 
 - **Component System: Restyle-Based Design System**
-
-  - **Description:** The app uses a comprehensive Restyle-based component system with reusable components (`Box`, `Text`, `Button`, `Input`, `Card`) that automatically apply theme values. Component variants (e.g., `Button` with `primary`, `secondary`, `danger` variants) ensure consistency while providing flexibility.
+  - **Description:** The app uses a comprehensive Restyle-based component system with reusable components (`Box`, `Text`, `Button`, `Input`, `Card`) that automatically apply theme values. Component variants (e.g., `Button` with `primary`, `secondary`, `danger` variants) ensure consistency while providing flexibility. All screens now use consistent theming including CookingCoachScreen modernization.
   - **Rationale:** This approach eliminates manual styling repetition, provides compile-time safety, and creates a scalable foundation for rapid UI development. The system supports semantic naming (e.g., `backgroundColor="surface"`) that makes code more readable and maintainable.
+
+- **Search & Discovery: Intuitive Recipe Filtering**
+  - **Description:** Advanced search and filtering system for the Recipe Book with real-time text search, intuitive difficulty filtering (Beginner, Easy, Medium, Hard, Expert with emojis and colors), and favorites toggle. Modernized UI with responsive design and enhanced empty states.
+  - **Rationale:** As recipe collections grow, discoverability becomes crucial for user engagement. The modern filtering system uses descriptive labels instead of confusing numbers, color-coded chips for visual hierarchy, and real-time search for instant feedback. This dramatically improves the user experience and encourages exploration of saved recipes.
+
+- **User Profile & Navigation: Modal-Based Settings**
+  - **Description:** Renamed "Settings" tab to "Profile" reflecting the achievement-focused content. Settings moved to a clean Sheet modal accessible via gear icon, eliminating the need to scroll through long profile content to access configuration options.
+  - **Rationale:** Clear separation between motivational profile content (achievements, progress, stats) and functional settings (account, API keys, profile reset). Modal-based settings provide immediate access without disrupting the profile viewing experience, following modern mobile UX patterns.
 
 - **Core UX Problem-Solving:**
   - **Problem:** The initial implementation of the grocery list feature used a native `<Modal>`, which created a new rendering window on iOS. This prevented our toast notifications from appearing on top of the modal content.
@@ -137,6 +148,7 @@ _This section outlines the planned next phases of development, prioritized by va
 
 ## ❓ Open Questions for Next Session
 
-1.  **Phase 3 Prioritization:** With the foundational architecture complete, which Phase 3 feature should we tackle first? Options include: Search & Filtering in Recipe Book, User Profile & Progress Tracking, or Recipe Ratings & Feedback Loop.
-2.  **Implementation Approach:** Should we focus on one feature at a time for maximum impact, or work on multiple features in parallel to create a more comprehensive user experience?
-3.  **Technical Debt:** Are there any remaining pre-existing linting issues or architectural concerns we should address before diving into new feature development?
+1.  **Phase 3 Completion:** Should we complete Phase 3 by implementing Recipe Ratings & Feedback Loop, or move directly to Phase 4 monetization features like Meal Planning?
+2.  **Technical Polish:** Are there any remaining UI/UX improvements or performance optimizations needed before considering the app "launch-ready"?
+3.  **Production Readiness:** Should we integrate production services (RevenueCat for subscriptions, Sentry for error tracking, Mixpanel for analytics) before adding more features?
+4.  **User Testing:** With the core feature set now complete, should we conduct user testing to validate the achievement system and overall user experience before expanding further?
