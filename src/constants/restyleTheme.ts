@@ -64,6 +64,12 @@ const theme = createTheme({
     full: 9999,
   },
   textVariants: {
+    defaults: {
+      fontSize: 16,
+      fontWeight: 'normal',
+      lineHeight: 22,
+      color: 'primaryText',
+    },
     h1: {
       fontSize: 28,
       fontWeight: 'bold',
