@@ -17,6 +17,9 @@ export interface SliderProps {
   showLabels?: boolean;
   labels?: string[];
   disabled?: boolean;
+  minimumTrackTintColor?: string;
+  maximumTrackTintColor?: string;
+  thumbTintColor?: string;
 }
 
 export const CustomSlider: React.FC<SliderProps> = ({
@@ -28,6 +31,9 @@ export const CustomSlider: React.FC<SliderProps> = ({
   showLabels = false,
   labels = [],
   disabled = false,
+  minimumTrackTintColor,
+  maximumTrackTintColor,
+  thumbTintColor,
 }) => {
   const theme = useTheme<Theme>();
   const sliderWidth = 280;
@@ -51,9 +57,9 @@ export const CustomSlider: React.FC<SliderProps> = ({
           onValueChange={onValueChange}
           step={step}
           disabled={disabled}
-          minimumTrackTintColor={theme.colors.primary}
-          maximumTrackTintColor={theme.colors.border}
-          thumbTintColor={theme.colors.primary}
+          minimumTrackTintColor={minimumTrackTintColor || theme.colors.primary}
+          maximumTrackTintColor={maximumTrackTintColor || theme.colors.border}
+          thumbTintColor={thumbTintColor || theme.colors.primary}
         />
       </Box>
 

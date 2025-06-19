@@ -16,7 +16,7 @@ interface CustomBottomSheetProps extends Partial<BottomSheetProps> {
 }
 
 export const CustomBottomSheet = forwardRef<BottomSheet, CustomBottomSheetProps>(
-  ({ isVisible, onClose, children, title, snapPoints = ['50%', '90%'], ...props }, ref) => {
+  ({ isVisible, onClose, children, title, snapPoints = ['90%', '95%'], ...props }, ref) => {
     const snapPointsMemo = useMemo(() => snapPoints, [snapPoints]);
 
     if (!isVisible) {
@@ -26,7 +26,7 @@ export const CustomBottomSheet = forwardRef<BottomSheet, CustomBottomSheetProps>
     return (
       <BottomSheet
         ref={ref}
-        index={0}
+        index={1}
         snapPoints={snapPointsMemo}
         onClose={onClose}
         enablePanDownToClose

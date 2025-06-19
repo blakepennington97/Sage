@@ -56,7 +56,7 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
 
   if (isLoading || !preferences) {
     return (
-      <BottomSheet isVisible={isVisible} onClose={onClose}>
+      <BottomSheet isVisible={isVisible} onClose={onClose} snapPoints={['90%', '95%']}>
         <Box padding="lg" alignItems="center">
           <Text variant="h2" marginBottom="md">Loading Preferences...</Text>
         </Box>
@@ -1449,7 +1449,7 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   };
 
   return (
-    <BottomSheet isVisible={isVisible} onClose={onClose}>
+    <BottomSheet isVisible={isVisible} onClose={onClose} snapPoints={['90%', '95%']}>
       {renderSelectedCategory()}
     </BottomSheet>
   );

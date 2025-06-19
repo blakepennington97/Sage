@@ -11,7 +11,7 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useRecipes } from "../hooks/useRecipes";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 import { colors, spacing, borderRadius, typography } from "../constants/theme";
@@ -20,7 +20,12 @@ import { UserRecipe } from "../services/supabase";
 
 export const RecipeGenerationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { isOffline } = useNetworkStatus();
+  
+  // Check if coming from meal planner
+  const fromMealPlanner = route.params?.fromMealPlanner;
+  const mealPlanContext = route.params?.mealPlanContext;
   const [recipeRequest, setRecipeRequest] = useState("");
 
   const { recipes, isLoading, error, generateAndSaveRecipe } = useRecipes();
@@ -44,8 +49,12 @@ export const RecipeGenerationScreen: React.FC = () => {
     if (newRecipe) {
       HapticService.success();
       setRecipeRequest("");
-      // Navigate to the new detail screen instead of the coach
-      navigation.navigate("RecipeDetail", { recipe: newRecipe });
+      // Navigate to the new detail screen, passing meal planner context if present
+      navigation.navigate("RecipeDetail", { 
+        recipe: newRecipe,
+        fromMealPlanner,
+        mealPlanContext 
+      });
     }
   };
 

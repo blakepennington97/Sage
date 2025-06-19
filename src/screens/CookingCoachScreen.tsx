@@ -36,8 +36,6 @@ export const CookingCoachScreen: React.FC = () => {
   const [steps, setSteps] = useState<CookingStep[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(0);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpQuestion, setHelpQuestion] = useState("");
   const [helpResponse, setHelpResponse] = useState("");
@@ -98,23 +96,6 @@ export const CookingCoachScreen: React.FC = () => {
     startSession();
   }, [recipe.id, user, recipe.recipe_content, recipe.recipe_data]);
 
-  // Timer countdown effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isTimerRunning && timeRemaining > 0) {
-      interval = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            setIsTimerRunning(false);
-            Alert.alert("⏰ Timer Complete!", "Time's up!");
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerRunning, timeRemaining]);
 
   const handleSessionComplete = async (rating: number) => {
     if (sessionId) {
@@ -142,21 +123,6 @@ export const CookingCoachScreen: React.FC = () => {
   };
 
 
-  const startTimer = (minutes: number) => {
-    setTimeRemaining(minutes * 60);
-    setIsTimerRunning(true);
-  };
-
-  const stopTimer = () => {
-    setIsTimerRunning(false);
-    setTimeRemaining(0);
-  };
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
 
   const getHelp = async () => {
     if (!helpQuestion.trim()) {
@@ -247,7 +213,7 @@ export const CookingCoachScreen: React.FC = () => {
               backgroundColor="primaryButtonText"
               borderRadius="sm"
               style={{
-                width: `${((currentStep + 1) / steps.length) * 100}%`,
+                width: `${(currentStep / Math.max(steps.length - 1, 1)) * 100}%`,
               }}
             />
           </Box>
@@ -268,37 +234,6 @@ export const CookingCoachScreen: React.FC = () => {
             </Card>
           )}
 
-          {/* Timer Section */}
-          <Card variant="secondary" marginBottom="lg">
-            <Text variant="h3" marginBottom="md">⏱️ Timer</Text>
-            {!isTimerRunning ? (
-              <Box flexDirection="row" flexWrap="wrap" gap="sm">
-                {[5, 10, 15, 30].map((minutes) => (
-                  <Button
-                    key={minutes}
-                    variant="secondary"
-                    onPress={() => startTimer(minutes)}
-                    style={{ flex: 1, minWidth: 70 }}
-                  >
-                    <Text variant="button" color="primaryText">
-                      {minutes} min
-                    </Text>
-                  </Button>
-                ))}
-              </Box>
-            ) : (
-              <Box alignItems="center">
-                <Text variant="h1" textAlign="center" marginBottom="md">
-                  {formatTime(timeRemaining)}
-                </Text>
-                <Button variant="danger" onPress={stopTimer}>
-                  <Text variant="button" color="dangerButtonText">
-                    Stop Timer
-                  </Text>
-                </Button>
-              </Box>
-            )}
-          </Card>
 
           {/* Help Section */}
           <Card variant="primary">

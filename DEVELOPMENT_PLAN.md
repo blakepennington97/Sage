@@ -2,7 +2,7 @@
 
 **Document Purpose:** This is the living strategic plan for the Sage application. It serves as the single source of truth for the project's status, architecture, and future plans. It is designed to provide complete context for any developer, including future AI assistants, joining the project.
 
-**Last Updated:** June 19, 2025 (Cost Analysis & Financial Motivation COMPLETED)
+**Last Updated:** June 19, 2025 (UI/UX Polish & Centralized API Key Management COMPLETED)
 
 ---
 
@@ -25,11 +25,11 @@ _This section is a meta-guide on how to maintain this document._
 
 **Vision:** To transform "kitchen anxious" beginners into confident home cooks through a delightful, AI-powered companion that adapts to their skill level, available tools, and preferences.
 
-**Current Status (as of June 19, 2025): Cost Analysis & Financial Motivation COMPLETED**
+**Current Status (as of June 19, 2025): UI/UX Polish & Centralized API Key Management COMPLETED**
 
-MAJOR ENHANCEMENT: **Cost Analysis & Financial Motivation** system completed! The application now features: (1) **cost per serving estimation** for all generated recipes with AI-powered ingredient cost calculation, (2) **post-cooking savings feedback** comparing home cooking costs vs restaurant prices with regional multipliers, (3) **geographic cost comparison** with location-based pricing adjustments for different regions (US, Canada, UK, Australia), and (4) **comprehensive savings dashboard** in user profile with cumulative tracking, monthly trends, and average savings per meal.
+MAJOR ENHANCEMENT: **UI/UX Polish & Centralized API Key Management** completed! The application now features: (1) **enhanced modal/sheet experience** with full-height Settings, Edit Preferences, and Grocery List modals, (2) **modernized difficulty filtering** with color-progressive slider replacing button interface (Beginner→Expert), (3) **improved cooking coach experience** with fixed progression bar and removed timer functionality, (4) **intuitive meal planning flow** where "Add Recipe" automatically adds to selected meal slot, and (5) **centralized API key management** with Supabase-based key distribution and intelligent fallback to personal keys.
 
-**FINANCIAL MOTIVATION INTEGRATION** - Users now see tangible financial benefits of home cooking with estimated cost breakdowns, real-time savings notifications after cooking, and cumulative savings tracking. Regional cost adjustments ensure accuracy across different geographic markets with appropriate currency formatting and restaurant price multipliers.
+**PRODUCTION-READY INFRASTRUCTURE** - The app now supports enterprise-level API key management where administrators can configure centralized Gemini API keys in Supabase, eliminating the need for individual users to manage their own keys. The system gracefully handles missing migrations and provides clear user feedback about API key status with manual refresh capabilities.
 
 ---
 
@@ -112,6 +112,10 @@ _This section details what has been built and the technical decisions made. It i
   - **Description:** Comprehensive financial tracking and motivation system: (1) AI-powered cost per serving estimation for all generated recipes with ingredient-level cost breakdown, (2) Post-cooking savings feedback comparing home cooking vs restaurant costs with regional pricing multipliers, (3) Geographic cost comparison service supporting multiple regions (US, Canada, UK, Australia) with appropriate currency formatting, (4) Savings dashboard in user profile tracking cumulative savings, monthly trends, and average savings per meal with persistent storage in cooking sessions.
   - **Rationale:** Addresses core user motivation by demonstrating tangible financial benefits of home cooking. Cost transparency helps users make informed decisions about recipes. Regional adjustments ensure accuracy across different markets. Cumulative savings tracking provides ongoing motivation and validates the value of cooking at home. Integration with cooking sessions ensures accurate data collection and progress tracking.
 
+- **Centralized API Key Management System**
+  - **Description:** Enterprise-grade API key management with hybrid architecture: (1) Centralized Gemini API keys stored in Supabase `app_config` table for administrator control, (2) Intelligent fallback to personal API keys stored in secure local storage, (3) Smart caching system with 1-hour cache duration to minimize database calls, (4) Enhanced Settings UI showing API key status with manual refresh capabilities, (5) Migration-aware error handling for graceful degradation when database schema isn't yet updated.
+  - **Rationale:** Enables production deployment with centralized cost control while maintaining backward compatibility. Administrators can configure shared API keys eliminating individual user setup friction. Caching reduces database load and improves performance. Fallback system ensures app continues working during migration periods or for users preferring personal keys. Clear UI feedback helps users understand API key status and provides manual refresh for cache clearing.
+
 ### **UI Components & User Experience**
 
 - **Component System: Restyle-Based Design System**
@@ -125,6 +129,22 @@ _This section details what has been built and the technical decisions made. It i
 - **User Profile & Navigation: Modal-Based Settings**
   - **Description:** Renamed "Settings" tab to "Profile" reflecting the achievement-focused content. Settings moved to a clean Sheet modal accessible via gear icon, eliminating the need to scroll through long profile content to access configuration options.
   - **Rationale:** Clear separation between motivational profile content (achievements, progress, stats) and functional settings (account, API keys, profile reset). Modal-based settings provide immediate access without disrupting the profile viewing experience, following modern mobile UX patterns.
+
+- **Enhanced Modal & Sheet Experience**
+  - **Description:** Comprehensive modal height optimization: (1) Settings, Edit Preferences, and Grocery List modals now use full-height snap points (90%-95%) with proper expansion, (2) Fixed modal index to ensure immediate full expansion, (3) Eliminated mid-screen modal positioning issues that cut off content, (4) Consistent bottom sheet behavior across all modal interactions.
+  - **Rationale:** Professional modal experience prevents user frustration from inaccessible content. Full-height modals maximize content visibility and eliminate scrolling issues. Consistent behavior across all modals creates predictable user interactions and improves overall app polish.
+
+- **Modern Difficulty Selection Interface**
+  - **Description:** Replaced 5-button difficulty array with interactive color-progressive slider: (1) Smooth slider with dynamic color changes (Beginner=Green → Expert=Purple), (2) Real-time visual feedback with emoji labels and selected level display, (3) Streamlined UI removing redundant text labels, (4) Enhanced CustomSlider component with support for dynamic track and thumb colors.
+  - **Rationale:** Modern slider interface feels more intuitive and responsive than button arrays. Color progression provides immediate visual feedback for difficulty selection. Reduced visual clutter improves screen space utilization. Progressive colors help users understand difficulty spectrum at a glance.
+
+- **Optimized Cooking Coach Experience**
+  - **Description:** Streamlined cooking guidance interface: (1) Fixed progression bar calculation to properly show step completion (0% at start, 100% at final step), (2) Removed timer functionality to focus on step-by-step guidance, (3) Eliminated UI clutter while maintaining core coaching features, (4) Improved visual progress feedback during cooking sessions.
+  - **Rationale:** Timer functionality added complexity without significant user value. Focus on core step-by-step guidance improves user experience during cooking. Accurate progression bar provides better feedback on cooking session progress. Streamlined interface reduces cognitive load during cooking.
+
+- **Intuitive Meal Planning Workflow**
+  - **Description:** Context-aware recipe addition system: (1) "Add Recipe" button automatically adds recipe to originally selected meal slot (breakfast, lunch, dinner), (2) Enhanced success messaging showing recipe name and target meal slot, (3) Fixed navigation flow to return to meal planner after recipe addition, (4) Pull-to-refresh functionality for viewing newly added recipes, (5) Intelligent meal plan refresh preventing infinite loading loops.
+  - **Rationale:** Direct meal slot assignment matches user mental model and eliminates confusion about where recipes are added. Clear feedback confirms successful recipe addition. Proper navigation flow maintains user context. Pull-to-refresh provides manual control over data synchronization while preventing automatic refresh loops that degrade performance.
 
 - **Core UX Problem-Solving:**
   - **Problem:** The initial implementation of the grocery list feature used a native `<Modal>`, which created a new rendering window on iOS. This prevented our toast notifications from appearing on top of the modal content.

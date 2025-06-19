@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Alert, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Alert, RefreshControl, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Box, Text, Button, LoadingSpinner, ErrorMessage } from '../components/ui';
 import { WeeklyMealGrid } from '../components/WeeklyMealGrid';
 import { PremiumGate } from '../components/PremiumGate';
@@ -36,11 +36,7 @@ export const MealPlannerScreen: React.FC = () => {
   // Mock premium status - in real app, this would come from subscription service
   const [isPremium, setIsPremium] = useState(false);
 
-  useEffect(() => {
-    loadActiveMealPlan();
-  }, [user]);
-
-  const loadActiveMealPlan = async () => {
+  const loadActiveMealPlan = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -55,7 +51,11 @@ export const MealPlannerScreen: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadActiveMealPlan();
+  }, [loadActiveMealPlan]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -263,12 +263,22 @@ export const MealPlannerScreen: React.FC = () => {
       </Box>
 
       {/* Meal Grid */}
-      <WeeklyMealGrid
-        mealPlan={activeMealPlan}
-        onAddRecipe={handleAddRecipe}
-        onViewRecipe={handleViewRecipe}
-        onRemoveRecipe={handleRemoveRecipe}
-      />
+      <ScrollView 
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <WeeklyMealGrid
+          mealPlan={activeMealPlan}
+          onAddRecipe={handleAddRecipe}
+          onViewRecipe={handleViewRecipe}
+          onRemoveRecipe={handleRemoveRecipe}
+        />
+      </ScrollView>
 
       {/* Recipe Selector Sheet */}
       <BottomSheet
@@ -289,7 +299,10 @@ export const MealPlannerScreen: React.FC = () => {
                 variant="primary" 
                 onPress={() => {
                   setShowRecipeSelector(false);
-                  navigation.navigate('RecipeGeneration');
+                  navigation.navigate('RecipeGeneration', { 
+                    fromMealPlanner: true,
+                    mealPlanContext: selectedMealSlot 
+                  });
                 }}
               >
                 <Text variant="button" color="primaryButtonText">
@@ -312,7 +325,10 @@ export const MealPlannerScreen: React.FC = () => {
                   variant="primary" 
                   onPress={() => {
                     setShowRecipeSelector(false);
-                    navigation.navigate('RecipeGeneration');
+                    navigation.navigate('RecipeGeneration', { 
+                      fromMealPlanner: true,
+                      mealPlanContext: selectedMealSlot 
+                    });
                   }}
                 >
                   <Text variant="button" color="primaryButtonText">

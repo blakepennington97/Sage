@@ -8,7 +8,7 @@ import { useRecipes } from "../hooks/useRecipes";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { RecipeGrid } from "../components/ui";
 import { UserRecipe } from "../services/supabase";
-import { Box, Text, Input } from "../components/ui";
+import { Box, Text, Input, Slider } from "../components/ui";
 import { useTheme } from "@shopify/restyle";
 import { Theme } from "../constants/restyleTheme";
 
@@ -160,49 +160,62 @@ export const RecipeBookScreen: React.FC = () => {
         </Box>
         
         <Box>
-          <Text variant="caption" color="secondaryText" marginBottom="sm" fontWeight="600">
-            Difficulty Level
-          </Text>
-          <Box flexDirection="row" flexWrap="wrap" gap="xs">
-            {[
-              { level: 1, label: "Beginner", emoji: "🥄", color: "#10B981" },
-              { level: 2, label: "Easy", emoji: "🍳", color: "#3B82F6" },
-              { level: 3, label: "Medium", emoji: "👨‍🍳", color: "#F59E0B" },
-              { level: 4, label: "Hard", emoji: "🔥", color: "#EF4444" },
-              { level: 5, label: "Expert", emoji: "⭐", color: "#8B5CF6" }
-            ].map(({ level, label, emoji, color }) => (
-              <TouchableOpacity
-                key={level}
-                onPress={() => setDifficultyFilter(difficultyFilter === level ? null : level)}
-                style={{
-                  backgroundColor: difficultyFilter === level ? color : theme.colors.surface,
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  borderWidth: 1,
-                  borderColor: difficultyFilter === level ? color : theme.colors.border,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  shadowColor: difficultyFilter === level ? color : 'transparent',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 4,
-                  elevation: difficultyFilter === level ? 3 : 0,
-                }}
-              >
-                <Text style={{ fontSize: 12, marginRight: 4 }}>{emoji}</Text>
-                <Text 
-                  variant="caption" 
-                  style={{ 
-                    color: difficultyFilter === level ? "white" : theme.colors.text,
-                    fontWeight: difficultyFilter === level ? "bold" : "normal"
-                  }}
-                >
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="sm">
+            <Text variant="caption" color="secondaryText" fontWeight="600">
+              Difficulty Level
+            </Text>
+            <TouchableOpacity onPress={() => setDifficultyFilter(null)}>
+              <Text variant="caption" color="primary" fontWeight="600">
+                {difficultyFilter ? 'Clear' : 'All Levels'}
+              </Text>
+            </TouchableOpacity>
           </Box>
+          
+          
+          {/* Slider */}
+          <Box alignItems="center" marginTop="sm">
+            <Slider
+              value={difficultyFilter || 0}
+              onValueChange={(value) => {
+                if (typeof value === 'number') {
+                  setDifficultyFilter(value === 0 ? null : Math.round(value));
+                }
+              }}
+              minimumValue={0}
+              maximumValue={5}
+              step={1}
+              minimumTrackTintColor={
+                difficultyFilter === 1 ? "#10B981" :
+                difficultyFilter === 2 ? "#3B82F6" :
+                difficultyFilter === 3 ? "#F59E0B" :
+                difficultyFilter === 4 ? "#EF4444" :
+                difficultyFilter === 5 ? "#8B5CF6" :
+                theme.colors.border
+              }
+              maximumTrackTintColor={theme.colors.border}
+              thumbTintColor={
+                difficultyFilter === 1 ? "#10B981" :
+                difficultyFilter === 2 ? "#3B82F6" :
+                difficultyFilter === 3 ? "#F59E0B" :
+                difficultyFilter === 4 ? "#EF4444" :
+                difficultyFilter === 5 ? "#8B5CF6" :
+                theme.colors.primary
+              }
+            />
+          </Box>
+          
+          {/* Selected Level Display */}
+          {difficultyFilter && (
+            <Box alignItems="center" marginTop="xs">
+              <Text variant="caption" color="primaryText" fontWeight="600">
+                {difficultyFilter === 1 ? "🥄 Beginner" :
+                difficultyFilter === 2 ? "🍳 Easy" :
+                difficultyFilter === 3 ? "👨‍🍳 Medium" :
+                difficultyFilter === 4 ? "🔥 Hard" :
+                "⭐ Expert"}
+              </Text>
+            </Box>
+          )}
         </Box>
       </Box>
     </Box>

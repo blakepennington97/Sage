@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 import Toast from "react-native-toast-message";
 
@@ -20,9 +19,16 @@ import { GeminiService, GroceryListData } from "../services/ai";
 import { HapticService } from "../services/haptics";
 import { UserRecipe } from "../services/supabase";
 import { CostEstimationService } from "../services/costEstimation";
+import { MealPlanService } from "../services/mealPlanService";
+import { useAuthStore } from "../stores/authStore";
+import { MealType } from "../types/mealPlan";
 
 type RootStackParamList = {
-  RecipeDetail: { recipe: UserRecipe };
+  RecipeDetail: { 
+    recipe: UserRecipe;
+    fromMealPlanner?: boolean;
+    mealPlanContext?: { date: string; mealType: MealType };
+  };
 };
 
 const geminiService = new GeminiService();
@@ -30,8 +36,9 @@ const geminiService = new GeminiService();
 export const RecipeDetailScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<RootStackParamList, "RecipeDetail">>();
-  const { recipe: initialRecipe } = route.params;
+  const { recipe: initialRecipe, fromMealPlanner, mealPlanContext } = route.params;
   const theme = useTheme<Theme>();
+  const { user } = useAuthStore();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [groceryList, setGroceryList] = useState<GroceryListData | null>(null);
@@ -113,6 +120,50 @@ export const RecipeDetailScreen: React.FC = () => {
         type: "success",
         text1: "Thanks for rating!",
         text2: "Your feedback helps improve our AI recommendations",
+      });
+    }
+  };
+
+  const handleAddToMealPlan = async () => {
+    if (!mealPlanContext || !user) return;
+    
+    try {
+      HapticService.medium();
+      
+      // Get the active meal plan first
+      const activeMealPlan = await MealPlanService.getActiveMealPlan(user.id);
+      if (!activeMealPlan) {
+        Toast.show({
+          type: "error",
+          text1: "No Active Meal Plan",
+          text2: "Please create a meal plan first",
+        });
+        return;
+      }
+
+      await MealPlanService.updateMealPlan({
+        meal_plan_id: activeMealPlan.id,
+        date: mealPlanContext.date,
+        meal_type: mealPlanContext.mealType,
+        recipe_id: recipe.id,
+        servings: 2 // Default servings
+      });
+
+      HapticService.success();
+      Toast.show({
+        type: "success",
+        text1: "✅ Recipe Added to Meal Plan!",
+        text2: `${recipe.recipe_name} added to ${mealPlanContext.mealType} for ${new Date(mealPlanContext.date).toLocaleDateString()}`,
+      });
+      
+      // Navigate back to meal planner - pop back to root of stack 
+      navigation.popToTop();
+    } catch (error: any) {
+      HapticService.error();
+      Toast.show({
+        type: "error",
+        text1: "Failed to Add Recipe",
+        text2: error.message,
       });
     }
   };
@@ -240,10 +291,10 @@ export const RecipeDetailScreen: React.FC = () => {
         <Button
           variant="primary"
           flex={1}
-          onPress={() => navigation.navigate("CookingCoach", { recipe })}
+          onPress={fromMealPlanner ? handleAddToMealPlan : () => navigation.navigate("CookingCoach", { recipe })}
         >
           <Text variant="button" color="primaryButtonText" numberOfLines={1} textAlign="center">
-            🔥 Start Cooking
+            {fromMealPlanner ? "📅 Add Recipe" : "🔥 Start Cooking"}
           </Text>
         </Button>
       </Box>

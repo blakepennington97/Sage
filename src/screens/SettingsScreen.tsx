@@ -45,14 +45,19 @@ export const SettingsScreen: React.FC = () => {
 
   const [apiKey, setApiKey] = useState("");
   const [hasKey, setHasKey] = useState(false);
+  const [hasCentralizedKey, setHasCentralizedKey] = useState(false);
   const [isKeyLoading, setIsKeyLoading] = useState(false);
   const [showSettingsSheet, setShowSettingsSheet] = useState(false);
   const [showPreferencesEditor, setShowPreferencesEditor] = useState(false);
 
   useEffect(() => {
     const checkExistingKey = async () => {
-      const keyExists = await APIKeyManager.hasGeminiKey();
+      const [keyExists, centralizedKeyExists] = await Promise.all([
+        APIKeyManager.hasGeminiKey(),
+        APIKeyManager.hasCentralizedKey()
+      ]);
       setHasKey(keyExists);
+      setHasCentralizedKey(centralizedKeyExists);
     };
     checkExistingKey();
   }, []);
@@ -275,7 +280,7 @@ export const SettingsScreen: React.FC = () => {
       </ScrollView>
 
       {/* Settings Sheet */}
-      <BottomSheet isVisible={showSettingsSheet} onClose={() => setShowSettingsSheet(false)}>
+      <BottomSheet isVisible={showSettingsSheet} onClose={() => setShowSettingsSheet(false)} snapPoints={['90%', '95%']}>
         <Box padding="lg">
           <Text variant="h2" textAlign="center" marginBottom="lg">
             ⚙️ Settings
@@ -324,44 +329,74 @@ export const SettingsScreen: React.FC = () => {
           </Card>
 
           <Card variant="primary" marginBottom="md">
-            <Text variant="h3" marginBottom="sm">Gemini API Key</Text>
-            <Text 
-              variant="body" 
-              fontWeight="600" 
-              marginBottom="md"
-              color={hasKey ? "success" : "error"}
-            >
-              {hasKey ? "✅ API Key Configured" : "❌ No API Key"}
-            </Text>
-            {!hasKey ? (
+            <Text variant="h3" marginBottom="sm">🔑 API Key Status</Text>
+            
+            {hasCentralizedKey ? (
               <Box>
-                <Input
-                  backgroundColor="surface"
-                  borderRadius="md"
-                  padding="md"
-                  fontSize={16}
-                  color="text"
-                  borderWidth={1}
-                  borderColor="border"
-                  marginBottom="md"
-                  placeholder="Paste your key here"
-                  placeholderTextColor={theme.colors.textSecondary}
-                  value={apiKey}
-                  onChangeText={setApiKey}
-                  secureTextEntry
-                />
-                <Button variant="primary" onPress={saveApiKey} disabled={isKeyLoading}>
-                  {isKeyLoading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text variant="button" color="primaryButtonText">Save API Key</Text>
-                  )}
+                <Text variant="body" fontWeight="600" marginBottom="sm" color="success">
+                  ✅ Centralized API Key Active
+                </Text>
+                <Text variant="caption" color="secondaryText" marginBottom="md">
+                  The app is using a centralized API key managed by the administrators. No individual API key setup required.
+                </Text>
+                <Button 
+                  variant="secondary" 
+                  onPress={async () => {
+                    await APIKeyManager.clearKeyCache();
+                    Alert.alert("Cache Cleared", "API key cache has been refreshed.");
+                  }}
+                >
+                  <Text variant="button" color="primaryText">🔄 Refresh API Key</Text>
                 </Button>
               </Box>
             ) : (
-              <Button variant="danger" onPress={removeApiKey}>
-                <Text variant="button" color="dangerButtonText">Remove API Key</Text>
-              </Button>
+              <Box>
+                <Text 
+                  variant="body" 
+                  fontWeight="600" 
+                  marginBottom="sm"
+                  color={hasKey ? "success" : "warning"}
+                >
+                  {hasKey ? "✅ Personal API Key Configured" : "⚠️ Personal API Key Required"}
+                </Text>
+                <Text variant="caption" color="secondaryText" marginBottom="md">
+                  {hasKey 
+                    ? "You're using your personal Gemini API key. Consider asking administrators to set up a centralized key for better experience."
+                    : "No centralized API key is available. Please enter your personal Gemini API key to use AI features."
+                  }
+                </Text>
+                
+                {!hasKey ? (
+                  <Box>
+                    <Input
+                      backgroundColor="surface"
+                      borderRadius="md"
+                      padding="md"
+                      fontSize={16}
+                      color="text"
+                      borderWidth={1}
+                      borderColor="border"
+                      marginBottom="md"
+                      placeholder="Paste your Gemini API key here"
+                      placeholderTextColor={theme.colors.textSecondary}
+                      value={apiKey}
+                      onChangeText={setApiKey}
+                      secureTextEntry
+                    />
+                    <Button variant="primary" onPress={saveApiKey} disabled={isKeyLoading}>
+                      {isKeyLoading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text variant="button" color="primaryButtonText">Save Personal API Key</Text>
+                      )}
+                    </Button>
+                  </Box>
+                ) : (
+                  <Button variant="danger" onPress={removeApiKey}>
+                    <Text variant="button" color="dangerButtonText">Remove Personal API Key</Text>
+                  </Button>
+                )}
+              </Box>
             )}
           </Card>
         </Box>

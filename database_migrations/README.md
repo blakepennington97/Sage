@@ -12,6 +12,7 @@ Run these migrations in numerical order. Each migration is designed to be idempo
 | `01_user_preferences.sql` | User preferences table for AI personalization | Advanced Preference Customization | ✅ Required |
 | `02_meal_planning.sql` | Meal planning and grocery list tables | Premium Meal Planning | ✅ Required |
 | `03_cost_analysis.sql` | Cost tracking and savings analysis | Cost Analysis & Financial Motivation | ✅ Required |
+| `04_app_config.sql` | Centralized application configuration management | API Key Management & Config | ✅ Required |
 
 ## 🚀 How to Run Migrations
 
@@ -26,6 +27,7 @@ Run these migrations in numerical order. Each migration is designed to be idempo
    - Copy contents of `01_user_preferences.sql` → Paste → Run
    - Copy contents of `02_meal_planning.sql` → Paste → Run  
    - Copy contents of `03_cost_analysis.sql` → Paste → Run
+   - Copy contents of `04_app_config.sql` → Paste → Run
 
 ### Verification
 After running each migration, you can verify success by checking:
@@ -33,7 +35,7 @@ After running each migration, you can verify success by checking:
 -- Check tables were created
 SELECT table_name FROM information_schema.tables 
 WHERE table_schema = 'public' 
-AND table_name IN ('user_preferences', 'meal_plans', 'meal_plan_grocery_lists');
+AND table_name IN ('user_preferences', 'meal_plans', 'meal_plan_grocery_lists', 'app_config');
 
 -- Check cost columns were added
 SELECT column_name FROM information_schema.columns 
@@ -80,6 +82,22 @@ AND column_name IN ('estimated_savings', 'recipe_cost', 'restaurant_cost');
 - `get_user_savings()` function for savings calculations
 - Performance indexes and triggers
 
+### 04_app_config.sql
+**Purpose:** Centralized Application Configuration Management
+- Creates centralized config management system
+- Enables storing API keys and app settings in Supabase
+- Supports caching and encrypted config values
+- Provides fallback to local storage for API keys
+
+**Tables Created:**
+- `app_config` - Centralized application configuration storage
+
+**Features:**
+- Centralized Gemini API key management
+- Configuration versioning and activation flags
+- Secure storage with encryption support
+- RLS policies for secure access
+
 ## 🔧 Database Schema Overview
 
 After running all migrations, your database will include:
@@ -94,6 +112,7 @@ After running all migrations, your database will include:
 - `user_preferences` (AI personalization data)
 - `meal_plans` (weekly meal planning)
 - `meal_plan_grocery_lists` (grocery lists)
+- `app_config` (centralized configuration management)
 
 ### Security
 - Row Level Security (RLS) enabled on all tables
@@ -133,6 +152,11 @@ DROP VIEW IF EXISTS user_savings_summary;
 DROP FUNCTION IF EXISTS get_user_savings(TEXT);
 ```
 
+### Rollback 04 (App Config)
+```sql
+DROP TABLE IF EXISTS app_config;
+```
+
 ## 📊 Performance Considerations
 
 - All tables include appropriate indexes for common query patterns
@@ -170,6 +194,7 @@ If you encounter issues:
 | 2025-06-19 | 01_user_preferences | Claude | Advanced preference customization system |
 | 2025-06-19 | 02_meal_planning | Claude | Premium meal planning feature |
 | 2025-06-19 | 03_cost_analysis | Claude | Cost analysis & financial motivation |
+| 2025-06-19 | 04_app_config | Claude | Centralized configuration and API key management |
 
 ---
 
