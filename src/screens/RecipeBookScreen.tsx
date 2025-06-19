@@ -6,6 +6,7 @@ import {
 } from "react-native";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { useRecipes } from "../hooks/useRecipes";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 import { RecipeCard } from "../components/RecipeCard";
 import { UserRecipe } from "../services/supabase";
 import { Box, Text, Input } from "../components/ui";
@@ -16,11 +17,13 @@ export const RecipeBookScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme<Theme>();
   const { recipes, isLoading, refetchRecipes } = useRecipes();
+  const { preferences } = useUserPreferences();
   const isFocused = useIsFocused();
   
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState<number | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [usePreferenceFiltering, setUsePreferenceFiltering] = useState(false);
 
   useEffect(() => {
     if (isFocused) {
@@ -42,9 +45,44 @@ export const RecipeBookScreen: React.FC = () => {
       // Filter by favorites
       const matchesFavorites = !showFavoritesOnly || recipe.is_favorite;
       
-      return matchesSearch && matchesDifficulty && matchesFavorites;
+      // Preference-based filtering
+      let matchesPreferences = true;
+      if (usePreferenceFiltering && preferences && preferences.setupCompleted) {
+        const { dietary, cookingContext, cookingStyles } = preferences;
+        
+        // Check for dietary restrictions (simplified - in real app would need recipe ingredient analysis)
+        // For now, just check estimated time against user's typical cooking time
+        if (cookingContext.typicalCookingTime === 'quick_15min' && 
+            recipe.estimated_time && 
+            parseInt(recipe.estimated_time) > 20) {
+          matchesPreferences = false;
+        }
+        
+        // Check if recipe difficulty matches user's comfort level
+        if (cookingContext.typicalCookingTime === 'quick_15min' && recipe.difficulty_level > 2) {
+          matchesPreferences = false;
+        }
+        
+        // Check for preferred cuisines in recipe name (simplified matching)
+        if (cookingStyles.preferredCuisines.length > 0) {
+          const recipeName = recipe.recipe_name.toLowerCase();
+          const recipeContent = recipe.recipe_content?.toLowerCase() || '';
+          
+          const cuisineMatches = cookingStyles.preferredCuisines.some(cuisine => 
+            recipeName.includes(cuisine.toLowerCase()) || 
+            recipeContent.includes(cuisine.toLowerCase())
+          );
+          
+          // If no cuisine match found and we have strong preferences, filter out
+          if (!cuisineMatches && cookingStyles.preferredCuisines.length >= 3) {
+            matchesPreferences = false;
+          }
+        }
+      }
+      
+      return matchesSearch && matchesDifficulty && matchesFavorites && matchesPreferences;
     });
-  }, [recipes, searchQuery, difficultyFilter, showFavoritesOnly]);
+  }, [recipes, searchQuery, difficultyFilter, showFavoritesOnly, usePreferenceFiltering, preferences]);
 
   const renderEmptyState = () => {
     if (recipes.length === 0) {
@@ -117,26 +155,49 @@ export const RecipeBookScreen: React.FC = () => {
       />
       
       <Box flexDirection="column" gap="md">
-        <TouchableOpacity 
-          onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
-          style={{
-            backgroundColor: showFavoritesOnly ? theme.colors.primary : theme.colors.surface,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: theme.colors.border,
-            alignSelf: 'flex-start',
-          }}
-        >
-          <Text 
-            variant="caption" 
-            color={showFavoritesOnly ? "primaryButtonText" : "text"}
-            fontWeight="600"
+        <Box flexDirection="row" gap="md" flexWrap="wrap">
+          <TouchableOpacity 
+            onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            style={{
+              backgroundColor: showFavoritesOnly ? theme.colors.primary : theme.colors.surface,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+            }}
           >
-            ❤️ Favorites Only
-          </Text>
-        </TouchableOpacity>
+            <Text 
+              variant="caption" 
+              color={showFavoritesOnly ? "primaryButtonText" : "text"}
+              fontWeight="600"
+            >
+              ❤️ Favorites Only
+            </Text>
+          </TouchableOpacity>
+          
+          {preferences && preferences.setupCompleted && (
+            <TouchableOpacity 
+              onPress={() => setUsePreferenceFiltering(!usePreferenceFiltering)}
+              style={{
+                backgroundColor: usePreferenceFiltering ? theme.colors.primary : theme.colors.surface,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+              }}
+            >
+              <Text 
+                variant="caption" 
+                color={usePreferenceFiltering ? "primaryButtonText" : "text"}
+                fontWeight="600"
+              >
+                🎛️ My Preferences
+              </Text>
+            </TouchableOpacity>
+          )}
+        </Box>
         
         <Box>
           <Text variant="caption" color="secondaryText" marginBottom="sm" fontWeight="600">

@@ -1,22 +1,20 @@
-// src/screens/RecipeDetailScreen.tsx
-
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
-  StyleSheet,
-  Text,
   TouchableOpacity,
-  View,
+  Alert,
 } from "react-native";
 import Toast from "react-native-toast-message";
 
-// CHANGE 1: MAKE SURE MARKDOWNTEXT IS IMPORTED
 import { MarkdownText } from "../components/MarkdownText";
 import { Sheet } from "../components/Sheet";
-import { colors, spacing, typography } from "../constants/theme";
+import { StarRating } from "../components/StarRating";
+import { Box, Text, Button, Card } from "../components/ui";
+import { useTheme } from "@shopify/restyle";
+import { Theme } from "../constants/restyleTheme";
 import { useRecipes } from "../hooks/useRecipes";
 import { GeminiService, GroceryListData } from "../services/ai";
 import { HapticService } from "../services/haptics";
@@ -32,12 +30,13 @@ export const RecipeDetailScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<RootStackParamList, "RecipeDetail">>();
   const { recipe: initialRecipe } = route.params;
+  const theme = useTheme<Theme>();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [groceryList, setGroceryList] = useState<GroceryListData | null>(null);
   const [isSheetVisible, setIsSheetVisible] = useState(false);
   const [recipe, setRecipe] = useState(initialRecipe);
-  const { toggleFavorite } = useRecipes();
+  const { toggleFavorite, rateRecipe, isRating } = useRecipes();
 
   const handleGenerateGroceryList = async () => {
     setIsGenerating(true);
@@ -103,166 +102,170 @@ export const RecipeDetailScreen: React.FC = () => {
     await toggleFavorite(recipe.id, recipe.is_favorite);
   };
 
+  const handleRatingChange = (rating: number) => {
+    setRecipe({ ...recipe, user_rating: rating });
+    HapticService.light();
+    rateRecipe(recipe.id, rating);
+    
+    if (rating >= 4) {
+      Toast.show({
+        type: "success",
+        text1: "Thanks for rating!",
+        text2: "Your feedback helps improve our AI recommendations",
+      });
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>{recipe.recipe_name}</Text>
-        <View style={styles.metaContainer}>
-          <Text style={styles.metaText}>Cooked: {recipe.cook_count} times</Text>
-          <TouchableOpacity
-            onPress={handleToggleFavorite}
-            style={styles.favoriteButton}
-          >
-            <Text style={styles.metaText}>
-              Favorite: {recipe.is_favorite ? "❤️" : "🤍"}
+    <Box flex={1} backgroundColor="mainBackground">
+      {/* Header */}
+      <Box 
+        backgroundColor="surface" 
+        paddingTop="xxl" 
+        paddingBottom="md" 
+        paddingHorizontal="lg"
+        borderBottomWidth={1}
+        borderBottomColor="border"
+      >
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          style={{ position: 'absolute', left: 20, top: 60, zIndex: 1 }}
+        >
+          <Text fontSize={24}>←</Text>
+        </TouchableOpacity>
+        
+        <Text variant="h2" textAlign="center" marginBottom="xs">
+          {recipe.recipe_name}
+        </Text>
+        
+        {/* Recipe Meta Info */}
+        <Box flexDirection="row" justifyContent="center" alignItems="center" gap="lg">
+          <Text variant="caption" color="secondaryText">
+            Cooked {recipe.cook_count} times
+          </Text>
+          <TouchableOpacity onPress={handleToggleFavorite}>
+            <Text variant="caption" color="secondaryText">
+              {recipe.is_favorite ? "❤️ Favorite" : "🤍 Add to Favorites"}
             </Text>
           </TouchableOpacity>
-        </View>
+        </Box>
+      </Box>
 
-        {/* CHANGE 2: USE THE CORRECT COMPONENT HERE */}
-        <MarkdownText>{recipe.recipe_content}</MarkdownText>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <Box padding="lg" paddingBottom="xxl">
+          {/* Rating Section */}
+          <Card variant="primary" marginBottom="lg">
+            <Text variant="h3" marginBottom="md">Rate This Recipe</Text>
+            <Box flexDirection="row" alignItems="center" justifyContent="space-between">
+              <StarRating
+                rating={recipe.user_rating || 0}
+                onRatingChange={handleRatingChange}
+                interactive={!isRating}
+                size="large"
+              />
+              {isRating && (
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+              )}
+            </Box>
+            {recipe.user_rating > 0 && (
+              <Text variant="caption" color="secondaryText" marginTop="sm">
+                Your rating helps improve AI recommendations for everyone!
+              </Text>
+            )}
+          </Card>
+
+          {/* Recipe Content */}
+          <Card variant="primary">
+            <MarkdownText>{recipe.recipe_content}</MarkdownText>
+          </Card>
+        </Box>
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.button}
+      {/* Footer Actions */}
+      <Box 
+        flexDirection="row" 
+        padding="lg" 
+        backgroundColor="surface"
+        borderTopWidth={1}
+        borderTopColor="border"
+        gap="md"
+      >
+        <Button
+          variant="secondary"
+          flex={1}
           onPress={handleGenerateGroceryList}
           disabled={isGenerating}
         >
           {isGenerating ? (
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={theme.colors.primary} />
           ) : (
-            <Text style={styles.buttonText}>🛒 Get Grocery List</Text>
+            <Text variant="button" color="primaryText">🛒 Grocery List</Text>
           )}
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.primaryButton]}
+        </Button>
+        
+        <Button
+          variant="primary"
+          flex={1}
           onPress={() => navigation.navigate("CookingCoach", { recipe })}
         >
-          <Text style={[styles.buttonText, styles.primaryButtonText]}>
-            🔥 Start Cooking
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <Text variant="button" color="primaryButtonText">🔥 Start Cooking</Text>
+        </Button>
+      </Box>
 
+      {/* Grocery List Sheet */}
       <Sheet
         isVisible={isSheetVisible}
         onClose={() => setIsSheetVisible(false)}
       >
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>🛒 Grocery List</Text>
-          <TouchableOpacity onPress={() => setIsSheetVisible(false)}>
-            <Text style={styles.sheetCloseButton}>✕</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView contentContainerStyle={styles.sheetScroll}>
-          {groceryList ? (
-            groceryList.map((category) => (
-              <View key={category.category} style={styles.categoryContainer}>
-                <Text style={styles.categoryTitle}>{category.category}</Text>
-                {category.items.map((item, index) => (
-                  <Text key={index} style={styles.groceryItem}>
-                    {" "}
-                    • {item}{" "}
-                  </Text>
-                ))}
-              </View>
-            ))
-          ) : (
-            <ActivityIndicator color={colors.primary} />
-          )}
-        </ScrollView>
-        <View style={styles.sheetFooter}>
-          <TouchableOpacity
-            style={styles.sheetButton}
-            onPress={handleCopyToClipboard}
-          >
-            <Text style={styles.buttonText}>📋 Copy to Clipboard</Text>
-          </TouchableOpacity>
-        </View>
+        <Box padding="lg">
+          <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="lg">
+            <Text variant="h2">🛒 Grocery List</Text>
+            <TouchableOpacity onPress={() => setIsSheetVisible(false)}>
+              <Text fontSize={24} color="textSecondary">✕</Text>
+            </TouchableOpacity>
+          </Box>
+          
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {groceryList ? (
+              groceryList.map((category) => (
+                <Box key={category.category} marginBottom="lg">
+                  <Box 
+                    borderBottomWidth={1}
+                    borderBottomColor="border"
+                    paddingBottom="xs"
+                    marginBottom="sm"
+                  >
+                    <Text variant="h3" color="primary">
+                      {category.category}
+                    </Text>
+                  </Box>
+                  {category.items.map((item, index) => (
+                    <Text 
+                      key={index} 
+                      variant="body" 
+                      marginLeft="sm" 
+                      marginBottom="xs"
+                    >
+                      • {item}
+                    </Text>
+                  ))}
+                </Box>
+              ))
+            ) : (
+              <Box alignItems="center" padding="lg">
+                <ActivityIndicator color={theme.colors.primary} />
+              </Box>
+            )}
+          </ScrollView>
+          
+          <Box marginTop="lg">
+            <Button variant="primary" onPress={handleCopyToClipboard}>
+              <Text variant="button" color="primaryButtonText">📋 Copy to Clipboard</Text>
+            </Button>
+          </Box>
+        </Box>
       </Sheet>
-    </View>
+    </Box>
   );
 };
 
-// Styles are unchanged from the previous step
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scrollContainer: { padding: spacing.lg, paddingBottom: 120 },
-  title: { ...typography.h1, color: colors.text, marginBottom: spacing.md },
-  metaContainer: {
-    flexDirection: "row",
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    alignItems: "center",
-  },
-  metaText: { ...typography.caption, color: colors.textSecondary },
-  favoriteButton: { padding: spacing.xs },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    padding: spacing.md,
-    paddingBottom: spacing.xl,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderColor: colors.border,
-    gap: spacing.md,
-  },
-  button: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: 12,
-    alignItems: "center",
-    backgroundColor: colors.surfaceVariant,
-  },
-  primaryButton: { backgroundColor: colors.primary },
-  buttonText: { ...typography.body, fontWeight: "bold", color: colors.text },
-  primaryButtonText: { color: "white" },
-  sheetHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  sheetTitle: { ...typography.h2, color: colors.text },
-  sheetCloseButton: {
-    fontSize: 24,
-    color: colors.textSecondary,
-    fontWeight: "bold",
-  },
-  sheetScroll: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
-  sheetFooter: {
-    padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  sheetButton: {
-    backgroundColor: colors.primary,
-    padding: spacing.md,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  categoryContainer: { marginBottom: spacing.lg },
-  categoryTitle: {
-    ...typography.h3,
-    color: colors.primary,
-    marginBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingBottom: spacing.xs,
-  },
-  groceryItem: {
-    ...typography.body,
-    color: colors.text,
-    lineHeight: 24,
-    marginLeft: spacing.sm,
-  },
-});

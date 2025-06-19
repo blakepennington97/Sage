@@ -176,6 +176,39 @@ export const useRecipes = () => {
     },
   });
 
+  // Rate recipe mutation
+  const rateRecipeMutation = useMutation({
+    mutationFn: ({ recipeId, rating }: { recipeId: string; rating: number }) => 
+      RecipeService.rateRecipe(recipeId, rating),
+    onMutate: async ({ recipeId, rating }: { recipeId: string; rating: number }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.recipes(user!.id) });
+
+      // Snapshot the previous value
+      const previousRecipes = queryClient.getQueryData(QUERY_KEYS.recipes(user!.id));
+
+      // Optimistically update
+      queryClient.setQueryData(
+        QUERY_KEYS.recipes(user!.id),
+        (oldData: UserRecipe[] = []) =>
+          oldData.map((r) =>
+            r.id === recipeId ? { ...r, user_rating: rating } : r
+          )
+      );
+
+      return { previousRecipes };
+    },
+    onError: (err, variables, context) => {
+      // Revert on error
+      queryClient.setQueryData(QUERY_KEYS.recipes(user!.id), context?.previousRecipes);
+      Alert.alert("Error", "Could not update recipe rating.");
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.recipes(user!.id) });
+    },
+  });
+
   const deleteRecipe = useCallback(
     (recipeId: string) => {
       deleteRecipeMutation.mutate(recipeId);
@@ -190,6 +223,13 @@ export const useRecipes = () => {
     [toggleFavoriteMutation]
   );
 
+  const rateRecipe = useCallback(
+    (recipeId: string, rating: number) => {
+      rateRecipeMutation.mutate({ recipeId, rating });
+    },
+    [rateRecipeMutation]
+  );
+
   return {
     recipes,
     isLoading: isLoading || generateRecipeMutation.isPending,
@@ -197,10 +237,12 @@ export const useRecipes = () => {
     generateAndSaveRecipe,
     deleteRecipe,
     toggleFavorite,
+    rateRecipe,
     refetchRecipes,
     // Additional loading states for specific operations
     isGenerating: generateRecipeMutation.isPending,
     isDeleting: deleteRecipeMutation.isPending,
     isTogglingFavorite: toggleFavoriteMutation.isPending,
+    isRating: rateRecipeMutation.isPending,
   };
 };

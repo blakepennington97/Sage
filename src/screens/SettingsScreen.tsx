@@ -13,6 +13,7 @@ import { AuthService } from "../services/supabase";
 import { HapticService } from "../services/haptics";
 import { Box, Text, Button, Input, Card } from "../components/ui";
 import { Sheet } from "../components/Sheet";
+import { PreferencesEditor } from "../components/PreferencesEditor";
 import { useTheme } from "@shopify/restyle";
 import { Theme } from "../constants/restyleTheme";
 import { 
@@ -43,6 +44,7 @@ export const SettingsScreen: React.FC = () => {
   const [hasKey, setHasKey] = useState(false);
   const [isKeyLoading, setIsKeyLoading] = useState(false);
   const [showSettingsSheet, setShowSettingsSheet] = useState(false);
+  const [showPreferencesEditor, setShowPreferencesEditor] = useState(false);
 
   useEffect(() => {
     const checkExistingKey = async () => {
@@ -89,10 +91,10 @@ export const SettingsScreen: React.FC = () => {
     await AuthService.signOut();
   };
 
-  const resetProfile = () => {
+  const confirmResetProfile = () => {
     Alert.alert(
       "Reset Profile",
-      "This will restart onboarding. Are you sure?",
+      "This will reset your cooking profile and restart onboarding, but preserve your achievements. Are you sure?",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -101,7 +103,7 @@ export const SettingsScreen: React.FC = () => {
           onPress: async () => {
             try {
               await updateProfile({ skill_level: "" }); // Setting skill_level to empty triggers onboarding
-              Alert.alert("Profile Reset", "Your profile has been reset.");
+              Alert.alert("Profile Reset", "Your cooking profile has been reset. Your achievements are preserved.");
             } catch (error) {
               Alert.alert("Error", "Failed to reset profile.");
             }
@@ -257,10 +259,25 @@ export const SettingsScreen: React.FC = () => {
           </Card>
 
           <Card variant="primary" marginBottom="md">
-            <Text variant="h3" marginBottom="sm">Cooking Profile</Text>
+            <Text variant="h3" marginBottom="sm">Cooking Preferences</Text>
+            <Text variant="body" color="secondaryText" marginBottom="md">
+              Customize your preferences for better AI recommendations
+            </Text>
+            <Button 
+              variant="primary" 
+              onPress={() => {
+                setShowSettingsSheet(false);
+                setShowPreferencesEditor(true);
+              }}
+              marginBottom="md"
+            >
+              <Text variant="button" color="primaryButtonText">
+                🎛️ Edit Preferences
+              </Text>
+            </Button>
             <Button 
               variant="danger" 
-              onPress={resetProfile}
+              onPress={confirmResetProfile}
               disabled={isProfileLoading}
             >
               {isProfileLoading ? (
@@ -316,6 +333,12 @@ export const SettingsScreen: React.FC = () => {
           </Card>
         </Box>
       </Sheet>
+
+      {/* Preferences Editor */}
+      <PreferencesEditor 
+        isVisible={showPreferencesEditor} 
+        onClose={() => setShowPreferencesEditor(false)} 
+      />
     </Box>
   );
 };

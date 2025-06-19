@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { AuthService, ProfileService, UserProfile } from "../supabase";
+import { AuthService, ProfileService, UserProfile, UserPreferencesService } from "../supabase";
 import { APIKeyManager } from "./config";
+import { UserPreferences, migratePreferences } from "../../types/userPreferences";
 
 export interface RecipeInstruction {
   step: number;
@@ -90,30 +91,100 @@ export class GeminiService {
       return "The user has not completed their profile. Provide generic, beginner-friendly advice.";
     }
 
-    const userFears = profile.cooking_fears || [];
+    // Get user preferences for enhanced personalization
+    let preferences: UserPreferences | null = null;
+    try {
+      const preferencesRecord = await UserPreferencesService.getPreferences(user.id);
+      if (preferencesRecord) {
+        preferences = migratePreferences(
+          preferencesRecord.preferences_data, 
+          preferencesRecord.version, 
+          '1.0'
+        );
+      }
+    } catch (error) {
+      console.warn("Could not fetch user preferences, using basic profile only");
+    }
 
-    return `
-      USER PROFILE:
+    const userFears = profile.cooking_fears || [];
+    
+    // Build basic profile context
+    let context = `
+      USER COOKING PROFILE:
       - Skill Level: ${getSkillDescription(profile)}
       - Kitchen Setup: ${getKitchenSummary(profile)}
       - Confidence: ${profile.confidence_level}/5
       - Cooking Concerns: ${userFears.join(", ") || "None specified"}
       
-      CONSTRAINTS:
+      BASIC CONSTRAINTS:
       - Match complexity to their skill level.
       - Only suggest recipes/techniques for their available tools.
       - ${profile.has_oven ? "" : "NO OVEN - stovetop/microwave only."}
-      - ${
-        profile.stove_type === "none"
-          ? "NO STOVE - microwave/no-cook only."
-          : ""
-      }
-      - ${
-        profile.space_level <= 2
-          ? "Limited prep space - suggest one-pot or minimal dish recipes."
-          : ""
-      }
+      - ${profile.stove_type === "none" ? "NO STOVE - microwave/no-cook only." : ""}
+      - ${profile.space_level <= 2 ? "Limited prep space - suggest one-pot or minimal dish recipes." : ""}
     `;
+
+    // Add enhanced context if preferences are available
+    if (preferences && preferences.setupCompleted) {
+      const { dietary, cookingContext, kitchenCapabilities, cookingStyles } = preferences;
+      
+      context += `
+      
+      ENHANCED PERSONALIZATION:
+      
+      DIETARY PREFERENCES:
+      - Dietary Style: ${dietary.dietaryStyle}
+      - Allergies: ${dietary.allergies.length > 0 ? dietary.allergies.join(", ") : "None"}
+      - Spice Tolerance: ${dietary.spiceTolerance}
+      - Health Goals: ${[
+          dietary.nutritionGoals.lowSodium && "Low Sodium",
+          dietary.nutritionGoals.highFiber && "High Fiber",
+          dietary.nutritionGoals.targetProtein && `${dietary.nutritionGoals.targetProtein}g protein per meal`,
+          dietary.nutritionGoals.targetCalories && `${dietary.nutritionGoals.targetCalories} daily calories`
+        ].filter(Boolean).join(", ") || "None specified"}
+      - Health Objectives: ${dietary.healthObjectives.join(", ") || "None"}
+      
+      COOKING CONTEXT:
+      - Typical Cooking Time: ${cookingContext.typicalCookingTime.replace('_', ' ')}
+      - Budget Level: ${cookingContext.budgetLevel.replace('_', ' ')}
+      - Typical Servings: ${cookingContext.typicalServings}
+      - Meal Prep Style: ${cookingContext.mealPrepStyle.replace('_', ' ')}
+      - Lifestyle: ${cookingContext.lifestyleFactors.join(", ") || "Not specified"}
+      
+      KITCHEN CAPABILITIES:
+      - Specialty Appliances: ${kitchenCapabilities.appliances.specialty.join(", ") || "None"}
+      - Pantry Staples: ${kitchenCapabilities.pantryStaples.join(", ")}
+      - Storage: ${kitchenCapabilities.storageSpace.refrigerator} fridge, ${kitchenCapabilities.storageSpace.freezer} freezer, ${kitchenCapabilities.storageSpace.pantry} pantry
+      - Technique Comfort: ${Object.entries(kitchenCapabilities.techniqueComfort)
+          .map(([technique, level]) => `${technique.replace('_', ' ')}: ${level}/5`)
+          .join(", ")}
+      
+      COOKING STYLE:
+      - Preferred Cuisines: ${cookingStyles.preferredCuisines.join(", ")}
+      - Cooking Moods: ${cookingStyles.cookingMoods.join(", ")}
+      - Favorite Ingredients: ${cookingStyles.favoriteIngredients.length > 0 ? cookingStyles.favoriteIngredients.join(", ") : "None specified"}
+      - Avoided Ingredients: ${cookingStyles.avoidedIngredients.length > 0 ? cookingStyles.avoidedIngredients.join(", ") : "None"}
+      
+      PERSONALIZATION REQUIREMENTS:
+      - STRICTLY respect all dietary restrictions and allergies
+      - Match the user's preferred cuisine styles and cooking moods
+      - Consider their typical cooking time and budget constraints
+      - Adapt recipes to their available appliances and storage
+      - Suggest techniques within their comfort level, but offer growth opportunities
+      - Include their favorite ingredients when possible
+      - Avoid ingredients they dislike
+      - Match spice level to their tolerance
+      - Consider their health and nutrition goals
+      `;
+    } else {
+      context += `
+      
+      NOTE: User has not completed advanced preference setup. Using basic profile only.
+      Consider suggesting they customize their preferences for better recommendations.
+      `;
+    }
+
+    return context;
   }
 
   public async getCookingAdvice(

@@ -10,9 +10,16 @@ import {
   Dimensions,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { HapticService } from "../services/haptics";
 import { colors, typography } from "../constants/theme";
+import { OnboardingStackParamList } from "../types/navigation";
+
+type SkillEvaluationNavigationProp = StackNavigationProp<
+  OnboardingStackParamList,
+  'Skills'
+>;
 
 // --- Data Definitions ---
 interface SkillLevel {
@@ -80,7 +87,7 @@ const cookingFears = [
 ];
 
 export const SkillEvaluationScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<SkillEvaluationNavigationProp>();
   const { isLoading, completeSkillAssessment } = useUserProfile();
 
   const [selectedSkillLevel, setSelectedSkillLevel] = useState<string>("");

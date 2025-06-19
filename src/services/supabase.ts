@@ -34,6 +34,15 @@ export interface UserProfile {
   created_at: string;
   updated_at: string;
 }
+
+export interface UserPreferencesRecord {
+  id: string;
+  user_id: string;
+  preferences_data: any; // JSON field containing UserPreferences
+  version: string;
+  created_at: string;
+  updated_at: string;
+}
 export interface UserRecipe {
   id: string;
   user_id: string;
@@ -211,6 +220,81 @@ export class RecipeService {
       .update({ is_favorite: !recipe.is_favorite })
       .eq("id", recipeId);
     if (updateError) throw updateError;
+  }
+
+  static async rateRecipe(recipeId: string, rating: number): Promise<void> {
+    if (rating < 1 || rating > 5) {
+      throw new Error("Rating must be between 1 and 5");
+    }
+
+    const { error } = await supabase
+      .from("user_recipes")
+      .update({ user_rating: rating })
+      .eq("id", recipeId);
+    if (error) throw error;
+  }
+}
+
+// User Preferences Service
+export class UserPreferencesService {
+  static async getPreferences(userId: string): Promise<UserPreferencesRecord | null> {
+    try {
+      const { data, error } = await supabase
+        .from("user_preferences")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+      if (error && error.code !== "PGRST116") {
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      console.error("Error fetching preferences:", error);
+      throw error;
+    }
+  }
+
+  static async updatePreferences(
+    userId: string,
+    preferencesData: any,
+    version: string = '1.0'
+  ): Promise<UserPreferencesRecord> {
+    try {
+      const { data, error } = await supabase
+        .from("user_preferences")
+        .upsert({
+          user_id: userId,
+          preferences_data: preferencesData,
+          version,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id'
+        })
+        .select()
+        .single();
+      if (error) {
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      console.error("Error upserting preferences:", error);
+      throw error;
+    }
+  }
+
+  static async deletePreferences(userId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("user_preferences")
+        .delete()
+        .eq("user_id", userId);
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error("Error deleting preferences:", error);
+      throw error;
+    }
   }
 }
 
