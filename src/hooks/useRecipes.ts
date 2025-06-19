@@ -9,6 +9,7 @@ import {
 } from "../services/ai/gemini";
 import { RecipeService, UserRecipe } from "../services/supabase";
 import { useAuthStore } from "../stores/authStore";
+import { ErrorHandler, withErrorHandling } from "../utils/errorHandling";
 
 const geminiService = new GeminiService();
 
@@ -90,9 +91,7 @@ export const useRecipes = () => {
       );
     },
     onError: (error: any) => {
-      console.error("Recipe generation/saving failed:", error);
-      const errorMessage = error.message || "An unknown error occurred.";
-      Alert.alert("Error", errorMessage);
+      ErrorHandler.handleError(error, "recipe generation");
     },
   });
 

@@ -81,3 +81,7 @@ export const Input = createRestyleComponent<InputProps, Theme>([
   typography,
   color,
 ], TextInput);
+
+// Re-export utility components
+export { LoadingSpinner } from './LoadingSpinner';
+export { ErrorMessage } from './ErrorMessage';

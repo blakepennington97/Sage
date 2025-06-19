@@ -19,6 +19,7 @@ const palette = {
   success: "#4CAF50",
   warning: "#FF9800",
   error: "#F44336",
+  errorBackground: "rgba(244, 67, 54, 0.1)",
   info: "#2196F3",
 
   // UI elements
