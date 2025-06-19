@@ -15,7 +15,7 @@ import {
 } from "../services/supabase";
 import { CostEstimationService } from "../services/costEstimation";
 import { Box, Text, Button, Card } from "../components/ui";
-import { Sheet } from "../components/Sheet";
+import { BottomSheet } from "../components/ui";
 import { useTheme } from "@shopify/restyle";
 import { Theme } from "../constants/restyleTheme";
 
@@ -359,7 +359,7 @@ export const CookingCoachScreen: React.FC = () => {
       </Box>
 
       {/* Help Modal */}
-      <Sheet 
+      <BottomSheet 
         isVisible={showHelpModal} 
         onClose={() => {
           setShowHelpModal(false);
@@ -418,7 +418,7 @@ export const CookingCoachScreen: React.FC = () => {
             </Card>
           )}
         </Box>
-      </Sheet>
+      </BottomSheet>
     </Box>
   );
 };

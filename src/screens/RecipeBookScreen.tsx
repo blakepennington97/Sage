@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
 import {
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { useRecipes } from "../hooks/useRecipes";
 import { useUserPreferences } from "../hooks/useUserPreferences";
-import { RecipeCard } from "../components/RecipeCard";
+import { RecipeGrid } from "../components/ui";
 import { UserRecipe } from "../services/supabase";
 import { Box, Text, Input } from "../components/ui";
 import { useTheme } from "@shopify/restyle";
@@ -84,45 +83,6 @@ export const RecipeBookScreen: React.FC = () => {
     });
   }, [recipes, searchQuery, difficultyFilter, showFavoritesOnly, usePreferenceFiltering, preferences]);
 
-  const renderEmptyState = () => {
-    if (recipes.length === 0) {
-      return (
-        <Box 
-          flex={1} 
-          justifyContent="center" 
-          alignItems="center" 
-          padding="xl" 
-          marginTop="xxl"
-        >
-          <Text fontSize={64} marginBottom="lg">📖</Text>
-          <Text variant="h2" textAlign="center" marginBottom="sm">
-            Your Recipe Book is Empty
-          </Text>
-          <Text variant="body" color="secondaryText" textAlign="center">
-            Tap the &quot;+&quot; button to generate your first recipe with Sage!
-          </Text>
-        </Box>
-      );
-    }
-    
-    return (
-      <Box 
-        flex={1} 
-        justifyContent="center" 
-        alignItems="center" 
-        padding="xl" 
-        marginTop="xxl"
-      >
-        <Text fontSize={48} marginBottom="lg">🔍</Text>
-        <Text variant="h2" textAlign="center" marginBottom="sm">
-          No recipes found
-        </Text>
-        <Text variant="body" color="secondaryText" textAlign="center">
-          Try adjusting your search or filters
-        </Text>
-      </Box>
-    );
-  };
 
   const renderHeader = () => (
     <Box 
@@ -251,29 +211,18 @@ export const RecipeBookScreen: React.FC = () => {
   return (
     <Box flex={1} backgroundColor="mainBackground">
       {renderHeader()}
-      {isLoading && recipes.length === 0 ? (
-        <ActivityIndicator
-          style={{ marginTop: 48 }}
-          size="large"
-          color={theme.colors.primary}
-        />
-      ) : (
-        <FlatList
-          data={filteredRecipes}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }: { item: UserRecipe }) => (
-            <RecipeCard
-              recipe={item}
-              onPress={() =>
-                navigation.navigate("RecipeDetail", { recipe: item })
-              }
-            />
-          )}
-          numColumns={2}
-          contentContainerStyle={{ padding: 8 }}
-          ListEmptyComponent={renderEmptyState}
-        />
-      )}
+      <RecipeGrid
+        recipes={filteredRecipes}
+        onRecipePress={(recipe) => 
+          navigation.navigate("RecipeDetail", { recipe })
+        }
+        isLoading={isLoading && recipes.length === 0}
+        emptyMessage={
+          recipes.length === 0 
+            ? "No recipes yet! Tap the + button to generate your first recipe with Sage!"
+            : "No recipes found. Try adjusting your search or filters."
+        }
+      />
       <TouchableOpacity
         style={{
           position: 'absolute',

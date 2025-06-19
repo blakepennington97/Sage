@@ -13,7 +13,7 @@ import { useSavings } from "../hooks/useSavings";
 import { AuthService } from "../services/supabase";
 import { HapticService } from "../services/haptics";
 import { Box, Text, Button, Input, Card } from "../components/ui";
-import { Sheet } from "../components/Sheet";
+import { BottomSheet } from "../components/ui";
 import { PreferencesEditor } from "../components/PreferencesEditor";
 import { useTheme } from "@shopify/restyle";
 import { Theme } from "../constants/restyleTheme";
@@ -275,7 +275,7 @@ export const SettingsScreen: React.FC = () => {
       </ScrollView>
 
       {/* Settings Sheet */}
-      <Sheet isVisible={showSettingsSheet} onClose={() => setShowSettingsSheet(false)}>
+      <BottomSheet isVisible={showSettingsSheet} onClose={() => setShowSettingsSheet(false)}>
         <Box padding="lg">
           <Text variant="h2" textAlign="center" marginBottom="lg">
             ⚙️ Settings
@@ -365,7 +365,7 @@ export const SettingsScreen: React.FC = () => {
             )}
           </Card>
         </Box>
-      </Sheet>
+      </BottomSheet>
 
       {/* Preferences Editor */}
       <PreferencesEditor 

@@ -1,6 +1,11 @@
 import React from 'react';
 import { ActivityIndicator } from 'react-native';
-import { Box, Text } from './index';
+import { createBox, createText } from '@shopify/restyle';
+import { Theme } from '../../constants/restyleTheme';
+
+// Create components directly to avoid circular imports
+const Box = createBox<Theme>();
+const Text = createText<Theme>();
 
 interface LoadingSpinnerProps {
   message?: string;

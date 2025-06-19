@@ -5,8 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Box, Text, Button, LoadingSpinner, ErrorMessage } from '../components/ui';
 import { WeeklyMealGrid } from '../components/WeeklyMealGrid';
 import { PremiumGate } from '../components/PremiumGate';
-import { Sheet } from '../components/Sheet';
-import { RecipeCard } from '../components/RecipeCard';
+import { BottomSheet, RecipeCard } from '../components/ui';
 import { useAuthStore } from '../stores/authStore';
 import { useRecipes } from '../hooks/useRecipes';
 import { MealPlanService } from '../services/mealPlanService';
@@ -272,7 +271,7 @@ export const MealPlannerScreen: React.FC = () => {
       />
 
       {/* Recipe Selector Sheet */}
-      <Sheet
+      <BottomSheet
         isVisible={showRecipeSelector}
         onClose={() => {
           setShowRecipeSelector(false);
@@ -343,7 +342,7 @@ export const MealPlannerScreen: React.FC = () => {
             </>
           )}
         </Box>
-      </Sheet>
+      </BottomSheet>
     </Box>
   );
 };

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Box, Text, Button, Card, Slider, Input } from './ui';
-import { Sheet } from './Sheet';
+import { Box, Text, Button, Card, Slider, Input, BottomSheet } from './ui';
 import { useUserPreferences } from '../hooks/useUserPreferences';
 
 interface PreferencesEditorProps {
@@ -57,11 +56,11 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
 
   if (isLoading || !preferences) {
     return (
-      <Sheet isVisible={isVisible} onClose={onClose}>
+      <BottomSheet isVisible={isVisible} onClose={onClose}>
         <Box padding="lg" alignItems="center">
           <Text variant="h2" marginBottom="md">Loading Preferences...</Text>
         </Box>
-      </Sheet>
+      </BottomSheet>
     );
   }
 
@@ -867,7 +866,7 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
             { key: 'braising', label: 'Braising', emoji: '🍲' },
             { key: 'deep_frying', label: 'Deep Frying', emoji: '🍤' },
           ].map(({ key, label, emoji }) => {
-            const currentLevel = preferences?.kitchenCapabilities.techniqueComfort[key as keyof typeof preferences.kitchenCapabilities.techniqueComfort] || 1;
+            const currentLevel = preferences?.kitchenCapabilities?.techniqueComfort?.[key as keyof typeof preferences.kitchenCapabilities.techniqueComfort] || 1;
             
             return (
               <Box key={key} marginBottom="md">
@@ -879,12 +878,16 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
                 <Box alignItems="center" marginTop="sm">
                   <Slider
                     value={currentLevel}
-                    onValueChange={(level) => updateKitchenCapabilities({
-                      techniqueComfort: {
-                        ...preferences?.kitchenCapabilities.techniqueComfort,
-                        [key]: level
+                    onValueChange={(level) => {
+                      if (typeof level === 'number' && level >= 1 && level <= 5) {
+                        updateKitchenCapabilities({
+                          techniqueComfort: {
+                            ...preferences?.kitchenCapabilities?.techniqueComfort,
+                            [key]: level
+                          }
+                        });
                       }
-                    })}
+                    }}
                     minimumValue={1}
                     maximumValue={5}
                     step={1}
@@ -1446,8 +1449,8 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   };
 
   return (
-    <Sheet isVisible={isVisible} onClose={onClose}>
+    <BottomSheet isVisible={isVisible} onClose={onClose}>
       {renderSelectedCategory()}
-    </Sheet>
+    </BottomSheet>
   );
 };

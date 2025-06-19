@@ -10,7 +10,7 @@ import {
 import Toast from "react-native-toast-message";
 
 import { MarkdownText } from "../components/MarkdownText";
-import { Sheet } from "../components/Sheet";
+import { BottomSheet } from "../components/ui";
 import { StarRating } from "../components/StarRating";
 import { Box, Text, Button, Card } from "../components/ui";
 import { useTheme } from "@shopify/restyle";
@@ -249,7 +249,7 @@ export const RecipeDetailScreen: React.FC = () => {
       </Box>
 
       {/* Grocery List Sheet */}
-      <Sheet
+      <BottomSheet
         isVisible={isSheetVisible}
         onClose={() => setIsSheetVisible(false)}
       >
@@ -302,7 +302,7 @@ export const RecipeDetailScreen: React.FC = () => {
             </Button>
           </Box>
         </Box>
-      </Sheet>
+      </BottomSheet>
     </Box>
   );
 };

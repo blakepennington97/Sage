@@ -168,6 +168,19 @@ src/
 - Consistent import organization
 - Component-based architecture with custom hooks
 
+### Development Philosophy
+- **Don't Reinvent the Wheel**: Always prefer well-established, community-tested libraries over custom implementations for standard functionality (sliders, date pickers, modals, etc.)
+- **Community Libraries First**: When choosing between building custom vs using proven libraries, choose libraries that are:
+  - Actively maintained with recent updates
+  - Have good TypeScript support
+  - Are compatible with our tech stack (Expo, React Native)
+  - Have strong community adoption and documentation
+- **Modern UI Libraries Used**:
+  - `@react-native-community/slider` - Native sliders instead of custom gesture handling
+  - `@gorhom/bottom-sheet` - Modern bottom sheets/modals with smooth animations
+  - `react-native-toast-notifications` - Professional toast system with custom theming
+  - `react-native-super-grid` - Optimized grid layouts with FlatList performance
+
 ## Important Implementation Notes
 
 ### Security

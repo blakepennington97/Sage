@@ -1,6 +1,44 @@
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
-import { Box, Text, Button } from './index';
+import { 
+  createBox, 
+  createText, 
+  createRestyleComponent, 
+  createVariant,
+  VariantProps,
+  spacing,
+  border,
+  backgroundColor,
+  layout,
+  shadow,
+  SpacingProps,
+  BorderProps,
+  BackgroundColorProps,
+  LayoutProps,
+  ShadowProps
+} from '@shopify/restyle';
+import { TouchableOpacity, TouchableOpacityProps } from 'react-native';
+import { Theme } from '../../constants/restyleTheme';
+
+// Create components directly to avoid circular imports
+const Box = createBox<Theme>();
+const Text = createText<Theme>();
+
+type ButtonProps = SpacingProps<Theme> &
+  BorderProps<Theme> &
+  BackgroundColorProps<Theme> &
+  LayoutProps<Theme> &
+  ShadowProps<Theme> &
+  VariantProps<Theme, 'buttonVariants'> &
+  TouchableOpacityProps;
+
+const Button = createRestyleComponent<ButtonProps, Theme>([
+  spacing,
+  border,
+  backgroundColor,
+  layout,
+  shadow,
+  createVariant({ themeKey: 'buttonVariants' }),
+], TouchableOpacity);
 
 interface ErrorMessageProps {
   title?: string;
