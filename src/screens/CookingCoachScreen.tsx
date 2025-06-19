@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   TouchableOpacity,
   ScrollView,
   Alert,
   TextInput,
+  Animated,
 } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { GeminiService } from "../services/ai";
@@ -35,6 +36,9 @@ export const CookingCoachScreen: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState<CookingStep[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  
+  // Animation for progress bar
+  const progressAnimation = useRef(new Animated.Value(0)).current;
 
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpQuestion, setHelpQuestion] = useState("");
@@ -95,6 +99,16 @@ export const CookingCoachScreen: React.FC = () => {
     parseRecipeSteps();
     startSession();
   }, [recipe.id, user, recipe.recipe_content, recipe.recipe_data]);
+
+  // Animate progress bar when step changes
+  useEffect(() => {
+    const progressPercentage = steps.length > 0 ? (currentStep / Math.max(steps.length - 1, 1)) : 0;
+    Animated.timing(progressAnimation, {
+      toValue: progressPercentage,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [currentStep, steps.length, progressAnimation]);
 
 
   const handleSessionComplete = async (rating: number) => {
@@ -203,16 +217,25 @@ export const CookingCoachScreen: React.FC = () => {
             Step {currentStep + 1} of {steps.length}
           </Text>
           <Box 
-            height={6}
+            height={8}
             backgroundColor="border"
             borderRadius="sm"
+            overflow="hidden"
           >
-            <Box
-              height={6}
-              backgroundColor="success"
-              borderRadius="sm"
+            <Animated.View
               style={{
-                width: `${(currentStep / Math.max(steps.length - 1, 1)) * 100}%`,
+                height: 8,
+                backgroundColor: '#FF6B35', // Orange color for better contrast
+                borderRadius: 4,
+                width: progressAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%'],
+                }),
+                shadowColor: '#FF6B35',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.4,
+                shadowRadius: 4,
+                elevation: 3,
               }}
             />
           </Box>
