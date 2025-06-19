@@ -3,8 +3,11 @@
 -- File: database_migrations/04_app_config.sql
 -- Date: 2024
 
+-- Drop table if it exists (in case of partial creation)
+DROP TABLE IF EXISTS app_config;
+
 -- Create app_config table for centralized configuration management
-CREATE TABLE IF NOT EXISTS app_config (
+CREATE TABLE app_config (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     config_key VARCHAR(100) NOT NULL UNIQUE,
     config_value TEXT NOT NULL,
@@ -24,12 +27,14 @@ CREATE INDEX IF NOT EXISTS idx_app_config_key_active ON app_config(config_key, i
 ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
 
 -- Policy for reading config (all authenticated users)
+DROP POLICY IF EXISTS "Allow authenticated users to read config" ON app_config;
 CREATE POLICY "Allow authenticated users to read config" ON app_config 
     FOR SELECT 
     USING (auth.role() = 'authenticated');
 
 -- Policy for admin management (you'll need to restrict this in production)
 -- For now, any authenticated user can manage config (change this for production)
+DROP POLICY IF EXISTS "Allow config management" ON app_config;
 CREATE POLICY "Allow config management" ON app_config 
     FOR ALL 
     USING (auth.role() = 'authenticated');
