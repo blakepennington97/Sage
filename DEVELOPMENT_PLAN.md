@@ -2,7 +2,7 @@
 
 **Document Purpose:** This is the living strategic plan for the Sage application. It serves as the single source of truth for the project's status, architecture, and future plans. It is designed to provide complete context for any developer, including future AI assistants, joining the project.
 
-**Last Updated:** June 19, 2025 (Phase 3 Major Features Complete)
+**Last Updated:** June 19, 2025 (Phase 3 Major Features Complete + Advanced Profile Planning)
 
 ---
 
@@ -134,21 +134,98 @@ _This section outlines the planned next phases of development, prioritized by va
   - **Implemented Solution:** Built comprehensive achievement system with: (1) 16 achievements across 5 categories (Recipe Explorer, Kitchen Confidence, Skill Builder, Streak Master, Flavor Adventurer), (2) Apple Watch-inspired progress rings, (3) user leveling system (Kitchen Newbie → Culinary Legend), (4) detailed statistics dashboard, and (5) gamified UI with tier-based badges and points.
   - **Results Achieved:** Transformed Settings into engaging Profile screen with progress visualization, achievement tracking, streak monitoring, and motivational elements. Users now have clear goals, visual feedback, and rewards for cooking activity. Achievement categories target different user motivations from skill development to consistency building.
 
-- 🎯 **Priority 3: Recipe Ratings & Feedback Loop**
+- 🎯 **Priority 3: Advanced User Profile & AI Personalization**
+  - **Problem:** Current profile system is too basic and requires nuclear "reset" to change preferences. AI recipe generation lacks rich user context for truly personalized recommendations.
+  - **Solution:** Transform profile into comprehensive, editable preference system with granular customization that dramatically improves AI recipe quality.
 
 ### **PHASE 4: Monetize & Scale**
 
 **Goal:** With a valuable and engaging product, introduce a sustainable business model.
 
+- 🎯 **Action: Recipe Ratings & Feedback Loop** *(moved from Phase 3)*
 - 🎯 **Action: Implement Meal Planning (The First Premium Feature)**
 - 🎯 **Action: Integrate Production Services (RevenueCat, Sentry, Mixpanel)**
 - 🎯 **Action: Launch & Learn**
 
 ---
 
+## 🔄 Next Priority: Advanced User Profile & AI Personalization
+
+**Current State:** The profile system captures only basic skill level and kitchen equipment. The "Reset Profile" nuclear option wipes all progress including achievements, which is unacceptable UX.
+
+**Vision:** Transform the profile into a comprehensive, editable preference system that provides rich context for AI personalization while preserving user progress and achievements.
+
+### **Detailed Implementation Plan:**
+
+#### **1. Profile Data Architecture**
+**Dietary & Health Preferences:**
+- Allergies & intolerances (nuts, dairy, gluten, shellfish, etc.)
+- Dietary styles (vegetarian, vegan, keto, paleo, Mediterranean, etc.)
+- Nutrition goals (target macros, calorie ranges, high protein, low sodium)
+- Health objectives (weight loss, muscle gain, heart-healthy, diabetic-friendly)
+- Spice/heat tolerance level (mild, medium, hot, fire)
+
+**Cooking Context & Lifestyle:**
+- Time constraints (15min quick meals, 30min weeknight, weekend projects)
+- Budget considerations (budget-friendly, mid-range, premium ingredients OK)
+- Serving sizes (single, couple, family of 4+, batch cooking)
+- Meal prep preferences (fresh daily, weekly prep, freezer-friendly)
+- Cooking style preferences (one-pot, Asian, comfort food, healthy, etc.)
+
+**Kitchen Reality & Capabilities:**
+- Detailed appliance inventory (air fryer, instant pot, food processor, stand mixer, etc.)
+- Pantry staples they always stock (spices, oils, grains, etc.)
+- Storage limitations (small fridge, limited freezer, pantry size)
+- Cooking confidence with techniques (knife work, deep frying, baking, etc.)
+
+#### **2. User Experience Design**
+**Granular Editing:**
+- Each preference category can be edited independently
+- **NEVER** lose achievements or cooking progress
+- Version profile data separately from achievement data
+
+**Progressive Disclosure:**
+- Quick setup for new users (essential preferences only)
+- "Advanced Preferences" section for power users
+- Smart suggestions based on recipe generation history
+
+**AI-Driven Insights:**
+- "I notice you always ask for high-protein meals - want to set that as a default?"
+- Suggest profile updates based on behavioral patterns
+- Learn from user recipe modifications and preferences
+
+#### **3. Technical Implementation**
+**Database Schema Updates:**
+- Separate `user_preferences` table from core profile
+- JSON fields for flexible preference storage
+- Versioning for preference changes over time
+
+**AI Integration:**
+- Enhanced prompt engineering with rich user context
+- Personalized recipe suggestions based on complete profile
+- Adaptive recommendations that improve over time
+
+#### **4. UI/UX Implementation**
+**Settings Redesign:**
+- Replace "Reset Profile" with "Edit Preferences"
+- Categorized preference sections with intuitive icons
+- Real-time preview of how changes affect AI recommendations
+- Smart defaults and guided setup for new users
+
+### **Success Metrics:**
+- **User Satisfaction:** Recipe generation quality scores
+- **Engagement:** Reduced recipe modification/regeneration requests
+- **Retention:** Users with detailed profiles have higher retention
+- **AI Effectiveness:** Better matching between generated recipes and user behavior
+
+### **Risk Mitigation:**
+- **Complexity:** Start with essential preferences, expand gradually
+- **Onboarding Friction:** Make advanced preferences optional
+- **Data Management:** Clear data migration strategy for existing users
+
 ## ❓ Open Questions for Next Session
 
-1.  **Phase 3 Completion:** Should we complete Phase 3 by implementing Recipe Ratings & Feedback Loop, or move directly to Phase 4 monetization features like Meal Planning?
-2.  **Technical Polish:** Are there any remaining UI/UX improvements or performance optimizations needed before considering the app "launch-ready"?
-3.  **Production Readiness:** Should we integrate production services (RevenueCat for subscriptions, Sentry for error tracking, Mixpanel for analytics) before adding more features?
-4.  **User Testing:** With the core feature set now complete, should we conduct user testing to validate the achievement system and overall user experience before expanding further?
+1.  **Implementation Priority:** Should we tackle this advanced profile system before Recipe Ratings, or move to monetization features?
+2.  **User Research:** Should we validate which preference categories matter most to users before building the full system?
+3.  **AI Enhancement:** How much will richer user context improve recipe generation quality vs. effort invested?
+4.  **Technical Scope:** Should we build the full preference system at once, or implement iteratively by category?
