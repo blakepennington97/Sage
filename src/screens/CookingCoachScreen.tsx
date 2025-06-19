@@ -203,15 +203,16 @@ export const CookingCoachScreen: React.FC = () => {
             Step {currentStep + 1} of {steps.length}
           </Text>
           <Box 
-            height={4}
+            height={6}
             backgroundColor="primaryButtonText"
             borderRadius="sm"
-            opacity={0.3}
+            opacity={0.2}
           >
             <Box
-              height={4}
+              height={6}
               backgroundColor="primaryButtonText"
               borderRadius="sm"
+              opacity={1}
               style={{
                 width: `${(currentStep / Math.max(steps.length - 1, 1)) * 100}%`,
               }}
