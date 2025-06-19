@@ -25,7 +25,16 @@ npx tsc --noEmit   # TypeScript compilation check
 ### Development Workflow
 1. **Always run TypeScript check** before committing: `npx tsc --noEmit`
 2. **Test on device**: Use Expo Go app on iOS device (scan QR code)
-3. **At checkpoints**: Update documentation, commit changes, clear context
+3. **At checkpoints**: Update documentation, commit changes, push to GitHub, clear context
+
+### Git Push Setup
+To push commits to GitHub, configure the remote with the access token:
+```bash
+# User must provide the actual GitHub Personal Access Token
+git remote set-url origin https://YOUR_GITHUB_TOKEN@github.com/blakepennington97/Sage.git
+git push origin main
+```
+**Note**: User should provide their GitHub Personal Access Token for push access to the repository
 
 
 ## Environment Setup
