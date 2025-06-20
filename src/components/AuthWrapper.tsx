@@ -5,6 +5,8 @@ import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { AuthService, ProfileService } from "../services/supabase";
+import { paymentService } from "../services/payment";
+import { isFeatureEnabled } from "../config/features";
 import { LoginScreen } from "../screens/LoginScreen";
 import { SignUpScreen } from "../screens/SignUpScreen";
 import { SkillEvaluationScreen } from "../screens/SkillEvaluationScreen";
@@ -15,6 +17,7 @@ import { SettingsScreen } from "../screens/SettingsScreen";
 import { RecipeBookScreen } from "../screens/RecipeBookScreen"; // Import new screen
 import { RecipeDetailScreen } from "../screens/RecipeDetailScreen"; // Import new screen
 import { MealPlannerScreen } from "../screens/MealPlannerScreen";
+import { UpgradeScreen } from "../screens/UpgradeScreen";
 import { colors, spacing, typography } from "../constants/theme";
 import { useAuthStore } from "../stores/authStore";
 import { Text } from "./ui";
@@ -153,6 +156,19 @@ const AppNavigator = () => (
         gestureEnabled: true,
       }}
     />
+    {/* Payment system screens - only include when feature is enabled */}
+    {isFeatureEnabled('paymentSystem') && (
+      <AppStack.Screen
+        name="Upgrade"
+        component={UpgradeScreen}
+        options={{
+          presentation: "modal",
+          headerShown: false,
+          gestureEnabled: true,
+          gestureDirection: 'vertical',
+        }}
+      />
+    )}
   </AppStack.Navigator>
 );
 
@@ -179,6 +195,15 @@ export const AuthWrapper: React.FC = () => {
       initializeSession(currentUser);
       if (_event === "SIGNED_OUT") {
         clearSession();
+        // Log out from payment service (only if enabled)
+        if (isFeatureEnabled('paymentSystem')) {
+          paymentService.logoutUser().catch(console.error);
+        }
+      } else if (_event === "SIGNED_IN" && currentUser) {
+        // Initialize payment service for new login (only if enabled)
+        if (isFeatureEnabled('paymentSystem')) {
+          paymentService.initialize(currentUser.id).catch(console.error);
+        }
       }
     });
     return () => {
@@ -189,8 +214,19 @@ export const AuthWrapper: React.FC = () => {
   useEffect(() => {
     if (user && !profile) {
       setProfileLoading(true);
-      ProfileService.getProfile(user.id)
-        .then(setProfile)
+      const profilePromise = ProfileService.getProfile(user.id);
+      const paymentPromise = isFeatureEnabled('paymentSystem') 
+        ? paymentService.initialize(user.id).catch(console.error)
+        : Promise.resolve();
+      
+      Promise.all([profilePromise, paymentPromise])
+        .then(([profileData]) => {
+          setProfile(profileData);
+          // Sync subscription status after profile is loaded (only if payment system is enabled)
+          if (isFeatureEnabled('paymentSystem')) {
+            paymentService.syncSubscriptionStatus().catch(console.error);
+          }
+        })
         .catch((error) => console.error("Failed to fetch profile:", error))
         .finally(() => setProfileLoading(false));
     }

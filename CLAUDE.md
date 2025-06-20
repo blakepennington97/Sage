@@ -181,6 +181,32 @@ src/
   - `react-native-toast-notifications` - Professional toast system with custom theming
   - `react-native-super-grid` - Optimized grid layouts with FlatList performance
 
+## Payment System (Currently Disabled)
+
+### Feature Flags
+The payment system is fully implemented but currently disabled via feature flags in `src/config/features.ts`. To enable payment features when ready for App Store deployment:
+
+1. **Update feature flags:**
+   ```typescript
+   export const FEATURE_FLAGS: FeatureFlags = {
+     paymentSystem: true,     // Enable payment processing
+     usageTracking: true,     // Enable usage limits
+     premiumFeatures: true,   // Enable premium features
+     upgradePrompts: true,    // Enable upgrade prompts
+   };
+   ```
+
+2. **Configure RevenueCat API keys** in `src/services/payment.ts`
+3. **Run database migrations** 05-06 for usage tracking and webhooks
+4. **Set up App Store/Play Store products** (see `PAYMENT_SETUP.md`)
+5. **Deploy webhook endpoints** for subscription management
+
+### Current Behavior
+- All users have unlimited access (no usage limits)
+- No payment prompts or upgrade screens
+- Payment code exists but is inactive
+- Ready to activate when App Store publishing is desired
+
 ## Important Implementation Notes
 
 ### Security

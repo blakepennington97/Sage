@@ -3,6 +3,7 @@ import * as Clipboard from "expo-clipboard";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   TouchableOpacity,
 } from "react-native";
@@ -15,7 +16,10 @@ import { Box, Text, Button, Card } from "../components/ui";
 import { useTheme } from "@shopify/restyle";
 import { Theme } from "../constants/restyleTheme";
 import { useRecipes } from "../hooks/useRecipes";
+import { useUsageTracking } from "../hooks/useUsageTracking";
 import { GeminiService, GroceryListData } from "../services/ai";
+import { UsageIndicator, LimitReachedModal } from "../components/UsageDisplay";
+import { isFeatureEnabled } from "../config/features";
 import { HapticService } from "../services/haptics";
 import { UserRecipe } from "../services/supabase";
 import { CostEstimationService } from "../services/costEstimation";
@@ -43,12 +47,33 @@ export const RecipeDetailScreen: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [groceryList, setGroceryList] = useState<GroceryListData | null>(null);
   const [isSheetVisible, setIsSheetVisible] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
   const [recipe, setRecipe] = useState(initialRecipe);
   const { toggleFavorite, rateRecipe, isRating } = useRecipes();
+  const { canPerformAction, incrementUsage, isPremium } = useUsageTracking();
 
   const handleGenerateGroceryList = async () => {
+    // Check usage limits (only if feature is enabled)
+    if (isFeatureEnabled('usageTracking')) {
+      if (!canPerformAction('grocery_list')) {
+        HapticService.warning();
+        setShowLimitModal(true);
+        return;
+      }
+      
+      // Increment usage counter before generation
+      const canProceed = await incrementUsage('grocery_list');
+      if (!canProceed) {
+        HapticService.warning();
+        setIsGenerating(false);
+        setShowLimitModal(true);
+        return;
+      }
+    }
+    
     setIsGenerating(true);
     HapticService.light();
+    
     try {
       const listFromAI = await geminiService.generateGroceryList(
         recipe.recipe_content
@@ -282,9 +307,14 @@ export const RecipeDetailScreen: React.FC = () => {
           {isGenerating ? (
             <ActivityIndicator color={theme.colors.primary} />
           ) : (
-            <Text variant="button" color="primaryText" numberOfLines={1} textAlign="center">
-              🛒 Grocery List
-            </Text>
+            <Box alignItems="center">
+              <Text variant="button" color="primaryText" numberOfLines={1} textAlign="center">
+                🛒 Grocery List
+              </Text>
+              {!isPremium && isFeatureEnabled('usageTracking') && (
+                <UsageIndicator actionType="grocery_list" showLabel={false} size="small" />
+              )}
+            </Box>
           )}
         </Button>
         
@@ -298,6 +328,24 @@ export const RecipeDetailScreen: React.FC = () => {
           </Text>
         </Button>
       </Box>
+
+      {/* Usage Limit Modal */}
+      <LimitReachedModal
+        actionType="grocery_list"
+        visible={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        onUpgrade={() => {
+          setShowLimitModal(false);
+          if (isFeatureEnabled('paymentSystem')) {
+            navigation.navigate("Upgrade");
+          } else {
+            Alert.alert(
+              "Coming Soon",
+              "Premium features will be available in a future update!"
+            );
+          }
+        }}
+      />
 
       {/* Grocery List Sheet */}
       <BottomSheet

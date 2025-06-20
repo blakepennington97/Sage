@@ -14,6 +14,9 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useRecipes } from "../hooks/useRecipes";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
+import { useUsageTracking } from "../hooks/useUsageTracking";
+import { UsageIndicator, LimitReachedModal } from "../components/UsageDisplay";
+import { isFeatureEnabled } from "../config/features";
 import { colors, spacing, borderRadius, typography } from "../constants/theme";
 import { HapticService } from "../services/haptics";
 import { UserRecipe } from "../services/supabase";
@@ -27,6 +30,8 @@ export const RecipeGenerationScreen: React.FC = () => {
   const fromMealPlanner = route.params?.fromMealPlanner;
   const mealPlanContext = route.params?.mealPlanContext;
   const [recipeRequest, setRecipeRequest] = useState("");
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const { canPerformAction, incrementUsage, isPremium } = useUsageTracking();
 
   const { recipes, isLoading, error, generateAndSaveRecipe } = useRecipes();
 
@@ -44,7 +49,26 @@ export const RecipeGenerationScreen: React.FC = () => {
       );
       return;
     }
+    
+    // Check usage limits (only if feature is enabled)
+    if (isFeatureEnabled('usageTracking')) {
+      if (!canPerformAction('recipe_generation')) {
+        HapticService.warning();
+        setShowLimitModal(true);
+        return;
+      }
+      
+      // Increment usage counter before generation
+      const canProceed = await incrementUsage('recipe_generation');
+      if (!canProceed) {
+        HapticService.warning();
+        setShowLimitModal(true);
+        return;
+      }
+    }
+    
     HapticService.medium();
+    
     const newRecipe = await generateAndSaveRecipe(recipeRequest);
     if (newRecipe) {
       HapticService.success();
@@ -62,6 +86,11 @@ export const RecipeGenerationScreen: React.FC = () => {
     <View style={styles.header}>
       <Text style={styles.title}>👨‍🍳 New Recipe</Text>
       <Text style={styles.subtitle}>Tell me what you want to cook today</Text>
+      {!isPremium && isFeatureEnabled('usageTracking') && (
+        <View style={styles.usageIndicator}>
+          <UsageIndicator actionType="recipe_generation" showLabel={true} size="medium" />
+        </View>
+      )}
     </View>
   );
 
@@ -162,6 +191,17 @@ export const RecipeGenerationScreen: React.FC = () => {
     </View>
   );
 
+  const handleUpgrade = () => {
+    if (isFeatureEnabled('paymentSystem')) {
+      navigation.navigate("Upgrade");
+    } else {
+      Alert.alert(
+        "Coming Soon",
+        "Premium features will be available in a future update!"
+      );
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -178,6 +218,13 @@ export const RecipeGenerationScreen: React.FC = () => {
         <View style={styles.divider} />
         {renderSavedRecipes()}
       </ScrollView>
+      
+      <LimitReachedModal
+        actionType="recipe_generation"
+        visible={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        onUpgrade={handleUpgrade}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -271,5 +318,10 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: spacing.sm,
     paddingHorizontal: spacing.xs,
+  },
+  usageIndicator: {
+    alignItems: "center",
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
 });

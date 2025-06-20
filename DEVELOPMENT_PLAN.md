@@ -270,4 +270,12 @@ _This section outlines the planned next phases of development, prioritized by va
 - Voice cooking assistance and smart kitchen integration
 - Nutrition tracking and health goal integration
 
-**Note for Future Developer:** Cost Analysis & Financial Motivation system completed with full regional pricing support, savings tracking, and user motivation features. Users now see tangible financial benefits with comprehensive cost breakdowns and cumulative savings. Next focus should be on production infrastructure to support scale and reduce operational costs.
+**Payment System Activation:**
+When ready for App Store publishing:
+1. Update feature flags in `src/config/features.ts` to enable payment features
+2. Configure RevenueCat API keys and App Store/Play Store products
+3. Run database migrations 05-06 for usage tracking and webhooks
+4. Deploy webhook endpoints for subscription management
+5. Test complete payment flow in sandbox mode
+
+**Note for Future Developer:** Complete payment infrastructure implemented but dormant. Cost Analysis, Advanced Preferences, and Payment System all completed. Current focus should be on performance optimization and additional user engagement features. Payment system can be activated instantly when App Store publishing becomes viable.

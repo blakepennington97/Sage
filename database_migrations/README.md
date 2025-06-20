@@ -13,6 +13,8 @@ Run these migrations in numerical order. Each migration is designed to be idempo
 | `02_meal_planning.sql` | Meal planning and grocery list tables | Premium Meal Planning | ✅ Required |
 | `03_cost_analysis.sql` | Cost tracking and savings analysis | Cost Analysis & Financial Motivation | ✅ Required |
 | `04_app_config.sql` | Centralized application configuration management | API Key Management & Config | ✅ Required |
+| `05_usage_tracking.sql` | Usage tracking and subscription limits | Free Tier Limits & Premium Features | ✅ Required |
+| `06_webhook_events.sql` | Webhook event logging and subscription management | Payment Integration & Webhooks | ✅ Required |
 
 ## 🚀 How to Run Migrations
 
@@ -28,6 +30,8 @@ Run these migrations in numerical order. Each migration is designed to be idempo
    - Copy contents of `02_meal_planning.sql` → Paste → Run  
    - Copy contents of `03_cost_analysis.sql` → Paste → Run
    - Copy contents of `04_app_config.sql` → Paste → Run
+   - Copy contents of `05_usage_tracking.sql` → Paste → Run
+   - Copy contents of `06_webhook_events.sql` → Paste → Run
 
 ### Verification
 After running each migration, you can verify success by checking:
@@ -35,7 +39,7 @@ After running each migration, you can verify success by checking:
 -- Check tables were created
 SELECT table_name FROM information_schema.tables 
 WHERE table_schema = 'public' 
-AND table_name IN ('user_preferences', 'meal_plans', 'meal_plan_grocery_lists', 'app_config');
+AND table_name IN ('user_preferences', 'meal_plans', 'meal_plan_grocery_lists', 'app_config', 'user_usage_tracking', 'webhook_events');
 
 -- Check cost columns were added
 SELECT column_name FROM information_schema.columns 
@@ -98,6 +102,55 @@ AND column_name IN ('estimated_savings', 'recipe_cost', 'restaurant_cost');
 - Secure storage with encryption support
 - RLS policies for secure access
 
+### 05_usage_tracking.sql
+**Purpose:** Usage Tracking & Subscription Limits
+- Creates usage tracking system for free/premium tiers
+- Enables weekly usage limits for recipe generation and grocery lists
+- Supports premium subscription management
+- Provides usage analytics and limit enforcement
+
+**Tables Created:**
+- `user_usage_tracking` - Weekly usage tracking and premium status
+
+**Functions Created:**
+- `get_week_start_date()` - Calculate Monday of current week
+- `get_or_create_usage_tracking()` - Get/create usage record for current week
+- `can_user_perform_action()` - Check if user can perform action based on limits
+- `increment_usage_counter()` - Increment usage counter if allowed
+- `get_user_usage_summary()` - Get complete usage summary as JSON
+- `update_premium_status()` - Update user premium subscription status
+
+**Features:**
+- Weekly usage limits (5 recipe generations + 5 grocery lists for free users)
+- Premium user unlimited access
+- Automatic weekly reset (Monday 00:00 UTC)
+- Comprehensive usage analytics and reporting
+
+### 06_webhook_events.sql
+**Purpose:** Webhook Event Logging & Subscription Management
+- Creates webhook event logging system for RevenueCat integration
+- Adds subscription status columns to user_profiles table
+- Enables automatic subscription status synchronization
+- Provides audit trail for all subscription events
+
+**Tables Created:**
+- `webhook_events` - Logs all webhook events from RevenueCat
+
+**Tables Modified:**
+- `user_profiles` - Adds subscription status and management columns
+
+**Functions Created:**
+- `get_user_subscription_status()` - Get current subscription status for user
+- `update_subscription_from_webhook()` - Update subscription from webhook event
+- `cleanup_old_webhook_events()` - Maintenance function for old events
+
+**Features:**
+- Complete webhook event logging with audit trail
+- Subscription status tracking with expiration dates
+- Integration with RevenueCat user IDs
+- Automatic subscription synchronization
+- Maintenance functions for data cleanup
+
 ## 🔧 Database Schema Overview
 
 After running all migrations, your database will include:
@@ -113,6 +166,8 @@ After running all migrations, your database will include:
 - `meal_plans` (weekly meal planning)
 - `meal_plan_grocery_lists` (grocery lists)
 - `app_config` (centralized configuration management)
+- `user_usage_tracking` (usage limits & premium status)
+- `webhook_events` (payment webhook event logging)
 
 ### Security
 - Row Level Security (RLS) enabled on all tables
@@ -157,6 +212,39 @@ DROP FUNCTION IF EXISTS get_user_savings(TEXT);
 DROP TABLE IF EXISTS app_config;
 ```
 
+### Rollback 05 (Usage Tracking)
+```sql
+DROP TABLE IF EXISTS user_usage_tracking CASCADE;
+DROP FUNCTION IF EXISTS get_week_start_date(DATE);
+DROP FUNCTION IF EXISTS get_or_create_usage_tracking(UUID);
+DROP FUNCTION IF EXISTS can_user_perform_action(UUID, TEXT);
+DROP FUNCTION IF EXISTS increment_usage_counter(UUID, TEXT);
+DROP FUNCTION IF EXISTS get_user_usage_summary(UUID);
+DROP FUNCTION IF EXISTS update_premium_status(UUID, BOOLEAN, TIMESTAMP WITH TIME ZONE);
+DROP FUNCTION IF EXISTS update_usage_tracking_updated_at();
+```
+
+### Rollback 06 (Webhook Events)
+```sql
+-- Remove webhook events table
+DROP TABLE IF EXISTS webhook_events CASCADE;
+
+-- Remove subscription columns from user_profiles
+ALTER TABLE user_profiles 
+DROP COLUMN IF EXISTS subscription_status,
+DROP COLUMN IF EXISTS premium_until,
+DROP COLUMN IF EXISTS subscription_product_id,
+DROP COLUMN IF EXISTS subscription_period_type,
+DROP COLUMN IF EXISTS revenuecat_user_id,
+DROP COLUMN IF EXISTS last_webhook_processed;
+
+-- Drop functions
+DROP FUNCTION IF EXISTS get_user_subscription_status(UUID);
+DROP FUNCTION IF EXISTS update_subscription_from_webhook(UUID, VARCHAR, TIMESTAMP WITH TIME ZONE, VARCHAR, VARCHAR);
+DROP FUNCTION IF EXISTS cleanup_old_webhook_events(INTEGER);
+DROP FUNCTION IF EXISTS update_user_profiles_subscription_updated_at();
+```
+
 ## 📊 Performance Considerations
 
 - All tables include appropriate indexes for common query patterns
@@ -195,6 +283,8 @@ If you encounter issues:
 | 2025-06-19 | 02_meal_planning | Claude | Premium meal planning feature |
 | 2025-06-19 | 03_cost_analysis | Claude | Cost analysis & financial motivation |
 | 2025-06-19 | 04_app_config | Claude | Centralized configuration and API key management |
+| 2025-06-20 | 05_usage_tracking | Claude | Usage tracking and subscription limits system |
+| 2025-06-20 | 06_webhook_events | Claude | Webhook event logging and subscription management |
 
 ---
 
