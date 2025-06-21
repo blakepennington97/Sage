@@ -3,6 +3,7 @@ import { AuthService, ProfileService, UserProfile, UserPreferencesService } from
 import { APIKeyManager } from "./config";
 import { UserPreferences, migratePreferences } from "../../types/userPreferences";
 import { CostEstimationService } from "../costEstimation";
+import { RecipeCacheService } from "./recipeCache";
 
 export interface RecipeInstruction {
   step: number;
@@ -126,6 +127,155 @@ export class GeminiService {
       tools: [{ googleSearchRetrieval: {} }],
       generationConfig: { responseMimeType: "application/json" },
     });
+  }
+
+  private async getRecipeRequestContext(request: string): Promise<{
+    userContext: string;
+    cacheRequest: {
+      prompt: string;
+      userSkillLevel?: string;
+      dietaryRestrictions?: string[];
+      allergies?: string[];
+      kitchenTools?: string[];
+      preferences?: string;
+    };
+  }> {
+    const user = await AuthService.getCurrentUser();
+    if (!user) {
+      return {
+        userContext: "The user is not logged in. Provide generic advice.",
+        cacheRequest: { prompt: request }
+      };
+    }
+
+    const profile = await ProfileService.getProfile(user.id);
+    if (!profile || !profile.skill_level) {
+      return {
+        userContext: "The user has not completed their profile. Provide generic, beginner-friendly advice.",
+        cacheRequest: { prompt: request }
+      };
+    }
+
+    // Get user preferences for enhanced personalization
+    let preferences: UserPreferences | null = null;
+    try {
+      const preferencesRecord = await UserPreferencesService.getPreferences(user.id);
+      if (preferencesRecord) {
+        preferences = migratePreferences(
+          preferencesRecord.preferences_data, 
+          preferencesRecord.version, 
+          '1.0'
+        );
+      }
+    } catch (error) {
+      console.warn("Could not fetch user preferences, using basic profile only");
+    }
+
+    const userFears = profile.cooking_fears || [];
+    
+    // Build basic profile context with critical safety information
+    let userContext = `
+      USER COOKING PROFILE:
+      - Skill Level: ${getSkillDescription(profile)}
+      - Kitchen Setup: ${getKitchenSummary(profile)}
+      - Confidence: ${profile.confidence_level}/5
+      - Cooking Concerns: ${userFears.join(", ") || "None specified"}
+      
+      CRITICAL SAFETY INFORMATION:
+      - Allergies: ${profile.allergies?.length > 0 ? profile.allergies.join(", ") : "None"}
+      - Dietary Restrictions: ${profile.dietary_restrictions?.length > 0 ? profile.dietary_restrictions.join(", ") : "None"}
+      
+      BASIC CONSTRAINTS:
+      - Match complexity to their skill level.
+      - Only suggest recipes/techniques for their available tools.
+      - NEVER suggest ingredients that match the user's allergies (this is critical for safety)
+      - Respect all dietary restrictions listed above
+      - ${profile.has_oven ? "" : "NO OVEN - stovetop/microwave only."}
+      - ${profile.stove_type === "none" ? "NO STOVE - microwave/no-cook only." : ""}
+      - ${profile.space_level <= 2 ? "Limited prep space - suggest one-pot or minimal dish recipes." : ""}
+    `;
+
+    // Build cache request object
+    const cacheRequest = {
+      prompt: request,
+      userSkillLevel: profile.skill_level,
+      dietaryRestrictions: profile.dietary_restrictions || [],
+      allergies: profile.allergies || [],
+      kitchenTools: profile.kitchen_tools || [],
+      preferences: preferences ? JSON.stringify(preferences) : undefined
+    };
+
+    // Add enhanced context if preferences are available
+    if (preferences && preferences.setupCompleted) {
+      const { dietary, cookingContext, kitchenCapabilities, cookingStyles } = preferences;
+      
+      userContext += `
+      
+      ENHANCED PERSONALIZATION:
+      
+      DIETARY PREFERENCES:
+      - Dietary Style: ${dietary.dietaryStyle}
+      - Allergies: ${dietary.allergies.length > 0 ? dietary.allergies.map(a => a.replace(/_/g, ' ')).join(", ") : "None"}
+      - Intolerances: ${dietary.intolerances.length > 0 ? dietary.intolerances.map(i => i.replace(/_/g, ' ')).join(", ") : "None"}
+      - Spice Tolerance: ${dietary.spiceTolerance}
+      - Health Goals: ${[
+          dietary.nutritionGoals.lowSodium && "Low Sodium",
+          dietary.nutritionGoals.highFiber && "High Fiber",
+          dietary.nutritionGoals.targetProtein && `${dietary.nutritionGoals.targetProtein}g protein per meal`,
+          dietary.nutritionGoals.targetCalories && `${dietary.nutritionGoals.targetCalories} daily calories`
+        ].filter(Boolean).join(", ") || "None specified"}
+      - Health Objectives: ${dietary.healthObjectives.length > 0 ? dietary.healthObjectives.map(o => o.replace(/_/g, ' ')).join(", ") : "None"}
+      - Flavor Preferences: ${dietary.flavorPreferences.length > 0 ? dietary.flavorPreferences.map(f => f.replace(/_/g, ' ')).join(", ") : "None"}
+      
+      COOKING CONTEXT:
+      - Typical Cooking Time: ${cookingContext.typicalCookingTime.replace('_', ' ')}
+      - Budget Level: ${cookingContext.budgetLevel.replace('_', ' ')}
+      - Typical Servings: ${cookingContext.typicalServings}
+      - Meal Prep Style: ${cookingContext.mealPrepStyle.replace('_', ' ')}
+      - Lifestyle: ${cookingContext.lifestyleFactors.join(", ") || "Not specified"}
+      
+      KITCHEN CAPABILITIES:
+      - Specialty Appliances: ${kitchenCapabilities.appliances.specialty.length > 0 ? 
+          kitchenCapabilities.appliances.specialty.map(a => a.replace(/_/g, ' ')).join(", ") : "None"}
+      - Pantry Staples: ${kitchenCapabilities.pantryStaples.map(p => p.replace(/_/g, ' ')).join(", ")}
+      - Storage: ${kitchenCapabilities.storageSpace.refrigerator} fridge, ${kitchenCapabilities.storageSpace.freezer} freezer, ${kitchenCapabilities.storageSpace.pantry} pantry
+      - Technique Comfort: ${Object.entries(kitchenCapabilities.techniqueComfort)
+          .map(([technique, level]) => `${technique.replace('_', ' ')}: ${level}/5`)
+          .join(", ")}
+      
+      COOKING STYLE:
+      - Preferred Cuisines: ${cookingStyles.preferredCuisines.length > 0 ? 
+          cookingStyles.preferredCuisines.map(c => c.replace(/_/g, ' ')).join(", ") : "None"}
+      - Cooking Moods: ${cookingStyles.cookingMoods.length > 0 ? 
+          cookingStyles.cookingMoods.map(m => m.replace(/_/g, ' ')).join(", ") : "None"}
+      - Favorite Ingredients: ${cookingStyles.favoriteIngredients.length > 0 ? 
+          cookingStyles.favoriteIngredients.map(i => i.replace(/_/g, ' ')).join(", ") : "None specified"}
+      - Avoided Ingredients: ${cookingStyles.avoidedIngredients.length > 0 ? 
+          cookingStyles.avoidedIngredients.map(i => i.replace(/_/g, ' ')).join(", ") : "None"}
+      
+      PERSONALIZATION REQUIREMENTS:
+      - SAFETY FIRST: NEVER suggest any ingredients that match the user's profile allergies or conflict with their dietary restrictions from onboarding
+      - STRICTLY respect all dietary restrictions, allergies, and intolerances (both from profile and preferences)
+      - Profile allergies and dietary restrictions take precedence over all other preferences
+      - Match the user's preferred cuisine styles and cooking moods (including custom cuisines)
+      - Consider their typical cooking time and budget constraints
+      - Adapt recipes to their available appliances and storage (including custom appliances)
+      - Suggest techniques within their comfort level, but offer growth opportunities
+      - Include their favorite ingredients when possible (including custom ingredients)
+      - Avoid ingredients they dislike (including custom avoided ingredients)
+      - Match spice level to their tolerance and flavor preferences
+      - Consider their health objectives and nutrition goals (including custom health goals)
+      - Honor both standard and user-defined preferences with equal importance
+      `;
+    } else {
+      userContext += `
+      
+      NOTE: User has not completed advanced preference setup. Using basic profile only.
+      Consider suggesting they customize their preferences for better recommendations.
+      `;
+    }
+
+    return { userContext, cacheRequest };
   }
 
   private async getUserContext(): Promise<string> {
@@ -275,7 +425,28 @@ export class GeminiService {
   public async generateRecipe(request: string): Promise<RecipeData> {
     await this.initialize();
     try {
-      const userContext = await this.getUserContext();
+      // Get user context and cache request information
+      const { userContext, cacheRequest } = await this.getRecipeRequestContext(request);
+      
+      // Try to get cached recipe first
+      const cachedRecipe = await RecipeCacheService.getCachedRecipe(cacheRequest);
+      if (cachedRecipe) {
+        // Apply regional cost adjustments to cached recipe
+        const currentRegion = CostEstimationService.getCurrentRegion();
+        if (cachedRecipe.totalCost) {
+          cachedRecipe.totalCost = CostEstimationService.adjustCostForRegion(cachedRecipe.totalCost);
+        }
+        if (cachedRecipe.costPerServing) {
+          cachedRecipe.costPerServing = CostEstimationService.adjustCostForRegion(cachedRecipe.costPerServing);
+        }
+        if (cachedRecipe.costBreakdown) {
+          cachedRecipe.costBreakdown = cachedRecipe.costBreakdown.map(item => ({
+            ...item,
+            estimatedCost: CostEstimationService.adjustCostForRegion(item.estimatedCost),
+          }));
+        }
+        return cachedRecipe;
+      }
       // We can now simplify the prompt slightly as the JSON mode handles syntax.
       const prompt = `Generate a beginner-friendly recipe based on the user's request and profile, including cost analysis and nutritional information.
         USER REQUEST: "${request}"
@@ -346,6 +517,9 @@ export class GeminiService {
           estimatedCost: CostEstimationService.adjustCostForRegion(item.estimatedCost),
         }));
       }
+      
+      // Cache the generated recipe for future use
+      await RecipeCacheService.cacheRecipe(cacheRequest, recipeData);
       
       return recipeData;
     } catch (error) {

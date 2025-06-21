@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { APIKeyManager } from "../services/ai/config";
+import { RecipeCacheService } from "../services/ai/recipeCache";
 import { useAuthStore } from "../stores/authStore";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { useAchievements } from "../hooks/useAchievements";
@@ -48,6 +49,14 @@ export const SettingsScreen: React.FC = () => {
   const [hasCentralizedKey, setHasCentralizedKey] = useState(false);
   const [isKeyLoading, setIsKeyLoading] = useState(false);
   const [showSettingsSheet, setShowSettingsSheet] = useState(false);
+  const [cacheStats, setCacheStats] = useState<{
+    totalCached: number;
+    totalSize: string;
+    oldestEntry: Date | null;
+    newestEntry: Date | null;
+    mostAccessed: number;
+  } | null>(null);
+  const [isCacheLoading, setIsCacheLoading] = useState(false);
   const [showPreferencesEditor, setShowPreferencesEditor] = useState(false);
 
   useEffect(() => {
@@ -60,6 +69,7 @@ export const SettingsScreen: React.FC = () => {
       setHasCentralizedKey(centralizedKeyExists);
     };
     checkExistingKey();
+    loadCacheStats(); // Load cache statistics on mount
   }, []);
 
   const saveApiKey = async () => {
@@ -97,6 +107,46 @@ export const SettingsScreen: React.FC = () => {
   const handleSignOut = async () => {
     HapticService.medium();
     await AuthService.signOut();
+  };
+
+  const loadCacheStats = async () => {
+    setIsCacheLoading(true);
+    try {
+      const stats = await RecipeCacheService.getCacheStats();
+      setCacheStats(stats);
+    } catch (error) {
+      console.error("Error loading cache stats:", error);
+    } finally {
+      setIsCacheLoading(false);
+    }
+  };
+
+  const clearRecipeCache = () => {
+    Alert.alert(
+      "Clear Recipe Cache",
+      "This will remove all cached recipes and may slow down recipe generation temporarily. Are you sure?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear Cache",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await RecipeCacheService.clearCache();
+              await loadCacheStats(); // Refresh stats
+              Alert.alert("Success", "Recipe cache cleared successfully!");
+            } catch (error) {
+              Alert.alert("Error", "Failed to clear cache");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const refreshCache = async () => {
+    HapticService.light();
+    await loadCacheStats();
   };
 
   const confirmResetProfile = () => {
@@ -397,6 +447,64 @@ export const SettingsScreen: React.FC = () => {
                   </Button>
                 )}
               </Box>
+            )}
+          </Card>
+
+          <Card variant="primary" marginBottom="md">
+            <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="sm">
+              <Text variant="h3">🧠 Recipe Cache</Text>
+              <TouchableOpacity onPress={refreshCache}>
+                <Text fontSize={20}>🔄</Text>
+              </TouchableOpacity>
+            </Box>
+            
+            <Text variant="body" color="secondaryText" marginBottom="md">
+              Intelligent caching speeds up recipe generation by reusing similar requests
+            </Text>
+            
+            {isCacheLoading ? (
+              <Box alignItems="center" padding="md">
+                <ActivityIndicator color={theme.colors.primary} />
+              </Box>
+            ) : cacheStats ? (
+              <Box>
+                <Box flexDirection="row" justifyContent="space-between" marginBottom="xs">
+                  <Text variant="caption" color="secondaryText">Cached Recipes:</Text>
+                  <Text variant="caption" color="primaryText" fontWeight="600">
+                    {cacheStats.totalCached}
+                  </Text>
+                </Box>
+                <Box flexDirection="row" justifyContent="space-between" marginBottom="xs">
+                  <Text variant="caption" color="secondaryText">Cache Size:</Text>
+                  <Text variant="caption" color="primaryText" fontWeight="600">
+                    {cacheStats.totalSize}
+                  </Text>
+                </Box>
+                <Box flexDirection="row" justifyContent="space-between" marginBottom="xs">
+                  <Text variant="caption" color="secondaryText">Most Accessed:</Text>
+                  <Text variant="caption" color="primaryText" fontWeight="600">
+                    {cacheStats.mostAccessed} times
+                  </Text>
+                </Box>
+                {cacheStats.oldestEntry && (
+                  <Box flexDirection="row" justifyContent="space-between" marginBottom="md">
+                    <Text variant="caption" color="secondaryText">Cache Age:</Text>
+                    <Text variant="caption" color="primaryText" fontWeight="600">
+                      {Math.floor((Date.now() - cacheStats.oldestEntry.getTime()) / (1000 * 60 * 60 * 24))} days
+                    </Text>
+                  </Box>
+                )}
+                
+                {cacheStats.totalCached > 0 && (
+                  <Button variant="secondary" onPress={clearRecipeCache}>
+                    <Text variant="button" color="primaryText">🗑️ Clear Cache</Text>
+                  </Button>
+                )}
+              </Box>
+            ) : (
+              <Text variant="caption" color="secondaryText">
+                Unable to load cache statistics
+              </Text>
             )}
           </Card>
         </Box>
