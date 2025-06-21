@@ -81,7 +81,8 @@ export const DAYS_OF_WEEK = [
 export const MEAL_TYPES = [
   'breakfast',
   'lunch', 
-  'dinner'
+  'dinner',
+  'snacks'
 ] as const;
 
 // Utility functions

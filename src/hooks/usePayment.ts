@@ -180,13 +180,13 @@ export function usePayment(): UsePaymentReturn {
 
   return {
     // Subscription data
-    subscriptionData,
+    subscriptionData: subscriptionData || null,
     isPremium,
     isLoading,
     error: error as Error | null,
     
     // Offerings and packages
-    offerings,
+    offerings: offerings || null,
     monthlyPackage,
     
     // Actions

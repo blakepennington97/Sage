@@ -145,7 +145,7 @@ export function useUsageTracking(): UseUsageTrackingReturn {
 
   return {
     // Data
-    usageData,
+    usageData: usageData || null,
     isPremium,
     isLoading,
     error: error as Error | null,

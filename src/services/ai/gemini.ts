@@ -29,6 +29,14 @@ export interface RecipeData {
     ingredient: string;
     estimatedCost: number;
   }[];
+  // Macro information
+  caloriesPerServing?: number;
+  proteinPerServing?: number;
+  carbsPerServing?: number;
+  fatPerServing?: number;
+  sugarPerServing?: number;
+  fiberPerServing?: number;
+  sodiumPerServing?: number;
 }
 
 export interface GroceryListCategory {
@@ -73,6 +81,21 @@ export interface CookingCoachResponse {
   message: string;
 }
 
+export interface FoodMacros {
+  foodName: string;
+  brandName?: string;
+  servingSize: string;
+  caloriesPerServing: number;
+  proteinPerServing: number;
+  carbsPerServing: number;
+  fatPerServing: number;
+  sugarPerServing?: number;
+  fiberPerServing?: number;
+  sodiumPerServing?: number;
+  confidence: 'high' | 'medium' | 'low';
+  source: string;
+}
+
 export class GeminiService {
   private genAI: GoogleGenerativeAI | null = null;
   // This model will be configured for JSON output
@@ -86,6 +109,21 @@ export class GeminiService {
 
     this.model = this.genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
+      generationConfig: { responseMimeType: "application/json" },
+    });
+  }
+
+  private async initializeWebSearch(): Promise<any> {
+    const apiKey = await APIKeyManager.getGeminiKey();
+    if (!apiKey) throw new Error("API key not found in settings.");
+    if (!this.genAI) {
+      this.genAI = new GoogleGenerativeAI(apiKey);
+    }
+
+    // Create a model with web search capabilities
+    return this.genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      tools: [{ googleSearchRetrieval: {} }],
       generationConfig: { responseMimeType: "application/json" },
     });
   }
@@ -239,7 +277,7 @@ export class GeminiService {
     try {
       const userContext = await this.getUserContext();
       // We can now simplify the prompt slightly as the JSON mode handles syntax.
-      const prompt = `Generate a beginner-friendly recipe based on the user's request and profile, including cost analysis.
+      const prompt = `Generate a beginner-friendly recipe based on the user's request and profile, including cost analysis and nutritional information.
         USER REQUEST: "${request}"
         ${userContext}
         The JSON object must match this exact structure:
@@ -254,7 +292,14 @@ export class GeminiService {
           "servings": number (how many servings this recipe makes),
           "totalCost": number (estimated total cost in USD for all ingredients),
           "costPerServing": number (estimated cost per serving in USD),
-          "costBreakdown": [ { "ingredient": "string", "estimatedCost": number } ]
+          "costBreakdown": [ { "ingredient": "string", "estimatedCost": number } ],
+          "caloriesPerServing": number (estimated calories per serving),
+          "proteinPerServing": number (grams of protein per serving, decimal),
+          "carbsPerServing": number (grams of carbs per serving, decimal),
+          "fatPerServing": number (grams of fat per serving, decimal),
+          "sugarPerServing": number (grams of sugar per serving, decimal, optional),
+          "fiberPerServing": number (grams of fiber per serving, decimal, optional),
+          "sodiumPerServing": number (mg of sodium per serving, whole number, optional)
         }
         
         COST ESTIMATION GUIDELINES:
@@ -262,7 +307,16 @@ export class GeminiService {
         - Consider typical package sizes (e.g., if recipe needs 1 onion, estimate cost of 1 onion from a 3lb bag)
         - Account for pantry staples at reduced cost (spices, oil, etc.)
         - Be realistic and helpful with cost estimates
-        - Round costs to nearest $0.05 for readability`;
+        - Round costs to nearest $0.05 for readability
+        
+        NUTRITIONAL CALCULATION GUIDELINES:
+        - Calculate macros based on ingredient quantities and standard nutritional data
+        - Account for cooking methods (oils, cooking losses, etc.)
+        - Provide realistic estimates based on typical ingredient compositions
+        - Round calories to nearest 5, macros to 1 decimal place
+        - Consider the user's macro goals when possible: ${userContext.includes('daily_calorie_goal') ? 'User has set macro goals - try to create balanced recipes' : 'User has not set macro goals yet'}
+        - Include approximate sodium content for health awareness
+        - Fiber content helps with satiety and health goals`;
       const result = await this.model.generateContent(prompt);
       // The output text is now guaranteed to be a valid JSON string.
       const recipeData = JSON.parse(result.response.text()) as RecipeData;
@@ -314,6 +368,59 @@ export class GeminiService {
       throw new Error(
         "Failed to generate grocery list from AI. The response may not be valid JSON."
       );
+    }
+  }
+
+  public async lookupFoodMacros(foodQuery: string): Promise<FoodMacros> {
+    try {
+      const webSearchModel = await this.initializeWebSearch();
+      
+      const prompt = `Search the web for current nutritional information for this food item: "${foodQuery}"
+        
+        Look for official nutrition facts from:
+        - Brand websites (highest priority)
+        - USDA food database 
+        - MyFitnessPal
+        - Nutrition labels from retailer websites
+        - Calorie counting apps
+        
+        Return the most accurate nutritional information in JSON format:
+        {
+          "foodName": "string (standardized food name)",
+          "brandName": "string or null (if specific brand identified)",
+          "servingSize": "string (e.g., '1 cup', '28g', '1 bar')",
+          "caloriesPerServing": number,
+          "proteinPerServing": number (grams),
+          "carbsPerServing": number (grams),
+          "fatPerServing": number (grams),
+          "sugarPerServing": number (grams, optional),
+          "fiberPerServing": number (grams, optional),
+          "sodiumPerServing": number (mg, optional),
+          "confidence": "high" | "medium" | "low" (based on source reliability),
+          "source": "string (name of the source used)"
+        }
+        
+        Guidelines:
+        - Prefer branded products if brand is mentioned in query
+        - Use standard serving sizes when possible
+        - Set confidence to "high" for official brand/USDA data, "medium" for nutrition apps, "low" for estimated data
+        - Include brand name only if specifically identified
+        - Round values to 1 decimal place for grams, whole numbers for calories and mg
+        - If multiple serving sizes found, choose the most common one
+        `;
+
+      const result = await webSearchModel.generateContent(prompt);
+      const macroData = JSON.parse(result.response.text()) as FoodMacros;
+      
+      // Validate the response has required fields
+      if (!macroData.foodName || !macroData.servingSize || macroData.caloriesPerServing === undefined) {
+        throw new Error("Incomplete nutritional data received");
+      }
+      
+      return macroData;
+    } catch (error) {
+      console.error("Food macro lookup error:", error);
+      throw new Error("Failed to look up nutritional information. Please try a more specific food name or check your connection.");
     }
   }
 }

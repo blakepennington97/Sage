@@ -11,6 +11,9 @@ import { useRecipes } from '../hooks/useRecipes';
 import { MealPlanService } from '../services/mealPlanService';
 import { HapticService } from '../services/haptics';
 import { ErrorHandler } from '../utils/errorHandling';
+import { DailyMacroSummary, DailyMacros } from '../components/DailyMacroSummary';
+import { AddFoodEntry } from '../components/AddFoodEntry';
+import { useMealTracking, useMealEntriesForDay, useDailyMacroProgress } from '../hooks/useMealTracking';
 import { 
   WeeklyMealPlan, 
   MealType, 
@@ -21,7 +24,7 @@ import {
 
 export const MealPlannerScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const { recipes } = useRecipes();
   const insets = useSafeAreaInsets();
   
@@ -32,9 +35,17 @@ export const MealPlannerScreen: React.FC = () => {
   const [selectedMealSlot, setSelectedMealSlot] = useState<{date: string, mealType: MealType} | null>(null);
   const [showPremiumGate, setShowPremiumGate] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showFoodEntry, setShowFoodEntry] = useState(false);
+  const [showMacroSummary, setShowMacroSummary] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>(formatDateForMealPlan(new Date()));
 
   // Mock premium status - in real app, this would come from subscription service
   const [isPremium, setIsPremium] = useState(false);
+
+  // Meal tracking hooks
+  const { addMealEntry } = useMealTracking();
+  const { data: mealEntries } = useMealEntriesForDay(selectedDate);
+  const { data: macroProgress } = useDailyMacroProgress(selectedDate);
 
   const loadActiveMealPlan = useCallback(async () => {
     if (!user) return;
@@ -98,7 +109,26 @@ export const MealPlannerScreen: React.FC = () => {
 
     HapticService.light();
     setSelectedMealSlot({ date, mealType });
-    setShowRecipeSelector(true);
+    
+    // Show options: Add Recipe or Add Food Item
+    Alert.alert(
+      "Add to Meal Plan",
+      "What would you like to add?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "📖 Recipe",
+          onPress: () => setShowRecipeSelector(true)
+        },
+        {
+          text: "🔍 Food Item",
+          onPress: () => {
+            setSelectedDate(date);
+            setShowFoodEntry(true);
+          }
+        }
+      ]
+    );
   };
 
   const handleSelectRecipe = async (recipeId: string) => {
@@ -185,6 +215,46 @@ export const MealPlannerScreen: React.FC = () => {
     );
   };
 
+  const handleFoodAdded = async (foodData: any) => {
+    try {
+      await addMealEntry(
+        foodData,
+        foodData.quantity,
+        foodData.mealType,
+        foodData.date
+      );
+      setShowFoodEntry(false);
+      setSelectedMealSlot(null);
+      HapticService.success();
+      ErrorHandler.showSuccessToast('Food item added successfully!');
+    } catch (error) {
+      ErrorHandler.handleError(error, 'adding food item');
+    }
+  };
+
+  const getDailyMacros = (): DailyMacros | null => {
+    if (!profile?.macro_goals_set || !macroProgress) return null;
+    
+    return {
+      calories: {
+        current: macroProgress.total_calories || 0,
+        goal: macroProgress.goal_calories || 2000,
+      },
+      protein: {
+        current: macroProgress.total_protein || 0,
+        goal: macroProgress.goal_protein || 100,
+      },
+      carbs: {
+        current: macroProgress.total_carbs || 0,
+        goal: macroProgress.goal_carbs || 200,
+      },
+      fat: {
+        current: macroProgress.total_fat || 0,
+        goal: macroProgress.goal_fat || 70,
+      },
+    };
+  };
+
   if (showPremiumGate) {
     return (
       <PremiumGate
@@ -254,12 +324,27 @@ export const MealPlannerScreen: React.FC = () => {
         borderBottomColor="border"
         style={{ paddingTop: Math.max(insets.top, 16) }}
       >
-        <Text variant="h2" color="primaryText" marginBottom="xs">
-          {activeMealPlan.title}
-        </Text>
-        <Text variant="caption" color="secondaryText">
-          Week of {new Date(activeMealPlan.week_start_date).toLocaleDateString()}
-        </Text>
+        <Box flexDirection="row" justifyContent="space-between" alignItems="flex-start">
+          <Box flex={1}>
+            <Text variant="h2" color="primaryText" marginBottom="xs">
+              {activeMealPlan.title}
+            </Text>
+            <Text variant="caption" color="secondaryText">
+              Week of {new Date(activeMealPlan.week_start_date).toLocaleDateString()}
+            </Text>
+          </Box>
+          
+          {profile?.macro_goals_set && (
+            <Button 
+              variant="secondary" 
+              onPress={() => setShowMacroSummary(true)}
+              paddingHorizontal="sm"
+              paddingVertical="xs"
+            >
+              <Text variant="caption" color="primaryText">📊 Macros</Text>
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {/* Meal Grid */}
@@ -357,6 +442,116 @@ export const MealPlannerScreen: React.FC = () => {
               ))}
             </>
           )}
+        </Box>
+      </BottomSheet>
+
+      {/* Food Entry Sheet */}
+      <BottomSheet
+        isVisible={showFoodEntry}
+        onClose={() => {
+          setShowFoodEntry(false);
+          setSelectedMealSlot(null);
+        }}
+        title={`Add Food Item to ${selectedMealSlot?.mealType} - ${selectedMealSlot?.date}`}
+        snapPoints={['95%']}
+      >
+        {selectedMealSlot && (
+          <AddFoodEntry
+            mealType={selectedMealSlot.mealType}
+            date={selectedMealSlot.date}
+            onFoodAdded={handleFoodAdded}
+            onCancel={() => {
+              setShowFoodEntry(false);
+              setSelectedMealSlot(null);
+            }}
+          />
+        )}
+      </BottomSheet>
+
+      {/* Macro Summary Sheet */}
+      <BottomSheet
+        isVisible={showMacroSummary}
+        onClose={() => setShowMacroSummary(false)}
+        title={`Daily Macro Progress - ${new Date(selectedDate).toLocaleDateString()}`}
+        snapPoints={['90%']}
+      >
+        <Box padding="md">
+          {(() => {
+            const dailyMacros = getDailyMacros();
+            if (!dailyMacros) {
+              return (
+                <Box alignItems="center" padding="xl">
+                  <Text variant="h3" color="primaryText" marginBottom="sm">
+                    🎯 Set Your Macro Goals
+                  </Text>
+                  <Text variant="body" color="secondaryText" textAlign="center" marginBottom="lg">
+                    Track your daily nutrition progress by setting your macro targets in your profile.
+                  </Text>
+                  <Button variant="primary" onPress={() => {
+                    setShowMacroSummary(false);
+                    navigation.navigate('Settings');
+                  }}>
+                    <Text variant="button" color="primaryButtonText">
+                      Set Macro Goals
+                    </Text>
+                  </Button>
+                </Box>
+              );
+            }
+
+            return (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <DailyMacroSummary
+                  macros={dailyMacros}
+                  date={new Date(selectedDate).toLocaleDateString()}
+                  showDate={true}
+                />
+                
+                {mealEntries && mealEntries.length > 0 && (
+                  <Box marginTop="lg">
+                    <Text variant="h3" color="primaryText" marginBottom="md">
+                      📝 Today's Food Log
+                    </Text>
+                    {mealEntries.map((entry, index) => (
+                      <Box 
+                        key={entry.id} 
+                        backgroundColor="surface" 
+                        padding="sm" 
+                        borderRadius="md" 
+                        marginBottom="sm"
+                        borderWidth={1}
+                        borderColor="border"
+                      >
+                        <Box flexDirection="row" justifyContent="space-between" alignItems="flex-start">
+                          <Box flex={1}>
+                            <Text variant="body" color="primaryText" fontWeight="600">
+                              {entry.food_name}
+                            </Text>
+                            {entry.brand_name && (
+                              <Text variant="caption" color="primaryGreen">
+                                {entry.brand_name}
+                              </Text>
+                            )}
+                            <Text variant="caption" color="secondaryText">
+                              {entry.quantity} × {entry.serving_size}
+                            </Text>
+                          </Box>
+                          <Box alignItems="flex-end">
+                            <Text variant="caption" color="secondaryText" textTransform="capitalize">
+                              {entry.meal_type}
+                            </Text>
+                            <Text variant="body" color="primaryText" fontWeight="600">
+                              {Math.round(entry.calories_per_serving * entry.quantity)} cal
+                            </Text>
+                          </Box>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </ScrollView>
+            );
+          })()}
         </Box>
       </BottomSheet>
     </Box>

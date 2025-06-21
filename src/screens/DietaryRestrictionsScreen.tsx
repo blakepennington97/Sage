@@ -139,7 +139,7 @@ export const DietaryRestrictionsScreen: React.FC = () => {
           dietaryRestrictions: selectedDietary,
         });
         HapticService.success();
-        navigation.navigate('Kitchen');
+        navigation.navigate('MacroGoals');
       } catch (error) {
         HapticService.error();
         Alert.alert("Error", "Could not save your dietary information. Please try again.");
@@ -343,7 +343,7 @@ export const DietaryRestrictionsScreen: React.FC = () => {
           ) : (
             <Text style={styles.nextButtonText}>
               {currentStep === totalSteps - 1
-                ? "Continue to Kitchen Setup"
+                ? "Continue to Nutrition Goals"
                 : "Next"}
             </Text>
           )}

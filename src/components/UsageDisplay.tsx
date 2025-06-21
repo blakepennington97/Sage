@@ -200,7 +200,7 @@ export function LimitReachedModal({
         },
         ...(onUpgrade ? [{
           text: 'Upgrade Now',
-          style: 'default',
+          style: 'default' as const,
           onPress: () => {
             onClose();
             onUpgrade();

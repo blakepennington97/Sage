@@ -48,6 +48,12 @@ const theme = createTheme({
     secondaryButtonText: palette.text,
     dangerButton: palette.error,
     dangerButtonText: palette.text,
+    // Additional colors for macro tracking
+    primaryGreen: palette.primary,
+    backgroundSecondary: palette.surfaceVariant,
+    warningText: palette.warning,
+    errorText: palette.error,
+    white: "#FFFFFF",
   },
   spacing: {
     xs: 4,

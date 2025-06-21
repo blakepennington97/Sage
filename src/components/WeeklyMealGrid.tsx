@@ -56,6 +56,35 @@ export const WeeklyMealGrid: React.FC<WeeklyMealGridProps> = ({
               {/* Meal Cards */}
               <Box>
                 {MEAL_TYPES.map((mealType) => {
+                  if (mealType === 'snacks') {
+                    // Handle snacks specially as they can have multiple items
+                    return (
+                      <Box key={`${date}-${mealType}`} marginTop="sm">
+                        <Text variant="caption" color="secondaryText" marginBottom="xs" paddingLeft="sm">
+                          🍿 Snacks
+                        </Text>
+                        {dayMealPlan?.snacks?.map((snack, index) => (
+                          <MealPlanCard
+                            key={`${date}-snack-${index}`}
+                            recipe={snack}
+                            mealType="snacks"
+                            date={date}
+                            onPress={() => onViewRecipe(snack.recipe_id)}
+                            onRemove={() => onRemoveRecipe(date, 'snacks')}
+                          />
+                        ))}
+                        {/* Always show "Add Snack" option */}
+                        <MealPlanCard
+                          recipe={undefined}
+                          mealType="snacks"
+                          date={date}
+                          onPress={() => onAddRecipe(date, 'snacks')}
+                        />
+                      </Box>
+                    );
+                  }
+                  
+                  // Handle regular meals (breakfast, lunch, dinner)
                   const recipe = dayMealPlan?.[mealType];
                   
                   return (
@@ -75,30 +104,6 @@ export const WeeklyMealGrid: React.FC<WeeklyMealGridProps> = ({
                     />
                   );
                 })}
-
-                {/* Snacks Section */}
-                <Box marginTop="sm">
-                  <Text variant="caption" color="secondaryText" marginBottom="xs">
-                    Snacks
-                  </Text>
-                  {dayMealPlan?.snacks?.map((snack, index) => (
-                    <MealPlanCard
-                      key={`${date}-snack-${index}`}
-                      recipe={snack}
-                      mealType="snacks"
-                      date={date}
-                      onPress={() => onViewRecipe(snack.recipe_id)}
-                      onRemove={() => onRemoveRecipe(date, 'snacks')}
-                    />
-                  )) || (
-                    <MealPlanCard
-                      recipe={undefined}
-                      mealType="snacks"
-                      date={date}
-                      onPress={() => onAddRecipe(date, 'snacks')}
-                    />
-                  )}
-                </Box>
               </Box>
             </Box>
           );

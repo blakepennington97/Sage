@@ -11,6 +11,7 @@ import { LoginScreen } from "../screens/LoginScreen";
 import { SignUpScreen } from "../screens/SignUpScreen";
 import { SkillEvaluationScreen } from "../screens/SkillEvaluationScreen";
 import { DietaryRestrictionsScreen } from "../screens/DietaryRestrictionsScreen";
+import { MacroGoalsScreen } from "../screens/MacroGoalsScreen";
 import { KitchenAssessmentScreen } from "../screens/KitchenAssessmentScreen";
 import { RecipeGenerationScreen } from "../screens/RecipeGenerationScreen";
 import { CookingCoachScreen } from "../screens/CookingCoachScreen";
@@ -59,6 +60,13 @@ const OnboardingNavigator = () => (
     <OnboardingStack.Screen
       name="DietaryRestrictions"
       component={DietaryRestrictionsScreen}
+      options={{
+        gestureEnabled: true,
+      }}
+    />
+    <OnboardingStack.Screen
+      name="MacroGoals"
+      component={MacroGoalsScreen}
       options={{
         gestureEnabled: true,
       }}

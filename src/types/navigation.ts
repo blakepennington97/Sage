@@ -8,6 +8,7 @@ export type AuthStackParamList = {
 export type OnboardingStackParamList = {
   Skills: undefined;
   DietaryRestrictions: undefined;
+  MacroGoals: undefined;
   Kitchen: undefined;
 };
 

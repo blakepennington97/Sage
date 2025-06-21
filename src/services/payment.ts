@@ -108,7 +108,7 @@ class PaymentService {
       productId: entitlement.productIdentifier,
       expiresAt: entitlement.expirationDate ? new Date(entitlement.expirationDate) : null,
       willRenew: entitlement.willRenew,
-      isInGracePeriod: entitlement.isInGracePeriod || false,
+      isInGracePeriod: false, // RevenueCat property not available in this version
       isInFreeTrial: entitlement.isSandbox || false, // Adjust based on your trial setup
       originalPurchaseDate: entitlement.originalPurchaseDate ? new Date(entitlement.originalPurchaseDate) : null,
     };
@@ -225,7 +225,7 @@ class PaymentService {
       // Update usage tracking with premium status
       await usageTrackingService.updatePremiumStatus(
         data.isPremium,
-        data.expiresAt
+        data.expiresAt || undefined
       );
       
       console.log('Subscription status synced:', data);

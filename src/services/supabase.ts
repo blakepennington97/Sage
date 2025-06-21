@@ -33,6 +33,12 @@ export interface UserProfile {
   subscription_status: "free" | "premium";
   recipes_generated_today: number;
   last_recipe_date: string;
+  // Macro tracking fields
+  daily_calorie_goal?: number;
+  daily_protein_goal?: number;
+  daily_carbs_goal?: number;
+  daily_fat_goal?: number;
+  macro_goals_set?: boolean;
   created_at: string;
   updated_at: string;
 }

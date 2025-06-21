@@ -55,6 +55,21 @@ export const useUserProfile = () => {
     });
   };
 
+  const setMacroGoals = async (data: {
+    dailyCalorieGoal: number;
+    dailyProteinGoal: number;
+    dailyCarbsGoal: number;
+    dailyFatGoal: number;
+  }) => {
+    return updateProfile({
+      daily_calorie_goal: data.dailyCalorieGoal,
+      daily_protein_goal: data.dailyProteinGoal,
+      daily_carbs_goal: data.dailyCarbsGoal,
+      daily_fat_goal: data.dailyFatGoal,
+      macro_goals_set: true,
+    });
+  };
+
   const completeKitchenAssessment = async (data: {
     tools: string[];
     stoveType: string;
@@ -78,6 +93,7 @@ export const useUserProfile = () => {
     updateProfile,
     completeSkillAssessment,
     completeDietaryRestrictions,
+    setMacroGoals,
     completeKitchenAssessment,
     // Additional loading state for profile operations
     isUpdating: updateProfileMutation.isPending,

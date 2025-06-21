@@ -121,7 +121,7 @@ class WebhookHandlerService {
     const expiresAt = expiration_at_ms ? new Date(expiration_at_ms) : null;
     
     // Update premium status in usage tracking
-    await usageTrackingService.updatePremiumStatus(true, expiresAt);
+    await usageTrackingService.updatePremiumStatus(true, expiresAt || undefined);
     
     // Update user profile subscription status
     await this.updateUserProfile(userId, {
@@ -180,7 +180,7 @@ class WebhookHandlerService {
     const expiresAt = expiration_at_ms ? new Date(expiration_at_ms) : null;
     
     // Update premium status
-    await usageTrackingService.updatePremiumStatus(true, expiresAt);
+    await usageTrackingService.updatePremiumStatus(true, expiresAt || undefined);
     
     // Update user profile with new product
     await this.updateUserProfile(userId, {
