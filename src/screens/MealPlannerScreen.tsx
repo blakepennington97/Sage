@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Alert, RefreshControl, ScrollView } from 'react-native';
+import { Alert, RefreshControl, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Box, Text, Button, LoadingSpinner, ErrorMessage } from '../components/ui';
@@ -13,9 +13,11 @@ import { HapticService } from '../services/haptics';
 import { ErrorHandler } from '../utils/errorHandling';
 import { DailyMacroSummary, DailyMacros } from '../components/DailyMacroSummary';
 import { AddFoodEntry } from '../components/AddFoodEntry';
+import { MealPrepInterface } from '../components/MealPrepInterface';
 import { useMealTracking, useMealEntriesForDay, useDailyMacroProgress } from '../hooks/useMealTracking';
 import { 
   WeeklyMealPlan, 
+  MealPlanRecipe,
   MealType, 
   CreateMealPlanRequest,
   getWeekStartDate,
@@ -38,6 +40,8 @@ export const MealPlannerScreen: React.FC = () => {
   const [showFoodEntry, setShowFoodEntry] = useState(false);
   const [showMacroSummary, setShowMacroSummary] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(formatDateForMealPlan(new Date()));
+  const [showMealPrepModal, setShowMealPrepModal] = useState(false);
+  const [recipeToClone, setRecipeToClone] = useState<{recipe: MealPlanRecipe, mealType: MealType} | null>(null);
 
   // Mock premium status - in real app, this would come from subscription service
   const [isPremium, setIsPremium] = useState(false);
@@ -194,6 +198,81 @@ export const MealPlannerScreen: React.FC = () => {
     if (recipe) {
       navigation.navigate('RecipeDetail', { recipe });
     }
+  };
+
+  const handleCloneRecipe = (recipe: MealPlanRecipe, mealType: MealType) => {
+    setRecipeToClone({ recipe, mealType });
+    setShowMealPrepModal(true);
+    HapticService.light();
+  };
+
+  const generateSmartSuggestions = () => {
+    if (!activeMealPlan || !profile) return [];
+    
+    // Analyze current meal plan for gaps and patterns
+    const suggestions = [];
+    const weekDates = require('../types/mealPlan').getWeekDates(activeMealPlan.week_start_date);
+    
+    // Count current meals per type
+    const mealCounts = { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
+    activeMealPlan.days.forEach(day => {
+      if (day.breakfast) mealCounts.breakfast++;
+      if (day.lunch) mealCounts.lunch++;
+      if (day.dinner) mealCounts.dinner++;
+      if (day.snacks?.length) mealCounts.snacks += day.snacks.length;
+    });
+
+    // Suggest based on meal frequency
+    if (mealCounts.breakfast < 5) {
+      suggestions.push({
+        type: 'meal_frequency',
+        title: '🍳 Morning Fuel Needed',
+        description: `You only have ${mealCounts.breakfast} breakfasts planned. Add quick, protein-rich morning meals?`,
+        action: 'Generate breakfast recipes',
+        priority: 'high'
+      });
+    }
+
+    if (mealCounts.dinner < 6) {
+      suggestions.push({
+        type: 'meal_frequency', 
+        title: '🍽️ Dinner Planning',
+        description: `Plan ${7 - mealCounts.dinner} more dinners for complete week coverage.`,
+        action: 'Suggest dinner recipes',
+        priority: 'medium'
+      });
+    }
+
+    // Suggest meal prep opportunities
+    const hasRepeatedRecipes = activeMealPlan.days.some(day => 
+      activeMealPlan.days.some(otherDay => 
+        day.date !== otherDay.date && 
+        day.dinner?.recipe_id === otherDay.dinner?.recipe_id
+      )
+    );
+
+    if (!hasRepeatedRecipes && mealCounts.dinner >= 4) {
+      suggestions.push({
+        type: 'meal_prep',
+        title: '📋 Meal Prep Opportunity',
+        description: 'Make cooking easier by using the same recipe for multiple days.',
+        action: 'Clone a recipe',
+        priority: 'low'
+      });
+    }
+
+    // Suggest nutritional balance
+    if (macroProgress?.goal_protein && macroProgress.total_protein < macroProgress.goal_protein * 0.8) {
+      suggestions.push({
+        type: 'nutrition',
+        title: '💪 Protein Boost Needed',
+        description: 'Your current meal plan may be low in protein. Add protein-rich options?',
+        action: 'Find high-protein recipes',
+        priority: 'high'
+      });
+    }
+
+    return suggestions.slice(0, 3); // Limit to 3 suggestions
   };
 
   const handleUpgradeToPremium = () => {
@@ -357,11 +436,86 @@ export const MealPlannerScreen: React.FC = () => {
         }
         showsVerticalScrollIndicator={false}
       >
+        {/* Smart Suggestions */}
+        {(() => {
+          const suggestions = generateSmartSuggestions();
+          if (suggestions.length === 0) return null;
+          
+          return (
+            <Box padding="lg" paddingBottom="md">
+              <Text variant="h3" color="primaryText" marginBottom="md">
+                🧠 Smart Suggestions
+              </Text>
+              
+              {suggestions.map((suggestion, index) => (
+                <Box 
+                  key={index}
+                  backgroundColor="surface" 
+                  padding="md" 
+                  borderRadius="md" 
+                  marginBottom="sm"
+                  borderLeftWidth={4}
+                  style={{ 
+                    borderLeftColor: suggestion.priority === 'high' 
+                      ? '#FF6B35' 
+                      : suggestion.priority === 'medium' 
+                        ? '#FF9800' 
+                        : '#4CAF50' 
+                  }}
+                >
+                  <Text variant="h3" color="primaryText" marginBottom="xs">
+                    {suggestion.title}
+                  </Text>
+                  <Text variant="body" color="secondaryText" marginBottom="md">
+                    {suggestion.description}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      // Handle suggestion actions
+                      if (suggestion.type === 'meal_frequency') {
+                        const mealType = suggestion.title.includes('breakfast') ? 'breakfast' : 'dinner';
+                        // Find first empty slot of this meal type
+                        const weekDates = require('../types/mealPlan').getWeekDates(activeMealPlan.week_start_date);
+                        const emptySlot = weekDates.find((date: string) => {
+                          const dayPlan = activeMealPlan.days.find(day => day.date === date);
+                          return !dayPlan?.[mealType];
+                        });
+                        if (emptySlot) {
+                          handleAddRecipe(emptySlot, mealType);
+                        }
+                      } else if (suggestion.type === 'nutrition') {
+                        // Navigate to recipe generator with protein focus
+                        navigation.navigate('RecipeGenerator', { 
+                          initialPrompt: 'Generate a high-protein recipe for my meal plan' 
+                        });
+                      }
+                      HapticService.light();
+                    }}
+                  >
+                    <Box 
+                      backgroundColor="primary" 
+                      paddingHorizontal="md" 
+                      paddingVertical="sm" 
+                      borderRadius="sm"
+                      alignSelf="flex-start"
+                    >
+                      <Text variant="caption" color="primaryButtonText" fontWeight="600">
+                        {suggestion.action}
+                      </Text>
+                    </Box>
+                  </TouchableOpacity>
+                </Box>
+              ))}
+            </Box>
+          );
+        })()}
+
         <WeeklyMealGrid
           mealPlan={activeMealPlan}
           onAddRecipe={handleAddRecipe}
           onViewRecipe={handleViewRecipe}
           onRemoveRecipe={handleRemoveRecipe}
+          onCloneRecipe={handleCloneRecipe}
         />
       </ScrollView>
 
@@ -553,6 +707,53 @@ export const MealPlannerScreen: React.FC = () => {
             );
           })()}
         </Box>
+      </BottomSheet>
+
+      {/* Meal Prep Modal */}
+      <BottomSheet
+        isVisible={showMealPrepModal}
+        onClose={() => {
+          setShowMealPrepModal(false);
+          setRecipeToClone(null);
+        }}
+      >
+        <MealPrepInterface
+          recipe={recipeToClone?.recipe}
+          originalMealType={recipeToClone?.mealType}
+          mealPlan={activeMealPlan}
+          onCopyToSlots={async (slots) => {
+            if (!activeMealPlan || !recipeToClone) return;
+            
+            try {
+              HapticService.medium();
+              
+              for (const slot of slots) {
+                await MealPlanService.updateMealPlan({
+                  meal_plan_id: activeMealPlan.id,
+                  date: slot.date,
+                  meal_type: slot.mealType,
+                  recipe_id: recipeToClone.recipe.recipe_id,
+                  servings: recipeToClone.recipe.servings,
+                });
+              }
+              
+              // Reload the meal plan
+              await loadActiveMealPlan();
+              
+              setShowMealPrepModal(false);
+              setRecipeToClone(null);
+              
+              HapticService.success();
+              ErrorHandler.showSuccessToast(`Recipe copied to ${slots.length} meal${slots.length > 1 ? 's' : ''}!`);
+            } catch (err) {
+              ErrorHandler.handleError(err, 'copying recipe to meal slots');
+            }
+          }}
+          onClose={() => {
+            setShowMealPrepModal(false);
+            setRecipeToClone(null);
+          }}
+        />
       </BottomSheet>
     </Box>
   );

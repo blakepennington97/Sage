@@ -4,6 +4,7 @@ import { Box, Text } from './ui';
 import { MealPlanCard } from './MealPlanCard';
 import { 
   WeeklyMealPlan, 
+  MealPlanRecipe,
   DAYS_OF_WEEK, 
   MEAL_TYPES, 
   MealType,
@@ -15,6 +16,7 @@ interface WeeklyMealGridProps {
   onAddRecipe: (date: string, mealType: MealType) => void;
   onViewRecipe: (recipeId: string) => void;
   onRemoveRecipe: (date: string, mealType: MealType) => void;
+  onCloneRecipe: (recipe: MealPlanRecipe, mealType: MealType) => void;
 }
 
 export const WeeklyMealGrid: React.FC<WeeklyMealGridProps> = ({
@@ -22,6 +24,7 @@ export const WeeklyMealGrid: React.FC<WeeklyMealGridProps> = ({
   onAddRecipe,
   onViewRecipe,
   onRemoveRecipe,
+  onCloneRecipe,
 }) => {
   const weekDates = getWeekDates(mealPlan.week_start_date);
 
@@ -71,6 +74,7 @@ export const WeeklyMealGrid: React.FC<WeeklyMealGridProps> = ({
                             date={date}
                             onPress={() => onViewRecipe(snack.recipe_id)}
                             onRemove={() => onRemoveRecipe(date, 'snacks')}
+                            onClone={() => onCloneRecipe(snack, 'snacks')}
                           />
                         ))}
                         {/* Always show "Add Snack" option */}
@@ -101,6 +105,7 @@ export const WeeklyMealGrid: React.FC<WeeklyMealGridProps> = ({
                         }
                       }}
                       onRemove={recipe ? () => onRemoveRecipe(date, mealType) : undefined}
+                      onClone={recipe ? () => onCloneRecipe(recipe, mealType) : undefined}
                     />
                   );
                 })}

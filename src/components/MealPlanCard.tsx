@@ -9,6 +9,7 @@ interface MealPlanCardProps {
   date: string;
   onPress: () => void;
   onRemove?: () => void;
+  onClone?: () => void;
 }
 
 const getMealTypeEmoji = (mealType: MealType): string => {
@@ -41,6 +42,7 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
   date,
   onPress,
   onRemove,
+  onClone,
 }) => {
   if (!recipe) {
     // Empty slot - show add button
@@ -110,22 +112,39 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
             </Text>
           </Box>
 
-          {onRemove && (
-            <TouchableOpacity onPress={onRemove}>
-              <Box
-                backgroundColor="surface"
-                borderRadius="sm"
-                padding="xs"
-                marginLeft="sm"
-                borderWidth={1}
-                borderColor="error"
-              >
-                <Text variant="caption" color="error">
-                  ✕
-                </Text>
-              </Box>
-            </TouchableOpacity>
-          )}
+          <Box flexDirection="row" gap="xs" marginLeft="sm">
+            {onClone && (
+              <TouchableOpacity onPress={onClone}>
+                <Box
+                  backgroundColor="surface"
+                  borderRadius="sm"
+                  padding="xs"
+                  borderWidth={1}
+                  borderColor="primary"
+                >
+                  <Text variant="caption" color="primary">
+                    📋
+                  </Text>
+                </Box>
+              </TouchableOpacity>
+            )}
+            
+            {onRemove && (
+              <TouchableOpacity onPress={onRemove}>
+                <Box
+                  backgroundColor="surface"
+                  borderRadius="sm"
+                  padding="xs"
+                  borderWidth={1}
+                  borderColor="error"
+                >
+                  <Text variant="caption" color="error">
+                    ✕
+                  </Text>
+                </Box>
+              </TouchableOpacity>
+            )}
+          </Box>
         </Box>
       </Card>
     </TouchableOpacity>
