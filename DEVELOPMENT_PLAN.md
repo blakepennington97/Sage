@@ -285,18 +285,39 @@ _This section outlines the planned next phases of development, prioritized by va
   - **Solution:** Enhanced AI prompts for more descriptive cooking instructions replacing missing images
   - **Technical Approach:** Update recipe generation prompts to include detailed sensory descriptions ("simmer until shimmery and thick enough to coat the back of a spoon")
 
-### **Priority 2: Advanced Meal Planning** *(MEDIUM VALUE)*
-- **Daily Macro Tracking:**
-  - **Problem:** Meal planner lacks nutritional overview for daily meal planning
-  - **Solution:** Calculate and display net macros per day column in meal planner
-  - **Technical Approach:** Aggregate recipe nutritional data by day, add daily totals display, integrate with recipe macro calculations
+### **Priority 2: Comprehensive Macro Tracking & Goal Management** *(HIGH VALUE)*
+- **Target Macro Goals System:**
+  - **Problem:** Users have no way to set or track their daily nutritional goals
+  - **Solution:** Add target macro goals collection to onboarding and user preferences (daily calories, protein, fats, carbs)
+  - **Technical Approach:** Enhance onboarding with macro goals screen, add editable goals in preferences, integrate with meal planning calculations
+
+- **Smart Progress Tracking UI:**
+  - **Problem:** Meal planner lacks visual feedback on nutritional progress towards daily goals
+  - **Solution:** Modern progress tracking interface showing real-time progress towards (or over) daily macro targets
+  - **Technical Approach:** Progress rings/bars for each macro, color-coded feedback (green=on track, yellow=approaching, red=over), daily totals vs. goals display
+
+- **Non-Recipe Meal Entry:**
+  - **Problem:** Real-world meal planning includes non-recipe items (protein bars, packaged foods) that can't be tracked
+  - **Solution:** Web search-powered macro lookup for specific branded foods and quick meal additions
+  - **Technical Approach:** Integrate web search API for nutritional data, brand-specific macro lookup, simple "Add Food Item" interface with search autocomplete
+
+- **Expanded Meal Structure:**
+  - **Problem:** Current 3-meal structure (breakfast/lunch/dinner) doesn't reflect modern eating patterns
+  - **Solution:** Add snacks/additional meals row for comprehensive daily tracking
+  - **Technical Approach:** Expand meal planner grid to include 4th meal category, update macro aggregation, flexible meal naming
+
+### **Priority 3: Advanced Meal Planning Workflows** *(MEDIUM VALUE)*
+- **Daily Macro Tracking Integration:**
+  - **Problem:** Meal planner lacks nutritional overview combining recipes and non-recipe items
+  - **Solution:** Unified daily macro totals from all meal sources with goal progress visualization
+  - **Technical Approach:** Aggregate nutritional data from recipes and manual entries, real-time goal tracking, smart recommendations for goal completion
 
 - **Meal Prep Workflow Support:**
   - **Problem:** Current meal planner doesn't support real-world meal prep patterns (cook once, eat multiple times)
   - **Solution:** Recipe cloning/copying functionality for easy meal prep planning
   - **Technical Approach:** Add clone recipe buttons, drag-and-drop recipe copying, batch meal assignment interface
 
-### **Priority 3: Infrastructure & Performance Optimization** *(PRODUCTION CRITICAL)*
+### **Priority 4: Infrastructure & Performance Optimization** *(PRODUCTION CRITICAL)*
 - **Centralized API Key Management:**
   - **Problem:** Manual Gemini API key management not scalable for production
   - **Solution:** Secure backend service storing API keys, rate limiting, usage monitoring
@@ -306,7 +327,7 @@ _This section outlines the planned next phases of development, prioritized by va
   - **Solution:** Smart caching system that reuses similar recipe requests based on user preferences
   - **Technical Approach:** Recipe similarity scoring, preference-aware cache keys, intelligent cache invalidation
 
-**Technical Focus:** Enhanced user experience, nutritional intelligence, practical meal planning workflows, cost optimization
+**Technical Focus:** Enhanced user experience, comprehensive nutritional intelligence, flexible meal tracking, real-world meal planning workflows, cost optimization
 
 **Following Priorities:**
 - Voice cooking assistance and smart kitchen integration
@@ -322,4 +343,25 @@ When ready for App Store publishing:
 4. Deploy webhook endpoints for subscription management
 5. Test complete payment flow in sandbox mode
 
-**Note for Future Developer:** Complete payment infrastructure implemented but dormant. Enhanced Onboarding Safety, Cost Analysis, Advanced Preferences, and Payment System all completed. Current focus should be on enhanced recipe intelligence (macro nutrition, recipe tweaking, descriptive guidance) and advanced meal planning features (daily macro tracking, meal prep workflows). Payment system can be activated instantly when App Store publishing becomes viable.
+**Note for Future Developer:** Complete payment infrastructure implemented but dormant. Enhanced Onboarding Safety, Cost Analysis, Advanced Preferences, and Payment System all completed. Current focus should be on comprehensive nutritional intelligence with macro goal tracking, flexible meal entry (both recipes and branded foods), enhanced recipe features (macro calculation, tweaking, descriptive guidance), and advanced meal planning workflows (4-meal structure, goal progress tracking, meal prep support). Payment system can be activated instantly when App Store publishing becomes viable.
+
+## **🎯 Immediate Implementation Roadmap**
+
+**Phase 4A: Core Nutritional Intelligence** *(Weeks 1-2)*
+1. Add target macro goals to onboarding (calories, protein, fats, carbs) 
+2. Implement recipe macro calculation in AI generation
+3. Create smart progress tracking UI for meal planner
+4. Add non-recipe meal entry with web search for branded foods
+
+**Phase 4B: Enhanced Recipe Experience** *(Weeks 3-4)*  
+1. Implement recipe tweaking functionality with natural language
+2. Add descriptive cooking guidance to replace missing images
+3. Expand meal planner to include snacks/additional meals row
+4. Integrate unified daily macro tracking across all meal sources
+
+**Phase 4C: Advanced Workflows** *(Week 5)*
+1. Add recipe cloning/copying for meal prep workflows
+2. Implement smart macro goal completion recommendations
+3. Performance optimization and polish
+
+This roadmap transforms Sage into a comprehensive nutrition and meal planning platform while maintaining its core cooking coach identity.
