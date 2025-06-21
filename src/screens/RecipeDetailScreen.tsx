@@ -7,6 +7,10 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Keyboard,
+  TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import Toast from "react-native-toast-message";
 
@@ -316,7 +320,12 @@ ${modifiedRecipeData.tips.map(tip => `💡 ${tip}`).join('\n\n')}
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <Box padding="lg" paddingBottom="xxl">
-          {/* Cost Information */}
+          {/* Recipe Content - Moved to top */}
+          <Card variant="primary" marginBottom="lg">
+            <MarkdownText>{recipe.recipe_content}</MarkdownText>
+          </Card>
+
+          {/* Cost Information - Moved below recipe */}
           {recipe.recipe_data?.costPerServing && (
             <Card variant="primary" marginBottom="lg">
               <Text variant="h3" marginBottom="md">💰 Cost Breakdown</Text>
@@ -347,7 +356,24 @@ ${modifiedRecipeData.tips.map(tip => `💡 ${tip}`).join('\n\n')}
             </Card>
           )}
 
-          {/* Rating Section */}
+          {/* Recipe Modification Section - Moved below cost */}
+          <Card variant="primary" marginBottom="lg">
+            <Text variant="h3" marginBottom="md">✨ Customize Recipe</Text>
+            <Text variant="body" color="secondaryText" marginBottom="md">
+              Want to make changes? Ask Sage to modify this recipe for you!
+            </Text>
+            <Button
+              variant="secondary"
+              onPress={() => setIsModifyModalVisible(true)}
+              disabled={isModifying}
+            >
+              <Text variant="button" color="primaryText">
+                {isModifying ? "Modifying..." : "🔧 Modify Recipe"}
+              </Text>
+            </Button>
+          </Card>
+
+          {/* Rating Section - Moved to bottom */}
           <Card variant="primary" marginBottom="lg">
             <Text variant="h3" marginBottom="md">Rate This Recipe</Text>
             <Box flexDirection="row" alignItems="center" justifyContent="space-between">
@@ -366,28 +392,6 @@ ${modifiedRecipeData.tips.map(tip => `💡 ${tip}`).join('\n\n')}
                 Your rating helps improve AI recommendations for everyone!
               </Text>
             )}
-          </Card>
-
-          {/* Recipe Modification Section */}
-          <Card variant="primary" marginBottom="lg">
-            <Text variant="h3" marginBottom="md">✨ Customize Recipe</Text>
-            <Text variant="body" color="secondaryText" marginBottom="md">
-              Want to make changes? Ask Sage to modify this recipe for you!
-            </Text>
-            <Button
-              variant="secondary"
-              onPress={() => setIsModifyModalVisible(true)}
-              disabled={isModifying}
-            >
-              <Text variant="button" color="primaryText">
-                {isModifying ? "Modifying..." : "🔧 Modify Recipe"}
-              </Text>
-            </Button>
-          </Card>
-
-          {/* Recipe Content */}
-          <Card variant="primary">
-            <MarkdownText>{recipe.recipe_content}</MarkdownText>
           </Card>
         </Box>
       </ScrollView>
@@ -463,7 +467,7 @@ ${modifiedRecipeData.tips.map(tip => `💡 ${tip}`).join('\n\n')}
             </TouchableOpacity>
           </Box>
           
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
             {groceryList ? (
               groceryList.map((category) => (
                 <Box key={category.category} marginBottom="lg">
@@ -492,107 +496,134 @@ ${modifiedRecipeData.tips.map(tip => `💡 ${tip}`).join('\n\n')}
             ) : (
               <Box alignItems="center" padding="lg">
                 <ActivityIndicator color={theme.colors.primary} />
+                <Text variant="body" color="secondaryText" marginTop="md">
+                  Generating your grocery list...
+                </Text>
               </Box>
             )}
           </ScrollView>
           
-          <Box marginTop="lg">
-            <Button variant="primary" onPress={handleCopyToClipboard}>
-              <Text variant="button" color="primaryButtonText" numberOfLines={1} textAlign="center">
-                📋 Copy to Clipboard
-              </Text>
-            </Button>
-          </Box>
+          {/* Always show the copy button when groceryList exists */}
+          {groceryList && (
+            <Box marginTop="lg">
+              <Button variant="primary" onPress={handleCopyToClipboard}>
+                <Text variant="button" color="primaryButtonText" numberOfLines={1} textAlign="center">
+                  📋 Copy to Clipboard
+                </Text>
+              </Button>
+            </Box>
+          )}
         </Box>
       </BottomSheet>
 
       {/* Recipe Modification Modal */}
       <BottomSheet
         isVisible={isModifyModalVisible}
-        onClose={() => setIsModifyModalVisible(false)}
+        onClose={() => {
+          Keyboard.dismiss();
+          setIsModifyModalVisible(false);
+        }}
       >
-        <Box padding="lg">
-          <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="lg">
-            <Text variant="h2">✨ Modify Recipe</Text>
-            <TouchableOpacity onPress={() => setIsModifyModalVisible(false)}>
-              <Text fontSize={24} color="textSecondary">✕</Text>
-            </TouchableOpacity>
-          </Box>
-          
-          <Text variant="body" color="secondaryText" marginBottom="md">
-            Tell Sage how you'd like to modify this recipe. Examples:
-          </Text>
-          
-          <Box backgroundColor="surfaceVariant" padding="md" borderRadius="md" marginBottom="lg">
-            <Text variant="caption" color="secondaryText" marginBottom="xs">
-              • "Can we not use chicken?"
-            </Text>
-            <Text variant="caption" color="secondaryText" marginBottom="xs">
-              • "Make this higher in protein"
-            </Text>
-            <Text variant="caption" color="secondaryText" marginBottom="xs">
-              • "I don't have an oven, use stovetop only"
-            </Text>
-            <Text variant="caption" color="secondaryText">
-              • "Make it less spicy for kids"
-            </Text>
-          </Box>
-          
-          <Box marginBottom="lg">
-            <TextInput
-              style={{
-                backgroundColor: theme.colors.surface,
-                borderWidth: 1,
-                borderColor: theme.colors.border,
-                borderRadius: 8,
-                padding: 16,
-                fontSize: 16,
-                color: theme.colors.primaryText,
-                minHeight: 100,
-                textAlignVertical: 'top',
-              }}
-              placeholder="Describe what you'd like to change about this recipe..."
-              placeholderTextColor={theme.colors.secondaryText}
-              value={modificationRequest}
-              onChangeText={setModificationRequest}
-              multiline
-              numberOfLines={4}
-              maxLength={500}
-            />
-            <Text variant="caption" color="secondaryText" textAlign="right" marginTop="xs">
-              {modificationRequest.length}/500
-            </Text>
-          </Box>
-          
-          <Box flexDirection="row" gap="md">
-            <Button
-              variant="secondary"
-              flex={1}
-              onPress={() => {
-                setIsModifyModalVisible(false);
-                setModificationRequest("");
-              }}
-              disabled={isModifying}
-            >
-              <Text variant="button" color="primaryText">Cancel</Text>
-            </Button>
-            
-            <Button
-              variant="primary"
-              flex={1}
-              onPress={handleModifyRecipe}
-              disabled={isModifying || !modificationRequest.trim()}
-            >
-              {isModifying ? (
-                <ActivityIndicator color={theme.colors.primaryButtonText} />
-              ) : (
-                <Text variant="button" color="primaryButtonText">
-                  ✨ Modify Recipe
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <Box padding="lg" flex={1}>
+              <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="lg">
+                <Text variant="h2">✨ Modify Recipe</Text>
+                <TouchableOpacity onPress={() => {
+                  Keyboard.dismiss();
+                  setIsModifyModalVisible(false);
+                }}>
+                  <Text fontSize={24} color="textSecondary">✕</Text>
+                </TouchableOpacity>
+              </Box>
+              
+              <Text variant="body" color="secondaryText" marginBottom="md">
+                Tell Sage how you'd like to modify this recipe. Examples:
+              </Text>
+              
+              <Box backgroundColor="surfaceVariant" padding="md" borderRadius="md" marginBottom="lg">
+                <Text variant="caption" color="secondaryText" marginBottom="xs">
+                  • "Can we not use chicken?"
                 </Text>
-              )}
-            </Button>
-          </Box>
-        </Box>
+                <Text variant="caption" color="secondaryText" marginBottom="xs">
+                  • "Make this higher in protein"
+                </Text>
+                <Text variant="caption" color="secondaryText" marginBottom="xs">
+                  • "I don't have an oven, use stovetop only"
+                </Text>
+                <Text variant="caption" color="secondaryText">
+                  • "Make it less spicy for kids"
+                </Text>
+              </Box>
+              
+              <Box marginBottom="lg" flex={1}>
+                <TextInput
+                  style={{
+                    backgroundColor: theme.colors.surface,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border,
+                    borderRadius: 8,
+                    padding: 16,
+                    fontSize: 16,
+                    color: theme.colors.primaryText,
+                    minHeight: 100,
+                    textAlignVertical: 'top',
+                    flex: 1,
+                  }}
+                  placeholder="Describe what you'd like to change about this recipe..."
+                  placeholderTextColor={theme.colors.secondaryText}
+                  value={modificationRequest}
+                  onChangeText={setModificationRequest}
+                  multiline
+                  numberOfLines={4}
+                  maxLength={500}
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                  onSubmitEditing={Keyboard.dismiss}
+                />
+                <Text variant="caption" color="secondaryText" textAlign="right" marginTop="xs">
+                  {modificationRequest.length}/500
+                </Text>
+              </Box>
+              
+              <Box flexDirection="row" gap="md" paddingBottom="md">
+                <Button
+                  variant="secondary"
+                  flex={1}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setIsModifyModalVisible(false);
+                    setModificationRequest("");
+                  }}
+                  disabled={isModifying}
+                >
+                  <Text variant="button" color="primaryText">Cancel</Text>
+                </Button>
+                
+                <Button
+                  variant="primary"
+                  flex={1}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    handleModifyRecipe();
+                  }}
+                  disabled={isModifying || !modificationRequest.trim()}
+                >
+                  {isModifying ? (
+                    <ActivityIndicator color={theme.colors.primaryButtonText} />
+                  ) : (
+                    <Text variant="button" color="primaryButtonText">
+                      ✨ Modify Recipe
+                    </Text>
+                  )}
+                </Button>
+              </Box>
+            </Box>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </BottomSheet>
     </Box>
   );

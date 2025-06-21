@@ -26,7 +26,7 @@ export const CustomBottomSheet = forwardRef<BottomSheet, CustomBottomSheetProps>
     return (
       <BottomSheet
         ref={ref}
-        index={1}
+        index={0}
         snapPoints={snapPointsMemo}
         onClose={onClose}
         enablePanDownToClose

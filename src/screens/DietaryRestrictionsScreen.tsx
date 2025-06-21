@@ -134,13 +134,25 @@ export const DietaryRestrictionsScreen: React.FC = () => {
       setCurrentStep((prev) => prev + 1);
     } else {
       try {
+        console.log("Saving dietary restrictions:", {
+          allergies: [...selectedAllergies, ...customAllergies],
+          dietaryRestrictions: selectedDietary,
+        });
+        
         await completeDietaryRestrictions({
           allergies: [...selectedAllergies, ...customAllergies],
           dietaryRestrictions: selectedDietary,
         });
+        
+        console.log("Dietary restrictions saved successfully, navigating to MacroGoals");
         HapticService.success();
-        navigation.navigate('MacroGoals');
+        
+        // Use a small delay to ensure state is updated
+        setTimeout(() => {
+          navigation.navigate('MacroGoals');
+        }, 100);
       } catch (error) {
+        console.error("Error saving dietary restrictions:", error);
         HapticService.error();
         Alert.alert("Error", "Could not save your dietary information. Please try again.");
       }

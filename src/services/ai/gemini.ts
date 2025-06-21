@@ -121,10 +121,9 @@ export class GeminiService {
       this.genAI = new GoogleGenerativeAI(apiKey);
     }
 
-    // Create a model with web search capabilities
+    // Create a model for structured responses without web search
     return this.genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
-      tools: [{ googleSearchRetrieval: {} }],
       generationConfig: { responseMimeType: "application/json" },
     });
   }
@@ -645,16 +644,13 @@ export class GeminiService {
     try {
       const webSearchModel = await this.initializeWebSearch();
       
-      const prompt = `Search the web for current nutritional information for this food item: "${foodQuery}"
+      const prompt = `Provide nutritional information for this food item based on your knowledge: "${foodQuery}"
         
-        Look for official nutrition facts from:
-        - Brand websites (highest priority)
-        - USDA food database 
-        - MyFitnessPal
-        - Nutrition labels from retailer websites
-        - Calorie counting apps
+        Use your knowledge of common foods, brands, and nutritional databases to provide accurate information.
+        For branded products, use typical nutritional values for that brand.
+        For generic foods, use USDA or common nutritional data.
         
-        Return the most accurate nutritional information in JSON format:
+        Return the nutritional information in JSON format:
         {
           "foodName": "string (standardized food name)",
           "brandName": "string or null (if specific brand identified)",
@@ -671,12 +667,13 @@ export class GeminiService {
         }
         
         Guidelines:
-        - Prefer branded products if brand is mentioned in query
-        - Use standard serving sizes when possible
-        - Set confidence to "high" for official brand/USDA data, "medium" for nutrition apps, "low" for estimated data
-        - Include brand name only if specifically identified
+        - For branded products (like "Big Mac"), use typical nutritional values for that specific product
+        - Use standard serving sizes appropriate for the food type
+        - Set confidence to "high" for well-known foods/brands, "medium" for estimated values, "low" for uncertain data
+        - Include brand name only if specifically identified in the query
         - Round values to 1 decimal place for grams, whole numbers for calories and mg
-        - If multiple serving sizes found, choose the most common one
+        - Choose common/standard serving sizes for the food type
+        - If the food is unclear, make reasonable assumptions and note lower confidence
         `;
 
       const result = await webSearchModel.generateContent(prompt);
@@ -690,7 +687,7 @@ export class GeminiService {
       return macroData;
     } catch (error) {
       console.error("Food macro lookup error:", error);
-      throw new Error("Failed to look up nutritional information. Please try a more specific food name or check your connection.");
+      throw new Error("Failed to look up nutritional information. Please try a more specific food name.");
     }
   }
 }

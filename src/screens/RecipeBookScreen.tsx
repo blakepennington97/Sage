@@ -87,25 +87,39 @@ export const RecipeBookScreen: React.FC = () => {
   const renderHeader = () => (
     <Box 
       backgroundColor="surface" 
-      paddingTop="xxl" 
-      paddingBottom="md" 
+      paddingTop="xl" 
+      paddingBottom="sm" 
       paddingHorizontal="md" 
       borderBottomWidth={1} 
       borderBottomColor="border"
     >
-      <Text variant="h1" textAlign="center" marginBottom="lg">
-        📚 Recipes
-      </Text>
+      {/* Compact Title and Search Row */}
+      <Box flexDirection="row" alignItems="center" marginBottom="sm">
+        <Text variant="h2" flex={1}>📚 Recipes</Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: theme.colors.primary,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          onPress={() => navigation.navigate("RecipeGeneration")}
+        >
+          <Text style={{ fontSize: 20, color: 'white', lineHeight: 24 }}>+</Text>
+        </TouchableOpacity>
+      </Box>
       
       <Input
         backgroundColor="mainBackground"
         borderRadius="md"
-        padding="md"
-        fontSize={16}
+        padding="sm"
+        fontSize={14}
         color="text"
         borderWidth={1}
         borderColor="border"
-        marginBottom="md"
+        marginBottom="sm"
         placeholder="Search recipes..."
         placeholderTextColor={theme.colors.textSecondary}
         value={searchQuery}
@@ -114,14 +128,63 @@ export const RecipeBookScreen: React.FC = () => {
         autoCorrect={false}
       />
       
-      <Box flexDirection="column" gap="md">
-        <Box flexDirection="row" gap="md" flexWrap="wrap">
+      {/* Compact Filter Row */}
+      <Box flexDirection="row" alignItems="center" gap="sm" flexWrap="wrap">
+        <TouchableOpacity 
+          onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
+          style={{
+            backgroundColor: showFavoritesOnly ? theme.colors.primary : theme.colors.surface,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          }}
+        >
+          <Text 
+            variant="caption" 
+            color={showFavoritesOnly ? "primaryButtonText" : "text"}
+            fontSize={12}
+            fontWeight="600"
+          >
+            ❤️ Favorites
+          </Text>
+        </TouchableOpacity>
+        
+        {preferences && preferences.setupCompleted && (
           <TouchableOpacity 
-            onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            onPress={() => setUsePreferenceFiltering(!usePreferenceFiltering)}
             style={{
-              backgroundColor: showFavoritesOnly ? theme.colors.primary : theme.colors.surface,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
+              backgroundColor: usePreferenceFiltering ? theme.colors.primary : theme.colors.surface,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+            }}
+          >
+            <Text 
+              variant="caption" 
+              color={usePreferenceFiltering ? "primaryButtonText" : "text"}
+              fontSize={12}
+              fontWeight="600"
+            >
+              🎛️ My Prefs
+            </Text>
+          </TouchableOpacity>
+        )}
+        
+        {/* Compact Difficulty Filter */}
+        <Box flex={1} flexDirection="row" alignItems="center" gap="xs">
+          <Text variant="caption" color="secondaryText" fontSize={12}>
+            Level:
+          </Text>
+          <TouchableOpacity 
+            onPress={() => setDifficultyFilter(null)}
+            style={{
+              backgroundColor: !difficultyFilter ? theme.colors.primary : theme.colors.surface,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
               borderRadius: 12,
               borderWidth: 1,
               borderColor: theme.colors.border,
@@ -129,20 +192,21 @@ export const RecipeBookScreen: React.FC = () => {
           >
             <Text 
               variant="caption" 
-              color={showFavoritesOnly ? "primaryButtonText" : "text"}
-              fontWeight="600"
+              color={!difficultyFilter ? "primaryButtonText" : "text"}
+              fontSize={10}
             >
-              ❤️ Favorites Only
+              All
             </Text>
           </TouchableOpacity>
           
-          {preferences && preferences.setupCompleted && (
+          {[1, 2, 3, 4, 5].map((level) => (
             <TouchableOpacity 
-              onPress={() => setUsePreferenceFiltering(!usePreferenceFiltering)}
+              key={level}
+              onPress={() => setDifficultyFilter(level)}
               style={{
-                backgroundColor: usePreferenceFiltering ? theme.colors.primary : theme.colors.surface,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
+                backgroundColor: difficultyFilter === level ? theme.colors.primary : theme.colors.surface,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
                 borderRadius: 12,
                 borderWidth: 1,
                 borderColor: theme.colors.border,
@@ -150,72 +214,16 @@ export const RecipeBookScreen: React.FC = () => {
             >
               <Text 
                 variant="caption" 
-                color={usePreferenceFiltering ? "primaryButtonText" : "text"}
-                fontWeight="600"
+                color={difficultyFilter === level ? "primaryButtonText" : "text"}
+                fontSize={10}
               >
-                🎛️ My Preferences
+                {level === 1 ? "🥄" :
+                level === 2 ? "🍳" :
+                level === 3 ? "👨‍🍳" :
+                level === 4 ? "🔥" : "⭐"}
               </Text>
             </TouchableOpacity>
-          )}
-        </Box>
-        
-        <Box>
-          <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="sm">
-            <Text variant="caption" color="secondaryText" fontWeight="600">
-              Difficulty Level
-            </Text>
-            <TouchableOpacity onPress={() => setDifficultyFilter(null)}>
-              <Text variant="caption" color="primary" fontWeight="600">
-                {difficultyFilter ? 'Clear' : 'All Levels'}
-              </Text>
-            </TouchableOpacity>
-          </Box>
-          
-          
-          {/* Slider */}
-          <Box alignItems="center" marginTop="sm">
-            <Slider
-              value={difficultyFilter || 0}
-              onValueChange={(value) => {
-                if (typeof value === 'number') {
-                  setDifficultyFilter(value === 0 ? null : Math.round(value));
-                }
-              }}
-              minimumValue={0}
-              maximumValue={5}
-              step={1}
-              minimumTrackTintColor={
-                difficultyFilter === 1 ? "#10B981" :
-                difficultyFilter === 2 ? "#3B82F6" :
-                difficultyFilter === 3 ? "#F59E0B" :
-                difficultyFilter === 4 ? "#EF4444" :
-                difficultyFilter === 5 ? "#8B5CF6" :
-                theme.colors.border
-              }
-              maximumTrackTintColor={theme.colors.border}
-              thumbTintColor={
-                difficultyFilter === 1 ? "#10B981" :
-                difficultyFilter === 2 ? "#3B82F6" :
-                difficultyFilter === 3 ? "#F59E0B" :
-                difficultyFilter === 4 ? "#EF4444" :
-                difficultyFilter === 5 ? "#8B5CF6" :
-                theme.colors.primary
-              }
-            />
-          </Box>
-          
-          {/* Selected Level Display */}
-          {difficultyFilter && (
-            <Box alignItems="center" marginTop="xs">
-              <Text variant="caption" color="primaryText" fontWeight="600">
-                {difficultyFilter === 1 ? "🥄 Beginner" :
-                difficultyFilter === 2 ? "🍳 Easy" :
-                difficultyFilter === 3 ? "👨‍🍳 Medium" :
-                difficultyFilter === 4 ? "🔥 Hard" :
-                "⭐ Expert"}
-              </Text>
-            </Box>
-          )}
+          ))}
         </Box>
       </Box>
     </Box>
@@ -236,27 +244,6 @@ export const RecipeBookScreen: React.FC = () => {
             : "No recipes found. Try adjusting your search or filters."
         }
       />
-      <TouchableOpacity
-        style={{
-          position: 'absolute',
-          right: 24,
-          bottom: 24,
-          backgroundColor: theme.colors.primary,
-          width: 60,
-          height: 60,
-          borderRadius: 30,
-          justifyContent: 'center',
-          alignItems: 'center',
-          elevation: 8,
-          shadowColor: theme.colors.shadow,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 4,
-        }}
-        onPress={() => navigation.navigate("RecipeGeneration")}
-      >
-        <Text style={{ fontSize: 32, color: 'white', lineHeight: 36 }}>+</Text>
-      </TouchableOpacity>
     </Box>
   );
 };

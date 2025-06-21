@@ -67,7 +67,11 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   }
 
   const renderCategoryOverview = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      showsVerticalScrollIndicator={false}
+      nestedScrollEnabled={true}
+      style={{ flex: 1 }}
+    >
       <Box padding="lg">
         <Text variant="h2" textAlign="center" marginBottom="md">
           🎛️ Edit Preferences
@@ -110,7 +114,11 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   );
 
   const renderDietaryPreferences = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      showsVerticalScrollIndicator={false}
+      nestedScrollEnabled={true}
+      style={{ flex: 1 }}
+    >
       <Box padding="lg">
         <Box flexDirection="row" alignItems="center" marginBottom="lg">
           <TouchableOpacity onPress={() => setSelectedCategory(null)}>
@@ -427,7 +435,11 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   );
 
   const renderCookingContext = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      showsVerticalScrollIndicator={false}
+      nestedScrollEnabled={true}
+      style={{ flex: 1 }}
+    >
       <Box padding="lg">
         <Box flexDirection="row" alignItems="center" marginBottom="lg">
           <TouchableOpacity onPress={() => setSelectedCategory(null)}>
@@ -526,7 +538,11 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   );
 
   const renderKitchenCapabilities = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      showsVerticalScrollIndicator={false}
+      nestedScrollEnabled={true}
+      style={{ flex: 1 }}
+    >
       <Box padding="lg">
         <Box flexDirection="row" alignItems="center" marginBottom="lg">
           <TouchableOpacity onPress={() => setSelectedCategory(null)}>
@@ -836,7 +852,11 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   );
 
   const renderCookingStyles = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      showsVerticalScrollIndicator={false}
+      nestedScrollEnabled={true}
+      style={{ flex: 1 }}
+    >
       <Box padding="lg">
         <Box flexDirection="row" alignItems="center" marginBottom="lg">
           <TouchableOpacity onPress={() => setSelectedCategory(null)}>
@@ -1383,7 +1403,7 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   };
 
   return (
-    <BottomSheet isVisible={isVisible} onClose={onClose} snapPoints={['90%', '95%']}>
+    <BottomSheet isVisible={isVisible} onClose={onClose} snapPoints={['95%']}>
       {renderSelectedCategory()}
     </BottomSheet>
   );

@@ -128,6 +128,7 @@ const AppNavigator = () => (
       options={{
         headerShown: true,
         title: "Recipe Details",
+        headerBackTitle: "",
         headerStyle: {
           backgroundColor: colors.surface,
         },
@@ -145,6 +146,7 @@ const AppNavigator = () => (
         presentation: "modal",
         headerShown: true,
         title: "Generate Recipe",
+        headerBackTitle: "",
         headerStyle: {
           backgroundColor: colors.surface,
         },
@@ -162,6 +164,7 @@ const AppNavigator = () => (
       options={{
         headerShown: true,
         title: "Cooking Guide",
+        headerBackTitle: "",
         headerStyle: {
           backgroundColor: colors.surface,
         },

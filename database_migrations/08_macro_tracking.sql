@@ -10,8 +10,8 @@ ADD COLUMN IF NOT EXISTS daily_carbs_goal INTEGER DEFAULT NULL,
 ADD COLUMN IF NOT EXISTS daily_fat_goal INTEGER DEFAULT NULL,
 ADD COLUMN IF NOT EXISTS macro_goals_set BOOLEAN DEFAULT FALSE;
 
--- Add macro information to recipes table
-ALTER TABLE recipes
+-- Add macro information to user_recipes table
+ALTER TABLE user_recipes
 ADD COLUMN IF NOT EXISTS calories_per_serving INTEGER DEFAULT NULL,
 ADD COLUMN IF NOT EXISTS protein_per_serving DECIMAL(6,2) DEFAULT NULL,
 ADD COLUMN IF NOT EXISTS carbs_per_serving DECIMAL(6,2) DEFAULT NULL,
@@ -78,77 +78,24 @@ SELECT
   entry_date,
   meal_type,
   
-  -- Recipe totals (from meal plans)
+  -- Manual entry totals only (meal plans handled separately)
   COALESCE(SUM(
-    CASE WHEN r.id IS NOT NULL THEN 
-      r.calories_per_serving * COALESCE(mp.servings, 1)
-    ELSE 0 END
-  ), 0) as recipe_calories,
-  
-  COALESCE(SUM(
-    CASE WHEN r.id IS NOT NULL THEN 
-      r.protein_per_serving * COALESCE(mp.servings, 1)
-    ELSE 0 END
-  ), 0) as recipe_protein,
-  
-  COALESCE(SUM(
-    CASE WHEN r.id IS NOT NULL THEN 
-      r.carbs_per_serving * COALESCE(mp.servings, 1)
-    ELSE 0 END
-  ), 0) as recipe_carbs,
-  
-  COALESCE(SUM(
-    CASE WHEN r.id IS NOT NULL THEN 
-      r.fat_per_serving * COALESCE(mp.servings, 1)
-    ELSE 0 END
-  ), 0) as recipe_fat,
-  
-  -- Manual entry totals
-  COALESCE(SUM(
-    CASE WHEN me.id IS NOT NULL THEN 
-      me.calories_per_serving * me.quantity
-    ELSE 0 END
+    me.calories_per_serving * me.quantity
   ), 0) as manual_calories,
   
   COALESCE(SUM(
-    CASE WHEN me.id IS NOT NULL THEN 
-      me.protein_per_serving * me.quantity
-    ELSE 0 END
+    me.protein_per_serving * me.quantity
   ), 0) as manual_protein,
   
   COALESCE(SUM(
-    CASE WHEN me.id IS NOT NULL THEN 
-      me.carbs_per_serving * me.quantity
-    ELSE 0 END
+    me.carbs_per_serving * me.quantity
   ), 0) as manual_carbs,
   
   COALESCE(SUM(
-    CASE WHEN me.id IS NOT NULL THEN 
-      me.fat_per_serving * me.quantity
-    ELSE 0 END
+    me.fat_per_serving * me.quantity
   ), 0) as manual_fat
 
-FROM (
-  -- Get all unique user/date/meal_type combinations
-  SELECT DISTINCT user_id, 
-    COALESCE(planned_date, entry_date) as entry_date,
-    meal_type
-  FROM (
-    SELECT user_id, planned_date, meal_type FROM meal_plans
-    UNION
-    SELECT user_id, entry_date, meal_type FROM meal_entries
-  ) all_meals
-) base
-
-LEFT JOIN meal_plans mp ON mp.user_id = base.user_id 
-  AND mp.planned_date = base.entry_date 
-  AND mp.meal_type = base.meal_type
-LEFT JOIN recipes r ON r.id = mp.recipe_id
-
-LEFT JOIN meal_entries me ON me.user_id = base.user_id 
-  AND me.entry_date = base.entry_date 
-  AND me.meal_type = base.meal_type
-
+FROM meal_entries me
 GROUP BY user_id, entry_date, meal_type;
 
 -- Create function to get user's daily macro progress
@@ -176,11 +123,11 @@ BEGIN
   SELECT 
     target_date as date,
     
-    -- Total macros for the day
-    SUM(dmt.recipe_calories + dmt.manual_calories) as total_calories,
-    SUM(dmt.recipe_protein + dmt.manual_protein) as total_protein,
-    SUM(dmt.recipe_carbs + dmt.manual_carbs) as total_carbs,
-    SUM(dmt.recipe_fat + dmt.manual_fat) as total_fat,
+    -- Total macros for the day (from meal_entries only for now)
+    COALESCE(SUM(dmt.manual_calories), 0) as total_calories,
+    COALESCE(SUM(dmt.manual_protein), 0) as total_protein,
+    COALESCE(SUM(dmt.manual_carbs), 0) as total_carbs,
+    COALESCE(SUM(dmt.manual_fat), 0) as total_fat,
     
     -- User's goals
     up.daily_calorie_goal,
@@ -191,31 +138,31 @@ BEGIN
     -- Progress percentages
     CASE 
       WHEN up.daily_calorie_goal > 0 THEN 
-        (SUM(dmt.recipe_calories + dmt.manual_calories) / up.daily_calorie_goal::NUMERIC) * 100
+        (COALESCE(SUM(dmt.manual_calories), 0) / up.daily_calorie_goal::NUMERIC) * 100
       ELSE NULL
     END as calories_progress,
     
     CASE 
       WHEN up.daily_protein_goal > 0 THEN 
-        (SUM(dmt.recipe_protein + dmt.manual_protein) / up.daily_protein_goal::NUMERIC) * 100
+        (COALESCE(SUM(dmt.manual_protein), 0) / up.daily_protein_goal::NUMERIC) * 100
       ELSE NULL
     END as protein_progress,
     
     CASE 
       WHEN up.daily_carbs_goal > 0 THEN 
-        (SUM(dmt.recipe_carbs + dmt.manual_carbs) / up.daily_carbs_goal::NUMERIC) * 100
+        (COALESCE(SUM(dmt.manual_carbs), 0) / up.daily_carbs_goal::NUMERIC) * 100
       ELSE NULL
     END as carbs_progress,
     
     CASE 
       WHEN up.daily_fat_goal > 0 THEN 
-        (SUM(dmt.recipe_fat + dmt.manual_fat) / up.daily_fat_goal::NUMERIC) * 100
+        (COALESCE(SUM(dmt.manual_fat), 0) / up.daily_fat_goal::NUMERIC) * 100
       ELSE NULL
     END as fat_progress
     
-  FROM daily_macro_totals dmt
-  RIGHT JOIN user_profiles up ON up.user_id = target_user_id
-  WHERE dmt.user_id = target_user_id AND dmt.entry_date = target_date
+  FROM user_profiles up
+  LEFT JOIN daily_macro_totals dmt ON dmt.user_id = target_user_id AND dmt.entry_date = target_date
+  WHERE up.user_id = target_user_id
   GROUP BY up.daily_calorie_goal, up.daily_protein_goal, up.daily_carbs_goal, up.daily_fat_goal;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -237,9 +184,8 @@ CREATE TRIGGER update_meal_entries_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_meal_entries_updated_at();
 
--- Create indexes for the view performance
-CREATE INDEX IF NOT EXISTS idx_meal_plans_date_type ON meal_plans(planned_date, meal_type);
-CREATE INDEX IF NOT EXISTS idx_recipes_macros ON recipes(calories_per_serving, protein_per_serving, carbs_per_serving, fat_per_serving);
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_user_recipes_macros ON user_recipes(calories_per_serving, protein_per_serving, carbs_per_serving, fat_per_serving);
 
 COMMENT ON TABLE meal_entries IS 'Non-recipe meal tracking for comprehensive daily macro monitoring';
 COMMENT ON VIEW daily_macro_totals IS 'Aggregated daily macro totals from both recipes and manual entries';

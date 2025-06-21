@@ -15,6 +15,8 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useRecipes } from "../hooks/useRecipes";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 import { useUsageTracking } from "../hooks/useUsageTracking";
+import { useUserPreferences } from "../hooks/useUserPreferences";
+import { useAuthStore } from "../stores/authStore";
 import { UsageIndicator, LimitReachedModal } from "../components/UsageDisplay";
 import { isFeatureEnabled } from "../config/features";
 import { colors, spacing, borderRadius, typography } from "../constants/theme";
@@ -25,6 +27,8 @@ export const RecipeGenerationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { isOffline } = useNetworkStatus();
+  const { preferences } = useUserPreferences();
+  const { profile } = useAuthStore();
   
   // Check if coming from meal planner
   const fromMealPlanner = route.params?.fromMealPlanner;
@@ -84,25 +88,86 @@ export const RecipeGenerationScreen: React.FC = () => {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.title}>👨‍🍳 New Recipe</Text>
-      <Text style={styles.subtitle}>Tell me what you want to cook today</Text>
-      {!isPremium && isFeatureEnabled('usageTracking') && (
-        <View style={styles.usageIndicator}>
-          <UsageIndicator actionType="recipe_generation" showLabel={true} size="medium" />
-        </View>
-      )}
+      <View style={styles.headerContent}>
+        <Text style={styles.title}>👨‍🍳 Generate Recipe</Text>
+        {!isPremium && isFeatureEnabled('usageTracking') && (
+          <UsageIndicator actionType="recipe_generation" showLabel={false} size="small" />
+        )}
+      </View>
     </View>
   );
 
   const renderRecipeInput = () => {
-    const quickSuggestions = [
-      "Easy pasta dinner",
-      "Healthy 15-minute lunch", 
-      "Comfort food dessert",
-    ];
+    // Generate intelligent suggestions based on user preferences and profile
+    const getIntelligentSuggestions = () => {
+      const baseSuggestions = [];
+      
+      // Based on skill level
+      const skillLevel = profile?.skill_level;
+      if (skillLevel === 'complete_beginner') {
+        baseSuggestions.push("Simple 10-minute meal", "Easy one-pot dish", "No-cook healthy option");
+      } else if (skillLevel === 'confident') {
+        baseSuggestions.push("Impressive dinner", "New technique to try", "Complex flavor combo");
+      } else {
+        baseSuggestions.push("Weeknight favorite", "Comfort food classic", "Fresh and healthy");
+      }
+      
+      // Based on preferences if available
+      if (preferences?.setupCompleted) {
+        const { dietary, cookingContext, cookingStyles } = preferences;
+        
+        // Add cuisine-based suggestions
+        if (cookingStyles.preferredCuisines.length > 0) {
+          const randomCuisine = cookingStyles.preferredCuisines[
+            Math.floor(Math.random() * cookingStyles.preferredCuisines.length)
+          ].replace(/_/g, ' ');
+          baseSuggestions.push(`${randomCuisine} dish`);
+        }
+        
+        // Add time-based suggestions
+        if (cookingContext.typicalCookingTime === 'quick_15min') {
+          baseSuggestions.push("15-minute meal", "Quick lunch");
+        } else if (cookingContext.typicalCookingTime === 'project_90min_plus') {
+          baseSuggestions.push("Weekend cooking project", "Slow-cooked comfort");
+        }
+        
+        // Add mood-based suggestions
+        if (cookingStyles.cookingMoods.includes('healthy_fresh')) {
+          baseSuggestions.push("Nutritious and light", "Fresh vegetable focus");
+        }
+        if (cookingStyles.cookingMoods.includes('comfort_food')) {
+          baseSuggestions.push("Cozy comfort meal", "Nostalgic favorite");
+        }
+      }
+      
+      // Add recent recipe patterns
+      if (recipes.length > 0) {
+        const recentRecipes = recipes.slice(0, 5);
+        const hasAsianRecipes = recentRecipes.some(r => 
+          r.recipe_name.toLowerCase().includes('asian') || 
+          r.recipe_name.toLowerCase().includes('thai') ||
+          r.recipe_name.toLowerCase().includes('chinese')
+        );
+        if (!hasAsianRecipes) {
+          baseSuggestions.push("Asian-inspired dish");
+        }
+        
+        const hasItalianRecipes = recentRecipes.some(r => 
+          r.recipe_name.toLowerCase().includes('pasta') || 
+          r.recipe_name.toLowerCase().includes('italian')
+        );
+        if (!hasItalianRecipes) {
+          baseSuggestions.push("Italian classic");
+        }
+      }
+      
+      return baseSuggestions.slice(0, 3); // Return top 3
+    };
+
+    const quickSuggestions = getIntelligentSuggestions();
 
     const handleSmartSuggestion = () => {
-      const suggestions = [
+      const contextualSuggestions = [
         "A quick and healthy weeknight dinner using whatever vegetables I have",
         "Something comforting and warm for a cozy evening",
         "A simple one-pot meal that won't make too many dishes",
@@ -115,7 +180,21 @@ export const RecipeGenerationScreen: React.FC = () => {
         "A satisfying dinner using pantry staples I probably have"
       ];
       
-      const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+      // Add preference-based suggestions
+      if (preferences?.setupCompleted) {
+        const { dietary, cookingStyles } = preferences;
+        
+        if (cookingStyles.preferredCuisines.length > 0) {
+          const cuisine = cookingStyles.preferredCuisines[0].replace(/_/g, ' ');
+          contextualSuggestions.unshift(`A delicious ${cuisine} dish that matches my taste preferences`);
+        }
+        
+        if (dietary.dietaryStyle !== 'omnivore') {
+          contextualSuggestions.unshift(`A satisfying ${dietary.dietaryStyle} meal with great flavors`);
+        }
+      }
+      
+      const randomSuggestion = contextualSuggestions[Math.floor(Math.random() * contextualSuggestions.length)];
       setRecipeRequest(randomSuggestion);
     };
     return (
@@ -233,21 +312,19 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
     backgroundColor: colors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 50,
+    paddingBottom: 12,
     paddingHorizontal: 20,
   },
-  title: {
-    ...typography.h1,
-    color: colors.text,
-    textAlign: "center",
-    marginBottom: 4,
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  subtitle: {
-    ...typography.body,
+  title: {
+    ...typography.h2,
     color: colors.text,
-    textAlign: "center",
-    opacity: 0.9,
+    flex: 1,
   },
   content: { flex: 1 },
   inputSection: { padding: spacing.lg },
@@ -318,10 +395,5 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: spacing.sm,
     paddingHorizontal: spacing.xs,
-  },
-  usageIndicator: {
-    alignItems: "center",
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.md,
   },
 });
