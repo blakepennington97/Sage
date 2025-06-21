@@ -15,6 +15,7 @@ Run these migrations in numerical order. Each migration is designed to be idempo
 | `04_app_config.sql` | Centralized application configuration management | API Key Management & Config | ✅ Required |
 | `05_usage_tracking.sql` | Usage tracking and subscription limits | Free Tier Limits & Premium Features | ✅ Required |
 | `06_webhook_events.sql` | Webhook event logging and subscription management | Payment Integration & Webhooks | ✅ Required |
+| `07_dietary_safety_fields.sql` | Dietary safety fields for onboarding | Enhanced Safety Collection | ✅ Required |
 
 ## 🚀 How to Run Migrations
 
@@ -32,6 +33,7 @@ Run these migrations in numerical order. Each migration is designed to be idempo
    - Copy contents of `04_app_config.sql` → Paste → Run
    - Copy contents of `05_usage_tracking.sql` → Paste → Run
    - Copy contents of `06_webhook_events.sql` → Paste → Run
+   - Copy contents of `07_dietary_safety_fields.sql` → Paste → Run
 
 ### Verification
 After running each migration, you can verify success by checking:
@@ -45,6 +47,11 @@ AND table_name IN ('user_preferences', 'meal_plans', 'meal_plan_grocery_lists', 
 SELECT column_name FROM information_schema.columns 
 WHERE table_name = 'cooking_sessions' 
 AND column_name IN ('estimated_savings', 'recipe_cost', 'restaurant_cost');
+
+-- Check dietary safety columns were added
+SELECT column_name FROM information_schema.columns 
+WHERE table_name = 'user_profiles' 
+AND column_name IN ('allergies', 'dietary_restrictions');
 ```
 
 ## 📋 Migration Details
@@ -151,6 +158,23 @@ AND column_name IN ('estimated_savings', 'recipe_cost', 'restaurant_cost');
 - Automatic subscription synchronization
 - Maintenance functions for data cleanup
 
+### 07_dietary_safety_fields.sql
+**Purpose:** Enhanced Onboarding Safety Collection
+- Adds critical dietary safety fields to user_profiles table
+- Supports the new onboarding flow that collects allergy and dietary restriction data
+- Ensures user safety by collecting this information before recipe generation
+- Provides indexed access for efficient safety filtering
+
+**Tables Modified:**
+- `user_profiles` - Adds allergies and dietary_restrictions array columns
+
+**Features:**
+- Critical safety information collection during onboarding
+- Array-based storage for multiple allergies and dietary restrictions
+- GIN indexes for efficient array querying and filtering
+- NOT NULL constraints to ensure data consistency
+- Automatic migration of existing records with empty arrays
+
 ## 🔧 Database Schema Overview
 
 After running all migrations, your database will include:
@@ -245,6 +269,18 @@ DROP FUNCTION IF EXISTS cleanup_old_webhook_events(INTEGER);
 DROP FUNCTION IF EXISTS update_user_profiles_subscription_updated_at();
 ```
 
+### Rollback 07 (Dietary Safety Fields)
+```sql
+-- Remove dietary safety columns from user_profiles
+ALTER TABLE user_profiles 
+DROP COLUMN IF EXISTS allergies,
+DROP COLUMN IF EXISTS dietary_restrictions;
+
+-- Drop indexes
+DROP INDEX IF EXISTS idx_user_profiles_allergies;
+DROP INDEX IF EXISTS idx_user_profiles_dietary_restrictions;
+```
+
 ## 📊 Performance Considerations
 
 - All tables include appropriate indexes for common query patterns
@@ -285,6 +321,7 @@ If you encounter issues:
 | 2025-06-19 | 04_app_config | Claude | Centralized configuration and API key management |
 | 2025-06-20 | 05_usage_tracking | Claude | Usage tracking and subscription limits system |
 | 2025-06-20 | 06_webhook_events | Claude | Webhook event logging and subscription management |
+| 2025-06-20 | 07_dietary_safety_fields | Claude | Enhanced onboarding with dietary safety collection |
 
 ---
 

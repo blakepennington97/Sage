@@ -45,6 +45,16 @@ export const useUserProfile = () => {
     });
   };
 
+  const completeDietaryRestrictions = async (data: {
+    allergies: string[];
+    dietaryRestrictions: string[];
+  }) => {
+    return updateProfile({
+      allergies: data.allergies,
+      dietary_restrictions: data.dietaryRestrictions,
+    });
+  };
+
   const completeKitchenAssessment = async (data: {
     tools: string[];
     stoveType: string;
@@ -67,6 +77,7 @@ export const useUserProfile = () => {
     isLoading: isProfileLoading || updateProfileMutation.isPending,
     updateProfile,
     completeSkillAssessment,
+    completeDietaryRestrictions,
     completeKitchenAssessment,
     // Additional loading state for profile operations
     isUpdating: updateProfileMutation.isPending,

@@ -10,6 +10,7 @@ import { isFeatureEnabled } from "../config/features";
 import { LoginScreen } from "../screens/LoginScreen";
 import { SignUpScreen } from "../screens/SignUpScreen";
 import { SkillEvaluationScreen } from "../screens/SkillEvaluationScreen";
+import { DietaryRestrictionsScreen } from "../screens/DietaryRestrictionsScreen";
 import { KitchenAssessmentScreen } from "../screens/KitchenAssessmentScreen";
 import { RecipeGenerationScreen } from "../screens/RecipeGenerationScreen";
 import { CookingCoachScreen } from "../screens/CookingCoachScreen";
@@ -55,6 +56,13 @@ const OnboardingNavigator = () => (
     }}
   >
     <OnboardingStack.Screen name="Skills" component={SkillEvaluationScreen} />
+    <OnboardingStack.Screen
+      name="DietaryRestrictions"
+      component={DietaryRestrictionsScreen}
+      options={{
+        gestureEnabled: true,
+      }}
+    />
     <OnboardingStack.Screen
       name="Kitchen"
       component={KitchenAssessmentScreen}
@@ -245,7 +253,13 @@ export const AuthWrapper: React.FC = () => {
     return <AuthNavigator />;
   }
 
-  if (!profile?.skill_level) {
+  // Check if onboarding is complete
+  const isOnboardingComplete = profile?.skill_level && 
+    profile?.allergies !== undefined && 
+    profile?.dietary_restrictions !== undefined && 
+    profile?.kitchen_tools;
+
+  if (!isOnboardingComplete) {
     return isProfileLoading ? (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />

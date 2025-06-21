@@ -24,6 +24,8 @@ export interface UserProfile {
   skill_level: string;
   cooking_fears: string[];
   confidence_level: number;
+  allergies: string[];
+  dietary_restrictions: string[];
   kitchen_tools: string[];
   stove_type: string;
   has_oven: boolean;

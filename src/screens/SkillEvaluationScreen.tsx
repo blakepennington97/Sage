@@ -307,7 +307,7 @@ export const SkillEvaluationScreen: React.FC = () => {
           ) : (
             <Text style={styles.nextButtonText}>
               {currentStep === totalSteps - 1
-                ? "Continue to Kitchen Setup"
+                ? "Continue to Safety Check"
                 : "Next"}
             </Text>
           )}

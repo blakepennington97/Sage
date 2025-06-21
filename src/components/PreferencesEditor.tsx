@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Box, Text, Button, Card, Slider, Input, BottomSheet } from './ui';
 import { useUserPreferences } from '../hooks/useUserPreferences';
+import { useAuthStore } from '../stores/authStore';
 
 interface PreferencesEditorProps {
   isVisible: boolean;
@@ -12,6 +13,7 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   isVisible,
   onClose,
 }) => {
+  const { profile } = useAuthStore();
   const {
     preferences,
     isLoading,
@@ -211,144 +213,76 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
           </Box>
         </Card>
 
-        {/* Allergies */}
-        <Card variant="primary" marginBottom="md">
-          <Text variant="h3" marginBottom="sm">Allergies</Text>
+        {/* Safety Information (Read-Only) */}
+        <Card variant="secondary" marginBottom="md">
+          <Text variant="h3" marginBottom="sm">🛡️ Safety Information</Text>
           <Text variant="body" color="secondaryText" marginBottom="md">
-            Foods that cause allergic reactions
+            Your allergies and dietary restrictions from onboarding
           </Text>
-          <Box flexDirection="row" flexWrap="wrap" gap="xs">
-            {[
-              { key: 'nuts', label: 'Tree Nuts', emoji: '🥜' },
-              { key: 'peanuts', label: 'Peanuts', emoji: '🥜' },
-              { key: 'dairy', label: 'Dairy', emoji: '🥛' },
-              { key: 'eggs', label: 'Eggs', emoji: '🥚' },
-              { key: 'gluten', label: 'Gluten', emoji: '🌾' },
-              { key: 'shellfish', label: 'Shellfish', emoji: '🦐' },
-              { key: 'fish', label: 'Fish', emoji: '🐟' },
-              { key: 'soy', label: 'Soy', emoji: '🫘' },
-            ].map(({ key, label, emoji }) => {
-              const isSelected = preferences?.dietary.allergies.includes(key) || false;
-              return (
-                <TouchableOpacity
-                  key={key}
-                  onPress={() => {
-                    const currentAllergies = preferences?.dietary.allergies || [];
-                    const newAllergies = isSelected
-                      ? currentAllergies.filter(a => a !== key)
-                      : [...currentAllergies, key];
-                    
-                    updateDietaryPreferences({
-                      allergies: newAllergies
-                    });
-                  }}
-                  style={{ width: '48%', marginBottom: 8 }}
-                >
+          
+          {/* Allergies from Profile */}
+          <Box marginBottom="md">
+            <Text variant="body" fontWeight="600" marginBottom="xs">Allergies:</Text>
+            {profile?.allergies && profile.allergies.length > 0 ? (
+              <Box flexDirection="row" flexWrap="wrap" gap="xs">
+                {profile.allergies.map((allergy, index) => (
                   <Box
-                    padding="sm"
-                    backgroundColor={isSelected ? "primary" : "surface"}
-                    borderRadius="md"
+                    key={index}
+                    padding="xs"
+                    backgroundColor="errorBackground"
+                    borderRadius="sm"
                     flexDirection="row"
                     alignItems="center"
                   >
-                    <Text fontSize={16} marginRight="xs">{emoji}</Text>
-                    <Text
-                      variant="body"
-                      color={isSelected ? "primaryButtonText" : "primaryText"}
-                      fontSize={14}
-                    >
-                      {label}
+                    <Text fontSize={14} marginRight="xs">⚠️</Text>
+                    <Text variant="body" fontSize={12} color="error" textTransform="capitalize">
+                      {allergy}
                     </Text>
                   </Box>
-                </TouchableOpacity>
-              );
-            })}
+                ))}
+              </Box>
+            ) : (
+              <Text variant="body" color="secondaryText" fontSize={14}>No allergies reported</Text>
+            )}
           </Box>
-          
-          {/* Custom Allergies Display */}
-          {preferences?.dietary.allergies
-            .filter(allergy => ![
-              'nuts', 'peanuts', 'dairy', 'eggs', 'gluten', 'shellfish', 'fish', 'soy'
-            ].includes(allergy))
-            .map((customAllergy) => {
-              return (
-                <TouchableOpacity
-                  key={customAllergy}
-                  onPress={() => {
-                    const currentAllergies = preferences?.dietary.allergies || [];
-                    const newAllergies = currentAllergies.filter(a => a !== customAllergy);
-                    
-                    updateDietaryPreferences({
-                      allergies: newAllergies
-                    });
-                  }}
-                  style={{ width: '48%', marginBottom: 8 }}
-                >
+
+          {/* Dietary Restrictions from Profile */}
+          <Box marginBottom="md">
+            <Text variant="body" fontWeight="600" marginBottom="xs">Dietary Restrictions:</Text>
+            {profile?.dietary_restrictions && profile.dietary_restrictions.length > 0 ? (
+              <Box flexDirection="row" flexWrap="wrap" gap="xs">
+                {profile.dietary_restrictions.map((restriction, index) => (
                   <Box
-                    padding="sm"
+                    key={index}
+                    padding="xs"
                     backgroundColor="primary"
-                    borderRadius="md"
+                    borderRadius="sm"
                     flexDirection="row"
                     alignItems="center"
                   >
-                    <Text fontSize={16} marginRight="xs">⚠️</Text>
-                    <Text
-                      variant="body"
-                      color="primaryButtonText"
-                      fontSize={14}
-                      flex={1}
-                      numberOfLines={1}
-                      textTransform="capitalize"
-                    >
-                      {customAllergy}
+                    <Text fontSize={14} marginRight="xs">🌱</Text>
+                    <Text variant="body" fontSize={12} color="primaryButtonText" textTransform="capitalize">
+                      {restriction}
                     </Text>
                   </Box>
-                </TouchableOpacity>
-              );
-            })}
-          
-          {/* Add Custom Allergy Button */}
-          <TouchableOpacity
-            onPress={() => {
-              Alert.prompt(
-                'Add Custom Allergy',
-                'Enter a food allergy you have',
-                (text) => {
-                  if (text && text.trim()) {
-                    const currentAllergies = preferences?.dietary.allergies || [];
-                    const customAllergy = text.trim().toLowerCase();
-                    
-                    if (!currentAllergies.includes(customAllergy)) {
-                      updateDietaryPreferences({
-                        allergies: [...currentAllergies, customAllergy]
-                      });
-                    }
-                  }
-                },
-                'plain-text',
-                '',
-                'default'
-              );
-            }}
-            style={{ width: '100%', marginTop: 8 }}
+                ))}
+              </Box>
+            ) : (
+              <Text variant="body" color="secondaryText" fontSize={14}>No dietary restrictions</Text>
+            )}
+          </Box>
+
+          <Box 
+            padding="sm" 
+            backgroundColor="cardSecondaryBackground" 
+            borderRadius="md"
+            borderLeftWidth={3}
+            borderLeftColor="warning"
           >
-            <Box
-              padding="sm"
-              backgroundColor="surface"
-              borderRadius="md"
-              flexDirection="row"
-              alignItems="center"
-              justifyContent="center"
-              borderWidth={1}
-              borderColor="border"
-              borderStyle="dashed"
-            >
-              <Text fontSize={16} marginRight="xs">➕</Text>
-              <Text variant="body" color="primaryText">
-                Add Custom Allergy
-              </Text>
-            </Box>
-          </TouchableOpacity>
+            <Text variant="body" fontSize={13} color="secondaryText">
+              💡 To update your safety information, you&apos;ll need to contact support or reset your profile preferences. This ensures your safety is always protected.
+            </Text>
+          </Box>
         </Card>
 
         {/* Health Objectives */}

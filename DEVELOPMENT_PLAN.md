@@ -2,7 +2,7 @@
 
 **Document Purpose:** This is the living strategic plan for the Sage application. It serves as the single source of truth for the project's status, architecture, and future plans. It is designed to provide complete context for any developer, including future AI assistants, joining the project.
 
-**Last Updated:** June 19, 2025 (UI/UX Polish & Centralized API Key Management COMPLETED)
+**Last Updated:** June 21, 2025 (Enhanced Onboarding Safety & Next Enhancement Priorities Defined)
 
 ---
 
@@ -25,11 +25,11 @@ _This section is a meta-guide on how to maintain this document._
 
 **Vision:** To transform "kitchen anxious" beginners into confident home cooks through a delightful, AI-powered companion that adapts to their skill level, available tools, and preferences.
 
-**Current Status (as of June 19, 2025): UI/UX Polish & Centralized API Key Management COMPLETED**
+**Current Status (as of June 21, 2025): Enhanced Onboarding Safety & Next Enhancement Priorities Defined**
 
-MAJOR ENHANCEMENT: **UI/UX Polish & Centralized API Key Management** completed! The application now features: (1) **enhanced modal/sheet experience** with full-height Settings, Edit Preferences, and Grocery List modals, (2) **modernized difficulty filtering** with color-progressive slider replacing button interface (Beginner→Expert), (3) **improved cooking coach experience** with fixed progression bar and removed timer functionality, (4) **intuitive meal planning flow** where "Add Recipe" automatically adds to selected meal slot, and (5) **centralized API key management** with Supabase-based key distribution and intelligent fallback to personal keys.
+CRITICAL SAFETY ENHANCEMENT: **Enhanced Onboarding Safety Collection** completed! The application now features: (1) **dietary restrictions screen in onboarding** that collects critical allergies and dietary restrictions before any recipe generation, (2) **enhanced AI safety prompts** that prioritize profile safety information over all other preferences, (3) **reorganized safety vs. advanced preferences** with read-only safety display in preferences editor, (4) **database schema enhancement** with new dietary safety fields and proper indexing, and (5) **comprehensive safety integration** throughout the AI recipe generation pipeline.
 
-**PRODUCTION-READY INFRASTRUCTURE** - The app now supports enterprise-level API key management where administrators can configure centralized Gemini API keys in Supabase, eliminating the need for individual users to manage their own keys. The system gracefully handles missing migrations and provides clear user feedback about API key status with manual refresh capabilities.
+**PRODUCTION-READY SAFETY INFRASTRUCTURE** - The app now ensures user safety by collecting critical dietary information during onboarding before any AI recipe generation can occur. Enhanced AI prompts include multiple layers of safety instruction with profile allergies and dietary restrictions taking precedence over all other preferences. Database migration ready for deployment with proper safety field indexing.
 
 ---
 
@@ -115,6 +115,10 @@ _This section details what has been built and the technical decisions made. It i
 - **Centralized API Key Management System**
   - **Description:** Enterprise-grade API key management with hybrid architecture: (1) Centralized Gemini API keys stored in Supabase `app_config` table for administrator control, (2) Intelligent fallback to personal API keys stored in secure local storage, (3) Smart caching system with 1-hour cache duration to minimize database calls, (4) Enhanced Settings UI showing API key status with manual refresh capabilities, (5) Migration-aware error handling for graceful degradation when database schema isn't yet updated.
   - **Rationale:** Enables production deployment with centralized cost control while maintaining backward compatibility. Administrators can configure shared API keys eliminating individual user setup friction. Caching reduces database load and improves performance. Fallback system ensures app continues working during migration periods or for users preferring personal keys. Clear UI feedback helps users understand API key status and provides manual refresh for cache clearing.
+
+- **Enhanced Onboarding Safety Collection System**
+  - **Description:** Critical safety enhancement with comprehensive dietary restrictions collection during onboarding: (1) New DietaryRestrictionsScreen with 3-step safety flow (allergies, dietary restrictions, confirmation), (2) Database schema enhancement with allergies and dietary_restrictions array fields in user_profiles, (3) Enhanced AI safety prompts prioritizing profile safety information with multiple layers of safety instruction, (4) Reorganized PreferencesEditor to display read-only safety info from profile vs. advanced preferences, (5) Complete onboarding flow integration ensuring safety collection before any recipe generation.
+  - **Rationale:** Addresses critical safety gap where users could generate recipes before specifying allergies and dietary restrictions. Profile safety information now takes precedence over all other preferences in AI generation. Separation of safety-critical data (onboarding) from advanced preferences maintains appropriate user control while ensuring safety. Enhanced AI prompts include explicit safety instructions preventing dangerous ingredient suggestions.
 
 ### **UI Components & User Experience**
 
@@ -242,7 +246,13 @@ _This section outlines the planned next phases of development, prioritized by va
 - **Results Achieved:** (1) Cost per serving estimation integrated into recipe generation with ingredient-level breakdown, (2) Post-cooking savings feedback with regional restaurant cost multipliers, (3) Geographic cost comparison service supporting US, Canada, UK, and Australia with proper currency formatting, (4) Comprehensive savings dashboard in user profile with cumulative totals, monthly trends, and average savings per meal, (5) Persistent savings data storage in cooking sessions database
 - **Impact:** Users now receive immediate financial feedback after cooking, can track cumulative savings over time, and see personalized cost comparisons based on their geographic region. Provides strong motivation for continued home cooking through tangible financial benefits demonstration.
 
-### **Priority 3: Infrastructure & Performance Optimization** *(PRODUCTION CRITICAL)*
+### ✅ **Priority 3: Enhanced Onboarding Safety Collection** *(COMPLETED JUNE 21, 2025)*
+- **Problem:** Critical safety gap where users could generate recipes before specifying allergies and dietary restrictions
+- **Implemented Solution:** Comprehensive safety collection system with dedicated onboarding screen, enhanced database schema, and AI safety integration
+- **Results Achieved:** (1) New DietaryRestrictionsScreen with 3-step safety flow collecting allergies, dietary restrictions, and confirmation before kitchen setup, (2) Enhanced database schema with allergies and dietary_restrictions array fields with proper indexing (migration 07), (3) Comprehensive AI safety prompts prioritizing profile safety information over all other preferences, (4) Reorganized PreferencesEditor showing read-only safety information vs. editable advanced preferences, (5) Complete onboarding flow ensuring safety collection before any recipe generation access
+- **Impact:** Eliminated critical safety risk by ensuring dietary safety information is collected upfront. AI recipe generation now includes multiple layers of safety instruction with profile allergies and dietary restrictions taking absolute precedence. Enhanced user trust through visible safety prioritization while maintaining excellent UX.
+
+### **Priority 4: Infrastructure & Performance Optimization** *(PRODUCTION CRITICAL)*
 - **Centralized API Key Management:**
   - **Problem:** Manual Gemini API key management not scalable for production
   - **Solution:** Secure backend service storing API keys, rate limiting, usage monitoring
@@ -253,29 +263,63 @@ _This section outlines the planned next phases of development, prioritized by va
   - **Technical Approach:** Recipe similarity scoring, preference-aware cache keys, intelligent cache invalidation
 - **Success Criteria:** Reduced API costs while maintaining response quality and personalization, production-ready scalability
 
-## 🎯 **Next Immediate Action (For Future Development)**
+## 🎯 **Next Immediate Development Priorities (DEFINED JUNE 21, 2025)**
 
-**Start with Priority 3: Infrastructure & Performance Optimization**
-- Implement centralized API key management with secure backend service
-- Develop intelligent AI response caching system with recipe similarity scoring
-- Add usage monitoring and rate limiting for production scalability
-- Create preference-aware cache keys with intelligent cache invalidation
-- Implement cost optimization strategies for AI API usage
+### **PHASE 4: Enhanced Recipe & Meal Planning Experience** *(NEXT FOCUS)*
 
-**Technical Focus:** Production scalability, API cost reduction, performance optimization, infrastructure security
+**Goal:** Elevate the core recipe generation and meal planning experience with advanced features that make the app more practical and engaging for daily use.
+
+### **Priority 1: Enhanced Recipe Intelligence** *(HIGH VALUE)*
+- **Macro Nutrition Integration:**
+  - **Problem:** Recipe cost analysis exists but lacks nutritional information for health-conscious users
+  - **Solution:** Add estimated macros calculation (calories, protein, fats, carbs, sugars) to recipe generation
+  - **Technical Approach:** Enhance AI prompts to include nutritional analysis, update recipe data models, add nutrition display to recipe cards and details
+
+- **Recipe Tweaking Functionality:**
+  - **Problem:** Users often want to modify generated recipes but must start over from scratch
+  - **Solution:** Allow post-generation recipe modifications with natural language requests ("Can we not use chicken?", "Make this higher in protein?")
+  - **Technical Approach:** Add recipe modification interface, enhanced AI prompts for recipe adjustments, version tracking for recipe variations
+
+- **Descriptive Cooking Guidance:**
+  - **Problem:** Lack of visual cooking guidance makes it difficult for beginners to know if they're doing steps correctly
+  - **Solution:** Enhanced AI prompts for more descriptive cooking instructions replacing missing images
+  - **Technical Approach:** Update recipe generation prompts to include detailed sensory descriptions ("simmer until shimmery and thick enough to coat the back of a spoon")
+
+### **Priority 2: Advanced Meal Planning** *(MEDIUM VALUE)*
+- **Daily Macro Tracking:**
+  - **Problem:** Meal planner lacks nutritional overview for daily meal planning
+  - **Solution:** Calculate and display net macros per day column in meal planner
+  - **Technical Approach:** Aggregate recipe nutritional data by day, add daily totals display, integrate with recipe macro calculations
+
+- **Meal Prep Workflow Support:**
+  - **Problem:** Current meal planner doesn't support real-world meal prep patterns (cook once, eat multiple times)
+  - **Solution:** Recipe cloning/copying functionality for easy meal prep planning
+  - **Technical Approach:** Add clone recipe buttons, drag-and-drop recipe copying, batch meal assignment interface
+
+### **Priority 3: Infrastructure & Performance Optimization** *(PRODUCTION CRITICAL)*
+- **Centralized API Key Management:**
+  - **Problem:** Manual Gemini API key management not scalable for production
+  - **Solution:** Secure backend service storing API keys, rate limiting, usage monitoring
+  - **Technical Approach:** Supabase functions or dedicated API service, environment-based key management
+- **Intelligent AI Response Caching:**
+  - **Problem:** Inefficient AI response caching leading to unnecessary API costs
+  - **Solution:** Smart caching system that reuses similar recipe requests based on user preferences
+  - **Technical Approach:** Recipe similarity scoring, preference-aware cache keys, intelligent cache invalidation
+
+**Technical Focus:** Enhanced user experience, nutritional intelligence, practical meal planning workflows, cost optimization
 
 **Following Priorities:**
-- Enhanced meal planning features and premium subscription improvements
-- Advanced social features and community sharing
 - Voice cooking assistance and smart kitchen integration
-- Nutrition tracking and health goal integration
+- Advanced social features and community sharing
+- Health goal tracking and nutrition optimization
+- Regional cuisine expansion and cultural cooking guidance
 
 **Payment System Activation:**
 When ready for App Store publishing:
 1. Update feature flags in `src/config/features.ts` to enable payment features
 2. Configure RevenueCat API keys and App Store/Play Store products
-3. Run database migrations 05-06 for usage tracking and webhooks
+3. Run database migrations 05-07 for usage tracking, webhooks, and dietary safety fields
 4. Deploy webhook endpoints for subscription management
 5. Test complete payment flow in sandbox mode
 
-**Note for Future Developer:** Complete payment infrastructure implemented but dormant. Cost Analysis, Advanced Preferences, and Payment System all completed. Current focus should be on performance optimization and additional user engagement features. Payment system can be activated instantly when App Store publishing becomes viable.
+**Note for Future Developer:** Complete payment infrastructure implemented but dormant. Enhanced Onboarding Safety, Cost Analysis, Advanced Preferences, and Payment System all completed. Current focus should be on enhanced recipe intelligence (macro nutrition, recipe tweaking, descriptive guidance) and advanced meal planning features (daily macro tracking, meal prep workflows). Payment system can be activated instantly when App Store publishing becomes viable.

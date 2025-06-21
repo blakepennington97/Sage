@@ -116,7 +116,7 @@ export class GeminiService {
 
     const userFears = profile.cooking_fears || [];
     
-    // Build basic profile context
+    // Build basic profile context with critical safety information
     let context = `
       USER COOKING PROFILE:
       - Skill Level: ${getSkillDescription(profile)}
@@ -124,9 +124,15 @@ export class GeminiService {
       - Confidence: ${profile.confidence_level}/5
       - Cooking Concerns: ${userFears.join(", ") || "None specified"}
       
+      CRITICAL SAFETY INFORMATION:
+      - Allergies: ${profile.allergies?.length > 0 ? profile.allergies.join(", ") : "None"}
+      - Dietary Restrictions: ${profile.dietary_restrictions?.length > 0 ? profile.dietary_restrictions.join(", ") : "None"}
+      
       BASIC CONSTRAINTS:
       - Match complexity to their skill level.
       - Only suggest recipes/techniques for their available tools.
+      - NEVER suggest ingredients that match the user's allergies (this is critical for safety)
+      - Respect all dietary restrictions listed above
       - ${profile.has_oven ? "" : "NO OVEN - stovetop/microwave only."}
       - ${profile.stove_type === "none" ? "NO STOVE - microwave/no-cook only." : ""}
       - ${profile.space_level <= 2 ? "Limited prep space - suggest one-pot or minimal dish recipes." : ""}
@@ -181,7 +187,9 @@ export class GeminiService {
           cookingStyles.avoidedIngredients.map(i => i.replace(/_/g, ' ')).join(", ") : "None"}
       
       PERSONALIZATION REQUIREMENTS:
-      - STRICTLY respect all dietary restrictions, allergies, and intolerances (including custom ones)
+      - SAFETY FIRST: NEVER suggest any ingredients that match the user's profile allergies or conflict with their dietary restrictions from onboarding
+      - STRICTLY respect all dietary restrictions, allergies, and intolerances (both from profile and preferences)
+      - Profile allergies and dietary restrictions take precedence over all other preferences
       - Match the user's preferred cuisine styles and cooking moods (including custom cuisines)
       - Consider their typical cooking time and budget constraints
       - Adapt recipes to their available appliances and storage (including custom appliances)
