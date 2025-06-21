@@ -6,6 +6,7 @@ import {
   Alert,
   ScrollView,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import Toast from "react-native-toast-message";
 
@@ -49,6 +50,9 @@ export const RecipeDetailScreen: React.FC = () => {
   const [isSheetVisible, setIsSheetVisible] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [recipe, setRecipe] = useState(initialRecipe);
+  const [isModifyModalVisible, setIsModifyModalVisible] = useState(false);
+  const [modificationRequest, setModificationRequest] = useState("");
+  const [isModifying, setIsModifying] = useState(false);
   const { toggleFavorite, rateRecipe, isRating } = useRecipes();
   const { canPerformAction, incrementUsage, isPremium } = useUsageTracking();
 
@@ -193,6 +197,88 @@ export const RecipeDetailScreen: React.FC = () => {
     }
   };
 
+  const handleModifyRecipe = async () => {
+    if (!modificationRequest.trim()) {
+      Toast.show({
+        type: "error",
+        text1: "Please enter a modification request",
+        text2: "Describe what you'd like to change about the recipe",
+      });
+      return;
+    }
+
+    setIsModifying(true);
+    HapticService.light();
+    
+    try {
+      // Parse the existing recipe data
+      const currentRecipeData = recipe.recipe_data;
+      if (!currentRecipeData) {
+        throw new Error("Recipe data not available for modification");
+      }
+
+      const modifiedRecipeData = await geminiService.modifyRecipe(
+        currentRecipeData,
+        modificationRequest
+      );
+
+      // Update the recipe with modified data
+      const updatedRecipe = {
+        ...recipe,
+        recipe_data: modifiedRecipeData,
+        recipe_name: modifiedRecipeData.recipeName,
+        // Update recipe_content with new formatted content
+        recipe_content: `# ${modifiedRecipeData.recipeName}
+
+**Difficulty:** ${"⭐".repeat(modifiedRecipeData.difficulty)} (${modifiedRecipeData.difficulty}/5)
+**Total Time:** ${modifiedRecipeData.totalTime}
+**Servings:** ${modifiedRecipeData.servings}
+
+## Why This Recipe Rocks
+${modifiedRecipeData.whyGood}
+
+## Ingredients
+${modifiedRecipeData.ingredients.map(ing => `• ${ing.amount} ${ing.name}`).join('\n')}
+
+## Instructions
+${modifiedRecipeData.instructions.map(inst => `${inst.step}. ${inst.text}`).join('\n\n')}
+
+## Chef's Tips
+${modifiedRecipeData.tips.map(tip => `💡 ${tip}`).join('\n\n')}
+
+## Nutritional Information (per serving)
+• **Calories:** ${modifiedRecipeData.caloriesPerServing || 'Not available'}
+• **Protein:** ${modifiedRecipeData.proteinPerServing || 'N/A'}g
+• **Carbs:** ${modifiedRecipeData.carbsPerServing || 'N/A'}g
+• **Fat:** ${modifiedRecipeData.fatPerServing || 'N/A'}g
+
+## Cost Information
+• **Cost per serving:** ${modifiedRecipeData.costPerServing ? CostEstimationService.formatCurrency(modifiedRecipeData.costPerServing) : 'N/A'}
+• **Total recipe cost:** ${modifiedRecipeData.totalCost ? CostEstimationService.formatCurrency(modifiedRecipeData.totalCost) : 'N/A'}`,
+      };
+
+      setRecipe(updatedRecipe);
+      setIsModifyModalVisible(false);
+      setModificationRequest("");
+      
+      HapticService.success();
+      Toast.show({
+        type: "success",
+        text1: "Recipe Modified! ✨",
+        text2: "Your recipe has been updated based on your request",
+      });
+    } catch (error: any) {
+      HapticService.error();
+      Toast.show({
+        type: "error",
+        text1: "Modification Failed",
+        text2: error.message,
+      });
+    } finally {
+      setIsModifying(false);
+    }
+  };
+
   return (
     <Box flex={1} backgroundColor="mainBackground">
       {/* Header */}
@@ -280,6 +366,23 @@ export const RecipeDetailScreen: React.FC = () => {
                 Your rating helps improve AI recommendations for everyone!
               </Text>
             )}
+          </Card>
+
+          {/* Recipe Modification Section */}
+          <Card variant="primary" marginBottom="lg">
+            <Text variant="h3" marginBottom="md">✨ Customize Recipe</Text>
+            <Text variant="body" color="secondaryText" marginBottom="md">
+              Want to make changes? Ask Sage to modify this recipe for you!
+            </Text>
+            <Button
+              variant="secondary"
+              onPress={() => setIsModifyModalVisible(true)}
+              disabled={isModifying}
+            >
+              <Text variant="button" color="primaryText">
+                {isModifying ? "Modifying..." : "🔧 Modify Recipe"}
+              </Text>
+            </Button>
           </Card>
 
           {/* Recipe Content */}
@@ -398,6 +501,95 @@ export const RecipeDetailScreen: React.FC = () => {
               <Text variant="button" color="primaryButtonText" numberOfLines={1} textAlign="center">
                 📋 Copy to Clipboard
               </Text>
+            </Button>
+          </Box>
+        </Box>
+      </BottomSheet>
+
+      {/* Recipe Modification Modal */}
+      <BottomSheet
+        isVisible={isModifyModalVisible}
+        onClose={() => setIsModifyModalVisible(false)}
+      >
+        <Box padding="lg">
+          <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="lg">
+            <Text variant="h2">✨ Modify Recipe</Text>
+            <TouchableOpacity onPress={() => setIsModifyModalVisible(false)}>
+              <Text fontSize={24} color="textSecondary">✕</Text>
+            </TouchableOpacity>
+          </Box>
+          
+          <Text variant="body" color="secondaryText" marginBottom="md">
+            Tell Sage how you'd like to modify this recipe. Examples:
+          </Text>
+          
+          <Box backgroundColor="surfaceVariant" padding="md" borderRadius="md" marginBottom="lg">
+            <Text variant="caption" color="secondaryText" marginBottom="xs">
+              • "Can we not use chicken?"
+            </Text>
+            <Text variant="caption" color="secondaryText" marginBottom="xs">
+              • "Make this higher in protein"
+            </Text>
+            <Text variant="caption" color="secondaryText" marginBottom="xs">
+              • "I don't have an oven, use stovetop only"
+            </Text>
+            <Text variant="caption" color="secondaryText">
+              • "Make it less spicy for kids"
+            </Text>
+          </Box>
+          
+          <Box marginBottom="lg">
+            <TextInput
+              style={{
+                backgroundColor: theme.colors.surface,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                borderRadius: 8,
+                padding: 16,
+                fontSize: 16,
+                color: theme.colors.primaryText,
+                minHeight: 100,
+                textAlignVertical: 'top',
+              }}
+              placeholder="Describe what you'd like to change about this recipe..."
+              placeholderTextColor={theme.colors.secondaryText}
+              value={modificationRequest}
+              onChangeText={setModificationRequest}
+              multiline
+              numberOfLines={4}
+              maxLength={500}
+            />
+            <Text variant="caption" color="secondaryText" textAlign="right" marginTop="xs">
+              {modificationRequest.length}/500
+            </Text>
+          </Box>
+          
+          <Box flexDirection="row" gap="md">
+            <Button
+              variant="secondary"
+              flex={1}
+              onPress={() => {
+                setIsModifyModalVisible(false);
+                setModificationRequest("");
+              }}
+              disabled={isModifying}
+            >
+              <Text variant="button" color="primaryText">Cancel</Text>
+            </Button>
+            
+            <Button
+              variant="primary"
+              flex={1}
+              onPress={handleModifyRecipe}
+              disabled={isModifying || !modificationRequest.trim()}
+            >
+              {isModifying ? (
+                <ActivityIndicator color={theme.colors.primaryButtonText} />
+              ) : (
+                <Text variant="button" color="primaryButtonText">
+                  ✨ Modify Recipe
+                </Text>
+              )}
             </Button>
           </Box>
         </Box>

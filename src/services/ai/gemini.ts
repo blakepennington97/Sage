@@ -302,6 +302,17 @@ export class GeminiService {
           "sodiumPerServing": number (mg of sodium per serving, whole number, optional)
         }
         
+        ENHANCED COOKING INSTRUCTION GUIDELINES:
+        - Write instructions with rich sensory descriptions to guide beginners
+        - Include visual cues: "until golden brown and crispy", "when the edges start to curl", "until bubbling vigorously"
+        - Add auditory cues: "you'll hear gentle sizzling", "when the bubbling subsides", "listen for the popping sound"
+        - Include textural guidance: "until fork-tender", "when it feels firm to the touch", "until it coats the back of a spoon"
+        - Describe aromatic indicators: "when fragrant", "until you smell the garlic blooming", "when the spices become aromatic"
+        - Mention timing alongside sensory cues: "Sauté for 3-4 minutes until the onions become translucent and smell sweet"
+        - Help beginners know what "done" looks like: "The sauce should be thick enough to coat pasta without pooling"
+        - Include confidence-building phrases: "Don't worry if it takes a bit longer", "This is normal", "You're doing great"
+        - Provide alternatives for common issues: "If it's browning too fast, lower the heat", "If too thick, add a splash of water"
+        
         COST ESTIMATION GUIDELINES:
         - Use average US grocery store prices for ingredients
         - Consider typical package sizes (e.g., if recipe needs 1 onion, estimate cost of 1 onion from a 3lb bag)
@@ -341,6 +352,91 @@ export class GeminiService {
       console.error("Recipe generation error:", error);
       throw new Error(
         "Failed to generate recipe from AI. The response may not be valid JSON."
+      );
+    }
+  }
+
+  public async modifyRecipe(originalRecipe: RecipeData, modificationRequest: string): Promise<RecipeData> {
+    await this.initialize();
+    try {
+      const userContext = await this.getUserContext();
+      
+      const prompt = `Modify an existing recipe based on the user's request while maintaining the same structure and quality.
+        
+        ORIGINAL RECIPE:
+        ${JSON.stringify(originalRecipe, null, 2)}
+        
+        USER MODIFICATION REQUEST: "${modificationRequest}"
+        ${userContext}
+        
+        MODIFICATION GUIDELINES:
+        - Keep the same recipe structure and format
+        - Maintain nutritional balance when possible
+        - Adjust cooking times and temperatures as needed for ingredient changes
+        - Update cost estimates for any ingredient changes
+        - Recalculate nutritional information for ingredient/portion changes
+        - Preserve the beginner-friendly nature and descriptive instructions
+        - If substituting ingredients, explain why the change works in the tips
+        - Maintain or improve the difficulty level (don't make it harder for beginners)
+        - Keep the same serving size unless specifically requested to change
+        - Update the "whyGood" field to reflect the modifications if significant
+        
+        Return the modified recipe in the same JSON format:
+        {
+          "recipeName": "string (update if significantly changed)",
+          "difficulty": number (1-5, same or easier),
+          "totalTime": "string (adjust if cooking time changes)",
+          "whyGood": "string (update to reflect modifications)",
+          "ingredients": [ { "amount": "string", "name": "string" } ],
+          "instructions": [ { "step": number, "text": "string" } ],
+          "tips": [ "string (include tips about modifications)" ],
+          "servings": number,
+          "totalCost": number,
+          "costPerServing": number,
+          "costBreakdown": [ { "ingredient": "string", "estimatedCost": number } ],
+          "caloriesPerServing": number,
+          "proteinPerServing": number,
+          "carbsPerServing": number,
+          "fatPerServing": number,
+          "sugarPerServing": number,
+          "fiberPerServing": number,
+          "sodiumPerServing": number
+        }
+        
+        ENHANCED COOKING INSTRUCTION GUIDELINES (same as generation):
+        - Write instructions with rich sensory descriptions to guide beginners
+        - Include visual cues: "until golden brown and crispy", "when the edges start to curl", "until bubbling vigorously"
+        - Add auditory cues: "you'll hear gentle sizzling", "when the bubbling subsides", "listen for the popping sound"
+        - Include textural guidance: "until fork-tender", "when it feels firm to the touch", "until it coats the back of a spoon"
+        - Describe aromatic indicators: "when fragrant", "until you smell the garlic blooming", "when the spices become aromatic"
+        - Mention timing alongside sensory cues: "Sauté for 3-4 minutes until the onions become translucent and smell sweet"
+        - Help beginners know what "done" looks like: "The sauce should be thick enough to coat pasta without pooling"
+        - Include confidence-building phrases: "Don't worry if it takes a bit longer", "This is normal", "You're doing great"
+        - Provide alternatives for common issues: "If it's browning too fast, lower the heat", "If too thick, add a splash of water"`;
+
+      const result = await this.model.generateContent(prompt);
+      const modifiedRecipe = JSON.parse(result.response.text()) as RecipeData;
+      
+      // Apply regional cost adjustments
+      const currentRegion = CostEstimationService.getCurrentRegion();
+      if (modifiedRecipe.totalCost) {
+        modifiedRecipe.totalCost = CostEstimationService.adjustCostForRegion(modifiedRecipe.totalCost);
+      }
+      if (modifiedRecipe.costPerServing) {
+        modifiedRecipe.costPerServing = CostEstimationService.adjustCostForRegion(modifiedRecipe.costPerServing);
+      }
+      if (modifiedRecipe.costBreakdown) {
+        modifiedRecipe.costBreakdown = modifiedRecipe.costBreakdown.map(item => ({
+          ...item,
+          estimatedCost: CostEstimationService.adjustCostForRegion(item.estimatedCost),
+        }));
+      }
+      
+      return modifiedRecipe;
+    } catch (error) {
+      console.error("Recipe modification error:", error);
+      throw new Error(
+        "Failed to modify recipe from AI. The response may not be valid JSON."
       );
     }
   }
