@@ -325,7 +325,49 @@ ${modifiedRecipeData.tips.map(tip => `💡 ${tip}`).join('\n\n')}
             <MarkdownText>{recipe.recipe_content}</MarkdownText>
           </Card>
 
-          {/* Cost Information - Moved below recipe */}
+          {/* Macro Information - Added above cost */}
+          {recipe.recipe_data?.nutritionalInfo && (
+            <Card variant="primary" marginBottom="lg">
+              <Text variant="h3" marginBottom="md">📊 Nutrition Breakdown</Text>
+              <Box flexDirection="row" justifyContent="space-between" marginBottom="sm">
+                <Text variant="body" color="primaryText">Calories per serving:</Text>
+                <Text variant="body" color="primary" fontWeight="bold">
+                  {recipe.recipe_data.nutritionalInfo.caloriesPerServing} cal
+                </Text>
+              </Box>
+              <Box flexDirection="row" justifyContent="space-between" marginBottom="sm">
+                <Text variant="body" color="primaryText">Protein per serving:</Text>
+                <Text variant="body" color="primary" fontWeight="600">
+                  {recipe.recipe_data.nutritionalInfo.proteinPerServing}g
+                </Text>
+              </Box>
+              <Box flexDirection="row" justifyContent="space-between" marginBottom="sm">
+                <Text variant="body" color="primaryText">Carbs per serving:</Text>
+                <Text variant="body" color="primary" fontWeight="600">
+                  {recipe.recipe_data.nutritionalInfo.carbsPerServing}g
+                </Text>
+              </Box>
+              <Box flexDirection="row" justifyContent="space-between" marginBottom="sm">
+                <Text variant="body" color="primaryText">Fat per serving:</Text>
+                <Text variant="body" color="primaryGreen" fontWeight="600">
+                  {recipe.recipe_data.nutritionalInfo.fatPerServing}g
+                </Text>
+              </Box>
+              {recipe.recipe_data.servings && (
+                <Box flexDirection="row" justifyContent="space-between" marginBottom="md">
+                  <Text variant="body" color="primaryText">Total servings:</Text>
+                  <Text variant="body" color="secondaryText">
+                    {recipe.recipe_data.servings}
+                  </Text>
+                </Box>
+              )}
+              <Text variant="caption" color="secondaryText">
+                🧮 Nutritional values calculated by AI analysis
+              </Text>
+            </Card>
+          )}
+
+          {/* Cost Information - Moved below macros */}
           {recipe.recipe_data?.costPerServing && (
             <Card variant="primary" marginBottom="lg">
               <Text variant="h3" marginBottom="md">💰 Cost Breakdown</Text>

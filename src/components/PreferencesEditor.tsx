@@ -3,6 +3,8 @@ import { TouchableOpacity, Alert } from 'react-native';
 import { Box, Text, Button, Card, Slider, Input, BottomSheet } from './ui';
 import { useUserPreferences } from '../hooks/useUserPreferences';
 import { useAuthStore } from '../stores/authStore';
+import { MacroGoalsEditor, MacroGoals } from './MacroGoalsEditor';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 interface PreferencesEditorProps {
   isVisible: boolean;
@@ -23,6 +25,7 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
     updateCookingStyles,
     initializePreferences,
   } = useUserPreferences();
+  const { setMacroGoals, isLoading: macroLoading } = useUserProfile();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [customCuisineInput, setCustomCuisineInput] = useState('');
@@ -36,6 +39,7 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   }, [preferences, isLoading, initializePreferences]);
 
   const categoryIcons = {
+    macroGoals: '🎯',
     dietary: '🍽️',
     cookingContext: '⏰',
     kitchenCapabilities: '🔧',
@@ -43,6 +47,7 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   };
 
   const categoryTitles = {
+    macroGoals: 'Macro Goals',
     dietary: 'Dietary & Health',
     cookingContext: 'Cooking Context',
     kitchenCapabilities: 'Kitchen & Skills',
@@ -50,6 +55,7 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   };
 
   const categoryDescriptions = {
+    macroGoals: 'Daily calorie, protein, carbs, fat targets',
     dietary: 'Allergies, diet style, nutrition goals',
     cookingContext: 'Time, budget, serving sizes',
     kitchenCapabilities: 'Appliances, storage, techniques',
@@ -1357,8 +1363,41 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
       </Box>
   );
 
+  const renderMacroGoals = () => {
+    const handleSaveMacroGoals = async (goals: MacroGoals) => {
+      await setMacroGoals({
+        dailyCalorieGoal: goals.dailyCalories,
+        dailyProteinGoal: goals.dailyProtein,
+        dailyCarbsGoal: goals.dailyCarbs,
+        dailyFatGoal: goals.dailyFat,
+      });
+      setSelectedCategory(null); // Return to category overview
+    };
+
+    const currentGoals: Partial<MacroGoals> = {
+      dailyCalories: profile?.daily_calorie_goal,
+      dailyProtein: profile?.daily_protein_goal,
+      dailyCarbs: profile?.daily_carbs_goal,
+      dailyFat: profile?.daily_fat_goal,
+    };
+
+    return (
+      <MacroGoalsEditor
+        initialGoals={currentGoals}
+        onSave={handleSaveMacroGoals}
+        onCancel={() => setSelectedCategory(null)}
+        isLoading={macroLoading}
+        showTDEECalculator={true}
+        title="🎯 Edit Macro Goals"
+        subtitle="Update your daily macro targets"
+      />
+    );
+  };
+
   const renderSelectedCategory = () => {
     switch (selectedCategory) {
+      case 'macroGoals':
+        return renderMacroGoals();
       case 'dietary':
         return renderDietaryPreferences();
       case 'cookingContext':
@@ -1373,7 +1412,12 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
   };
 
   return (
-    <BottomSheet isVisible={isVisible} onClose={onClose} snapPoints={['95%']} scrollable={true}>
+    <BottomSheet 
+      isVisible={isVisible} 
+      onClose={onClose} 
+      snapPoints={selectedCategory === 'macroGoals' ? ['100%'] : ['95%']} 
+      scrollable={selectedCategory !== 'macroGoals'}
+    >
       {renderSelectedCategory()}
     </BottomSheet>
   );

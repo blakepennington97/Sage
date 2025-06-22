@@ -15,6 +15,8 @@ import { DailyMacroSummary, DailyMacros } from '../components/DailyMacroSummary'
 import { AddFoodEntry } from '../components/AddFoodEntry';
 import { MealPrepInterface } from '../components/MealPrepInterface';
 import { useMealTracking, useMealEntriesForDay, useDailyMacroProgress } from '../hooks/useMealTracking';
+import { MacroGoalsEditor, MacroGoals } from '../components/MacroGoalsEditor';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { 
   WeeklyMealPlan, 
   MealPlanRecipe,
@@ -43,6 +45,7 @@ export const MealPlannerScreen: React.FC = () => {
   const [showMealPrepModal, setShowMealPrepModal] = useState(false);
   const [recipeToClone, setRecipeToClone] = useState<{recipe: MealPlanRecipe, mealType: MealType} | null>(null);
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0); // 0 = this week, 1 = next week, etc.
+  const [showMacroGoalsSetup, setShowMacroGoalsSetup] = useState(false);
 
   // Mock premium status - in real app, this would come from subscription service
   const [isPremium, setIsPremium] = useState(false);
@@ -51,6 +54,7 @@ export const MealPlannerScreen: React.FC = () => {
   const { addMealEntry } = useMealTracking();
   const { data: mealEntries } = useMealEntriesForDay(selectedDate);
   const { data: macroProgress } = useDailyMacroProgress(selectedDate);
+  const { setMacroGoals, isLoading: macroLoading } = useUserProfile();
 
   const loadActiveMealPlan = useCallback(async () => {
     if (!user) return;
@@ -91,6 +95,13 @@ export const MealPlannerScreen: React.FC = () => {
   useEffect(() => {
     loadActiveMealPlan();
   }, [loadActiveMealPlan]);
+
+  // Refresh meal plan when screen comes into focus (e.g., returning from recipe generation)
+  useFocusEffect(
+    useCallback(() => {
+      loadActiveMealPlan();
+    }, [loadActiveMealPlan])
+  );
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -700,8 +711,7 @@ export const MealPlannerScreen: React.FC = () => {
                     Track your daily nutrition progress by setting your macro targets in your profile.
                   </Text>
                   <Button variant="primary" onPress={() => {
-                    setShowMacroSummary(false);
-                    navigation.navigate('Settings');
+                    setShowMacroGoalsSetup(true);
                   }}>
                     <Text variant="button" color="primaryButtonText">
                       Set Macro Goals
@@ -785,17 +795,25 @@ export const MealPlannerScreen: React.FC = () => {
             try {
               HapticService.medium();
               
+              // Update meal slots sequentially to avoid race conditions
               for (const slot of slots) {
-                await MealPlanService.updateMealPlan({
-                  meal_plan_id: activeMealPlan.id,
-                  date: slot.date,
-                  meal_type: slot.mealType,
-                  recipe_id: recipeToClone.recipe.recipe_id,
-                  servings: recipeToClone.recipe.servings,
-                });
+                try {
+                  await MealPlanService.updateMealPlan({
+                    meal_plan_id: activeMealPlan.id,
+                    date: slot.date,
+                    meal_type: slot.mealType,
+                    recipe_id: recipeToClone.recipe.recipe_id,
+                    servings: recipeToClone.recipe.servings,
+                  });
+                  console.log(`Successfully copied recipe to ${slot.date} ${slot.mealType}`);
+                } catch (slotError) {
+                  console.error(`Failed to copy recipe to ${slot.date} ${slot.mealType}:`, slotError);
+                  throw slotError; // Re-throw to handle in outer catch
+                }
               }
               
-              // Reload the meal plan
+              // Reload the meal plan and wait for it to complete
+              console.log('Reloading meal plan after recipe copying...');
               await loadActiveMealPlan();
               
               setShowMealPrepModal(false);
@@ -804,13 +822,42 @@ export const MealPlannerScreen: React.FC = () => {
               HapticService.success();
               ErrorHandler.showSuccessToast(`Recipe copied to ${slots.length} meal${slots.length > 1 ? 's' : ''}!`);
             } catch (err) {
+              console.error('Error in meal prep copying:', err);
               ErrorHandler.handleError(err, 'copying recipe to meal slots');
+              // Don't close modal on error so user can try again
             }
           }}
           onClose={() => {
             setShowMealPrepModal(false);
             setRecipeToClone(null);
           }}
+        />
+      </BottomSheet>
+
+      {/* Macro Goals Setup Modal */}
+      <BottomSheet
+        isVisible={showMacroGoalsSetup}
+        onClose={() => setShowMacroGoalsSetup(false)}
+        snapPoints={['100%']}
+        scrollable={false}
+      >
+        <MacroGoalsEditor
+          onSave={async (goals: MacroGoals) => {
+            await setMacroGoals({
+              dailyCalorieGoal: goals.dailyCalories,
+              dailyProteinGoal: goals.dailyProtein,
+              dailyCarbsGoal: goals.dailyCarbs,
+              dailyFatGoal: goals.dailyFat,
+            });
+            setShowMacroGoalsSetup(false);
+            // Refresh the macro summary modal to show the new goals
+            setShowMacroSummary(true);
+          }}
+          onCancel={() => setShowMacroGoalsSetup(false)}
+          isLoading={macroLoading}
+          showTDEECalculator={true}
+          title="🎯 Set Macro Goals"
+          subtitle="Set your daily macro targets to track nutrition progress"
         />
       </BottomSheet>
     </Box>
