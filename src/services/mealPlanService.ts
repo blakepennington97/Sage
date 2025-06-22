@@ -46,6 +46,27 @@ export class MealPlanService {
     return data;
   }
 
+  // Get meal plan for specific week
+  static async getMealPlanByWeek(userId: string, weekStartDate: string): Promise<WeeklyMealPlan | null> {
+    const { data, error } = await supabase
+      .from('meal_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('week_start_date', weekStartDate)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No meal plan found for this week
+        return null;
+      }
+      console.error('Error fetching meal plan by week:', error);
+      throw new Error(`Failed to fetch meal plan by week: ${error.message}`);
+    }
+
+    return data;
+  }
+
   // Create new meal plan
   static async createMealPlan(userId: string, request: CreateMealPlanRequest): Promise<WeeklyMealPlan> {
     // First, deactivate any existing active meal plan

@@ -117,6 +117,7 @@ export const SkillEvaluationScreen: React.FC = () => {
           overallConfidence: confidence,
         });
         HapticService.success();
+        // Navigation will be handled automatically by AuthWrapper
       } catch (error) {
         HapticService.error();
         Alert.alert("Error", "Could not save your skills. Please try again.");

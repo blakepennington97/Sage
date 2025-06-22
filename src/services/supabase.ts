@@ -39,6 +39,12 @@ export interface UserProfile {
   daily_carbs_goal?: number;
   daily_fat_goal?: number;
   macro_goals_set?: boolean;
+  onboarding_steps_completed?: {
+    skills?: boolean;
+    dietary?: boolean;
+    macros?: boolean;
+    kitchen?: boolean;
+  };
   created_at: string;
   updated_at: string;
 }

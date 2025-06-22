@@ -42,6 +42,7 @@ export const MealPlannerScreen: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>(formatDateForMealPlan(new Date()));
   const [showMealPrepModal, setShowMealPrepModal] = useState(false);
   const [recipeToClone, setRecipeToClone] = useState<{recipe: MealPlanRecipe, mealType: MealType} | null>(null);
+  const [currentWeekOffset, setCurrentWeekOffset] = useState(0); // 0 = this week, 1 = next week, etc.
 
   // Mock premium status - in real app, this would come from subscription service
   const [isPremium, setIsPremium] = useState(false);
@@ -58,7 +59,26 @@ export const MealPlannerScreen: React.FC = () => {
       setIsLoading(true);
       setError(null);
       
-      const mealPlan = await MealPlanService.getActiveMealPlan(user.id);
+      // Calculate the target week date based on offset
+      const today = new Date();
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() + (currentWeekOffset * 7));
+      const weekStartDate = getWeekStartDate(targetDate);
+      
+      // Try to get existing meal plan for this week
+      let mealPlan = await MealPlanService.getMealPlanByWeek(user.id, weekStartDate);
+      
+      // If no meal plan exists for this week, create one
+      if (!mealPlan && currentWeekOffset >= 0) {
+        const request: CreateMealPlanRequest = {
+          title: currentWeekOffset === 0 
+            ? `This Week (${new Date(weekStartDate).toLocaleDateString()})`
+            : `Week of ${new Date(weekStartDate).toLocaleDateString()}`,
+          week_start_date: weekStartDate
+        };
+        mealPlan = await MealPlanService.createMealPlan(user.id, request);
+      }
+      
       setActiveMealPlan(mealPlan);
     } catch (err) {
       const error = ErrorHandler.handleError(err, 'loading meal plan');
@@ -66,7 +86,7 @@ export const MealPlannerScreen: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, currentWeekOffset]);
 
   useEffect(() => {
     loadActiveMealPlan();
@@ -403,26 +423,64 @@ export const MealPlannerScreen: React.FC = () => {
         borderBottomColor="border"
         style={{ paddingTop: Math.max(insets.top, 16) }}
       >
-        <Box flexDirection="row" justifyContent="space-between" alignItems="flex-start">
-          <Box flex={1}>
-            <Text variant="h2" color="primaryText" marginBottom="xs">
-              {activeMealPlan.title}
-            </Text>
-            <Text variant="caption" color="secondaryText">
-              Week of {new Date(activeMealPlan.week_start_date).toLocaleDateString()}
-            </Text>
-          </Box>
-          
-          {profile?.macro_goals_set && (
-            <Button 
-              variant="secondary" 
-              onPress={() => setShowMacroSummary(true)}
-              paddingHorizontal="sm"
-              paddingVertical="xs"
+        <Box>
+          {/* Week Navigation */}
+          <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="sm">
+            <TouchableOpacity 
+              onPress={() => setCurrentWeekOffset(currentWeekOffset - 1)}
+              disabled={currentWeekOffset <= -4} // Limit to 4 weeks in the past
+              style={{ opacity: currentWeekOffset <= -4 ? 0.3 : 1 }}
             >
-              <Text variant="caption" color="primaryText">📊 Macros</Text>
-            </Button>
-          )}
+              <Box flexDirection="row" alignItems="center" padding="xs">
+                <Text fontSize={16}>←</Text>
+                <Text variant="caption" color="primary" marginLeft="xs">Previous</Text>
+              </Box>
+            </TouchableOpacity>
+            
+            <Box flex={1} alignItems="center">
+              <Text variant="h3" color="primaryText">
+                {currentWeekOffset === 0 ? "This Week" : 
+                 currentWeekOffset === 1 ? "Next Week" :
+                 currentWeekOffset > 1 ? `${currentWeekOffset} Weeks Ahead` :
+                 currentWeekOffset === -1 ? "Last Week" :
+                 `${Math.abs(currentWeekOffset)} Weeks Ago`}
+              </Text>
+            </Box>
+            
+            <TouchableOpacity 
+              onPress={() => setCurrentWeekOffset(currentWeekOffset + 1)}
+              disabled={currentWeekOffset >= 8} // Limit to 8 weeks ahead
+              style={{ opacity: currentWeekOffset >= 8 ? 0.3 : 1 }}
+            >
+              <Box flexDirection="row" alignItems="center" padding="xs">
+                <Text variant="caption" color="primary" marginRight="xs">Next</Text>
+                <Text fontSize={16}>→</Text>
+              </Box>
+            </TouchableOpacity>
+          </Box>
+
+          {/* Meal Plan Title and Macros */}
+          <Box flexDirection="row" justifyContent="space-between" alignItems="flex-start">
+            <Box flex={1}>
+              <Text variant="h2" color="primaryText" marginBottom="xs">
+                {activeMealPlan.title}
+              </Text>
+              <Text variant="caption" color="secondaryText">
+                Week of {new Date(activeMealPlan.week_start_date).toLocaleDateString()}
+              </Text>
+            </Box>
+            
+            {profile?.macro_goals_set && (
+              <Button 
+                variant="secondary" 
+                onPress={() => setShowMacroSummary(true)}
+                paddingHorizontal="sm"
+                paddingVertical="xs"
+              >
+                <Text variant="caption" color="primaryText">📊 Macros</Text>
+              </Button>
+            )}
+          </Box>
         </Box>
       </Box>
 

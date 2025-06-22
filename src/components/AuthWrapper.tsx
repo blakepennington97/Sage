@@ -48,14 +48,28 @@ const AuthNavigator = () => (
   </AuthStack.Navigator>
 );
 
-const OnboardingNavigator = () => (
-  <OnboardingStack.Navigator 
-    screenOptions={{ 
-      headerShown: false,
-      gestureEnabled: true,
-      gestureDirection: 'horizontal',
-    }}
-  >
+const OnboardingNavigator = ({ profile }: { profile: any }) => {
+  // Determine initial route based on what's completed
+  const getInitialRoute = () => {
+    const steps = profile?.onboarding_steps_completed || {};
+    
+    if (!steps.skills) return 'Skills';
+    if (!steps.dietary) return 'DietaryRestrictions';
+    if (!steps.macros) return 'MacroGoals';
+    if (!steps.kitchen) return 'Kitchen';
+    
+    return 'Skills'; // fallback
+  };
+
+  return (
+    <OnboardingStack.Navigator 
+      initialRouteName={getInitialRoute()}
+      screenOptions={{ 
+        headerShown: false,
+        gestureEnabled: true,
+        gestureDirection: 'horizontal',
+      }}
+    >
     <OnboardingStack.Screen name="Skills" component={SkillEvaluationScreen} />
     <OnboardingStack.Screen
       name="DietaryRestrictions"
@@ -79,7 +93,8 @@ const OnboardingNavigator = () => (
       }}
     />
   </OnboardingStack.Navigator>
-);
+  );
+};
 
 // This is our new Tab Navigator
 const MainTabs = () => (
@@ -264,11 +279,11 @@ export const AuthWrapper: React.FC = () => {
     return <AuthNavigator />;
   }
 
-  // Check if onboarding is complete
-  const isOnboardingComplete = profile?.skill_level && 
-    profile?.allergies !== undefined && 
-    profile?.dietary_restrictions !== undefined && 
-    profile?.kitchen_tools;
+  // Check if onboarding is complete using the new tracking system
+  const isOnboardingComplete = (() => {
+    const steps = profile?.onboarding_steps_completed || {};
+    return steps.skills && steps.dietary && steps.macros && steps.kitchen;
+  })();
 
   if (!isOnboardingComplete) {
     return isProfileLoading ? (
@@ -277,7 +292,7 @@ export const AuthWrapper: React.FC = () => {
         <Text variant="body" style={styles.loadingText}>Loading your profile...</Text>
       </View>
     ) : (
-      <OnboardingNavigator />
+      <OnboardingNavigator profile={profile} />
     );
   }
 

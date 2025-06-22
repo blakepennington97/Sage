@@ -94,7 +94,7 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
               </Text>
             </Box>
             
-            <Text variant="h3" color="primaryText" marginBottom="xs" numberOfLines={2}>
+            <Text variant="h2" color="primaryText" marginBottom="xs" numberOfLines={2} fontSize={16} fontWeight="700">
               {recipe.recipe_name}
             </Text>
             

@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development Philosophy
+
+**Always think deeply on the problem, considering multiple solutions using best, modern practices, before finalizing on the best solution.**
+
+When approaching any development task:
+1. **Investigate thoroughly** - Understand the root cause, not just symptoms
+2. **Consider multiple approaches** - Evaluate different architectural patterns and solutions
+3. **Use modern best practices** - Leverage established libraries, patterns, and techniques
+4. **Think about edge cases** - Consider error scenarios, race conditions, and user experience
+5. **Implement robust solutions** - Build systems that are maintainable, scalable, and future-proof
+
 ## Project Overview
 
 Sage is an AI-powered personal cooking coach React Native application built with Expo SDK 53. It helps beginners build cooking confidence through personalized guidance, real-time support, and skill development.

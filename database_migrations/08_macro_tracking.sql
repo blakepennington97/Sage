@@ -161,8 +161,8 @@ BEGIN
     END as fat_progress
     
   FROM user_profiles up
-  LEFT JOIN daily_macro_totals dmt ON dmt.user_id = target_user_id AND dmt.entry_date = target_date
-  WHERE up.user_id = target_user_id
+  LEFT JOIN daily_macro_totals dmt ON dmt.user_id = up.id AND dmt.entry_date = target_date
+  WHERE up.id = target_user_id
   GROUP BY up.daily_calorie_goal, up.daily_protein_goal, up.daily_carbs_goal, up.daily_fat_goal;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

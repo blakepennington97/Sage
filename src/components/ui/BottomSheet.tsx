@@ -1,5 +1,5 @@
 import React, { useMemo, forwardRef } from 'react';
-import BottomSheet, { BottomSheetView, BottomSheetProps } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetView, BottomSheetScrollView, BottomSheetProps } from '@gorhom/bottom-sheet';
 import { createBox, createText } from '@shopify/restyle';
 import { Theme } from '../../constants/restyleTheme';
 
@@ -13,20 +13,23 @@ interface CustomBottomSheetProps extends Partial<BottomSheetProps> {
   children: React.ReactNode;
   title?: string;
   snapPoints?: string[];
+  scrollable?: boolean;
 }
 
 export const CustomBottomSheet = forwardRef<BottomSheet, CustomBottomSheetProps>(
-  ({ isVisible, onClose, children, title, snapPoints = ['90%', '95%'], ...props }, ref) => {
+  ({ isVisible, onClose, children, title, snapPoints = ['90%', '95%'], scrollable = false, ...props }, ref) => {
     const snapPointsMemo = useMemo(() => snapPoints, [snapPoints]);
 
     if (!isVisible) {
       return null;
     }
 
+    const ContentWrapper = scrollable ? BottomSheetScrollView : BottomSheetView;
+
     return (
       <BottomSheet
         ref={ref}
-        index={0}
+        index={1}
         snapPoints={snapPointsMemo}
         onClose={onClose}
         enablePanDownToClose
@@ -38,7 +41,7 @@ export const CustomBottomSheet = forwardRef<BottomSheet, CustomBottomSheetProps>
         }}
         {...props}
       >
-        <BottomSheetView style={{ flex: 1 }}>
+        <ContentWrapper style={{ flex: 1 }}>
           {title && (
             <Box 
               backgroundColor="surface" 
@@ -53,7 +56,7 @@ export const CustomBottomSheet = forwardRef<BottomSheet, CustomBottomSheetProps>
             </Box>
           )}
           {children}
-        </BottomSheetView>
+        </ContentWrapper>
       </BottomSheet>
     );
   }

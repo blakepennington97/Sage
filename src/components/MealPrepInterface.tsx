@@ -156,8 +156,8 @@ export const MealPrepInterface: React.FC<MealPrepInterfaceProps> = ({
           onPress={selectSameMealType}
           disabled={!originalMealType}
         >
-          <Text variant="button" color="primaryText" numberOfLines={1} textAlign="center">
-            Same {originalMealType}s
+          <Text variant="caption" color="primaryText" numberOfLines={1} textAlign="center" fontSize={12}>
+            Same Meals
           </Text>
         </Button>
         
@@ -166,7 +166,7 @@ export const MealPrepInterface: React.FC<MealPrepInterfaceProps> = ({
           flex={1}
           onPress={selectAllEmpty}
         >
-          <Text variant="button" color="primaryText" numberOfLines={1} textAlign="center">
+          <Text variant="caption" color="primaryText" numberOfLines={1} textAlign="center" fontSize={12}>
             All Empty
           </Text>
         </Button>

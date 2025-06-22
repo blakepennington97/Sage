@@ -42,6 +42,10 @@ export const useUserProfile = () => {
       skill_level: data.skillLevel,
       cooking_fears: data.fears,
       confidence_level: data.overallConfidence,
+      onboarding_steps_completed: {
+        ...profile?.onboarding_steps_completed,
+        skills: true
+      }
     });
   };
 
@@ -52,6 +56,10 @@ export const useUserProfile = () => {
     return updateProfile({
       allergies: data.allergies,
       dietary_restrictions: data.dietaryRestrictions,
+      onboarding_steps_completed: {
+        ...profile?.onboarding_steps_completed,
+        dietary: true
+      }
     });
   };
 
@@ -67,6 +75,10 @@ export const useUserProfile = () => {
       daily_carbs_goal: data.dailyCarbsGoal,
       daily_fat_goal: data.dailyFatGoal,
       macro_goals_set: true,
+      onboarding_steps_completed: {
+        ...profile?.onboarding_steps_completed,
+        macros: true
+      }
     });
   };
 
@@ -84,6 +96,10 @@ export const useUserProfile = () => {
       stove_type: data.stoveType,
       has_oven: data.hasOven,
       space_level: data.spaceLevel,
+      onboarding_steps_completed: {
+        ...profile?.onboarding_steps_completed,
+        kitchen: true
+      }
     });
   };
 
