@@ -1,184 +1,189 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Alert, RefreshControl, ScrollView, TouchableOpacity } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useQueryClient } from '@tanstack/react-query';
-import { Box, Text, Button, LoadingSpinner, ErrorMessage , BottomSheet, RecipeCard } from '../components/ui';
-import { WeeklyMealGrid } from '../components/WeeklyMealGrid';
-import { PremiumGate } from '../components/PremiumGate';
+// src/screens/MealPlannerScreen.tsx (with logging)
 
-import { useAuthStore } from '../stores/authStore';
-import { useRecipes } from '../hooks/useRecipes';
-import { useMealPlanByWeek, useMealPlans } from '../hooks/useMealPlans';
-import { MealPlanService } from '../services/mealPlanService';
-import { HapticService } from '../services/haptics';
-import { ErrorHandler } from '../utils/errorHandling';
-import { DailyMacroSummary, DailyMacros } from '../components/DailyMacroSummary';
-import { AddFoodEntry } from '../components/AddFoodEntry';
-import { MealPrepInterface } from '../components/MealPrepInterface';
-import { useMealTracking, useMealEntriesForDay, useDailyMacroProgress } from '../hooks/useMealTracking';
-import { MacroGoalsEditor, MacroGoals } from '../components/MacroGoalsEditor';
-import { useUserProfile } from '../hooks/useUserProfile';
-import { 
-  WeeklyMealPlan, 
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Alert,
+  RefreshControl,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import {
+  Box,
+  Text,
+  Button,
+  LoadingSpinner,
+  ErrorMessage,
+  BottomSheet,
+  RecipeCard,
+} from "../components/ui";
+import { WeeklyMealGrid } from "../components/WeeklyMealGrid";
+import { PremiumGate } from "../components/PremiumGate";
+import { useAuthStore } from "../stores/authStore";
+import { useRecipes } from "../hooks/useRecipes";
+import { useMealPlanByWeek, useMealPlans } from "../hooks/useMealPlans";
+import { HapticService } from "../services/haptics";
+import { ErrorHandler } from "../utils/errorHandling";
+import {
+  DailyMacroSummary,
+  DailyMacros,
+} from "../components/DailyMacroSummary";
+import { AddFoodEntry } from "../components/AddFoodEntry";
+import { MealPrepInterface } from "../components/MealPrepInterface";
+import {
+  useMealTracking,
+  useDailyMacroProgress,
+  useMealEntriesForDay,
+} from "../hooks/useMealTracking";
+import { MealEntry } from "../services/mealTracking";
+import { MacroGoalsEditor, MacroGoals } from "../components/MacroGoalsEditor";
+import { useUserProfile } from "../hooks/useUserProfile";
+import {
   MealPlanRecipe,
-  MealType, 
-  CreateMealPlanRequest,
+  MealType,
   getWeekStartDate,
-  formatDateForMealPlan
-} from '../types/mealPlan';
+  formatDateForMealPlan,
+} from "../types/mealPlan";
 
 export const MealPlannerScreen: React.FC = () => {
+  console.log("🔵 MealPlannerScreen: Component rendering or re-rendering.");
   const navigation = useNavigation<any>();
   const { user, profile } = useAuthStore();
   const { recipes, refetchRecipes } = useRecipes();
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
-  
-  // State declarations first
+
+  const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
+  const [isPremium, setIsPremium] = useState(true);
+
   const [showRecipeSelector, setShowRecipeSelector] = useState(false);
-  const [selectedMealSlot, setSelectedMealSlot] = useState<{date: string, mealType: MealType, meal_plan_id?: string} | null>(null);
+  const [selectedMealSlot, setSelectedMealSlot] = useState<{
+    date: string;
+    mealType: MealType;
+  } | null>(null);
   const [showPremiumGate, setShowPremiumGate] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isCreatingMealPlan, setIsCreatingMealPlan] = useState(false);
   const [showFoodEntry, setShowFoodEntry] = useState(false);
   const [showMacroSummary, setShowMacroSummary] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>(formatDateForMealPlan(new Date()));
   const [showMealPrepModal, setShowMealPrepModal] = useState(false);
-  const [recipeToClone, setRecipeToClone] = useState<{recipe: MealPlanRecipe, mealType: MealType} | null>(null);
-  const [currentWeekOffset, setCurrentWeekOffset] = useState(0); // 0 = this week, 1 = next week, etc.
+  const [recipeToClone, setRecipeToClone] = useState<{
+    recipe: MealPlanRecipe;
+    mealType: MealType;
+  } | null>(null);
+  const [showMacroGoalsSetup, setShowMacroGoalsSetup] = useState(false);
 
-  // Get current week start date based on offset
+  const [selectedDate, setSelectedDate] = useState<string>(
+    formatDateForMealPlan(new Date())
+  );
+
+  const { createMealPlan, batchUpdateMealPlan, updateMealPlan, isCreating } =
+    useMealPlans();
+
   const getCurrentWeekStartDate = useCallback(() => {
     const today = new Date();
-    today.setDate(today.getDate() + (currentWeekOffset * 7));
+    today.setDate(today.getDate() + currentWeekOffset * 7);
     return getWeekStartDate(today);
   }, [currentWeekOffset]);
 
-  // Use the new meal plan hook
+  const weekStartDate = getCurrentWeekStartDate();
+  console.log(
+    `🗓️ MealPlannerScreen: Current week start date is ${weekStartDate}`
+  );
+
   const {
-    data: activeMealPlan,
-    isLoading,
+    data: mealPlan,
+    isLoading: isLoadingMealPlan,
     error: mealPlanError,
     refetch: refetchMealPlan,
-  } = useMealPlanByWeek(getCurrentWeekStartDate());
+    isRefetching,
+  } = useMealPlanByWeek(weekStartDate);
 
-  // Get batch update functionality for meal prep cloning
-  const { batchUpdateMealPlan, updateMealPlan, isBatchUpdating, isUpdating } = useMealPlans();
-  const [showMacroGoalsSetup, setShowMacroGoalsSetup] = useState(false);
+  console.log("🪝 MealPlannerScreen: useMealPlanByWeek hook state:", {
+    isLoadingMealPlan,
+    isRefetching,
+    hasData: !!mealPlan,
+    mealPlanId: mealPlan?.id,
+    error: mealPlanError,
+  });
 
-  // Mock premium status - payment system is currently disabled, so users have full access
-  const [isPremium, setIsPremium] = useState(true);
-
-  // Meal tracking hooks
-  const { addMealEntry } = useMealTracking();
   const { data: mealEntries } = useMealEntriesForDay(selectedDate);
   const { data: macroProgress } = useDailyMacroProgress(selectedDate);
   const { setMacroGoals, isLoading: macroLoading } = useUserProfile();
 
-  // Create meal plan if it doesn't exist and we're viewing current/future weeks
-  const createMealPlanIfNeeded = useCallback(async () => {
-    if (!user || !activeMealPlan && currentWeekOffset >= 0) {
-      try {
-        const weekStartDate = getCurrentWeekStartDate();
-        const request: CreateMealPlanRequest = {
-          title: currentWeekOffset === 0 
-            ? `This Week (${new Date(weekStartDate).toLocaleDateString()})`
-            : `Week of ${new Date(weekStartDate).toLocaleDateString()}`,
-          week_start_date: weekStartDate
-        };
-        await MealPlanService.createMealPlan(user!.id, request);
-        refetchMealPlan();
-      } catch (err) {
-        ErrorHandler.handleError(err, 'creating meal plan');
-      }
-    }
-  }, [user, activeMealPlan, currentWeekOffset, getCurrentWeekStartDate, refetchMealPlan]);
-
-  // Create meal plan if needed when component mounts or week changes
-  useEffect(() => {
-    if (!isLoading && !activeMealPlan && currentWeekOffset >= 0 && !isCreatingMealPlan) {
-      // Wrap the call in the state setters to prevent race conditions
-      const createPlan = async () => {
-        setIsCreatingMealPlan(true);
-        await createMealPlanIfNeeded();
-        setIsCreatingMealPlan(false);
-      };
-      createPlan();
-    }
-  }, [isLoading, activeMealPlan, currentWeekOffset, createMealPlanIfNeeded, isCreatingMealPlan]);
-
-  // Refresh meal plan when screen comes into focus (e.g., returning from recipe generation)
   useFocusEffect(
     useCallback(() => {
+      console.log(
+        "✨ MealPlannerScreen: Screen focused. Refetching meal plan and recipes."
+      );
       refetchMealPlan();
-      // Also refresh recipes in case we're returning from recipe generation
       refetchRecipes();
     }, [refetchMealPlan, refetchRecipes])
   );
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetchMealPlan();
-    setIsRefreshing(false);
+  const handleCloneRecipe = (recipe: MealPlanRecipe, mealType: MealType) => {
+    console.log(
+      `1️⃣ [USER ACTION] handleCloneRecipe: User wants to clone recipe "${recipe.recipe_name}"`
+    );
+    setRecipeToClone({ recipe, mealType });
+    setShowMealPrepModal(true);
+    HapticService.light();
   };
 
-  const handleCreateMealPlan = async () => {
-    console.log('🍽️ handleCreateMealPlan called', { isPremium, user: !!user, isCreatingMealPlan });
-    
-    // Prevent double-clicking
-    if (isCreatingMealPlan) {
-      console.log('⏳ Already creating meal plan, ignoring...');
+  const handleCopyToSlots = async (
+    slots: { date: string; mealType: MealType }[]
+  ) => {
+    console.log(
+      `2️⃣ [UI EVENT] handleCopyToSlots: Modal confirmed. Preparing to copy to ${slots.length} slots.`
+    );
+    if (!mealPlan || !recipeToClone) {
+      console.error(
+        "❌ ERROR: handleCopyToSlots called without mealPlan or recipeToClone."
+      );
       return;
     }
-    
+    try {
+      HapticService.medium();
+      setShowMealPrepModal(false);
+      const updateRequests = slots.map((slot) => ({
+        meal_plan_id: mealPlan.id,
+        date: slot.date,
+        meal_type: slot.mealType,
+        recipe_id: recipeToClone.recipe.recipe_id,
+        servings: recipeToClone.recipe.servings,
+      }));
+      console.log(
+        "3️⃣ [MUTATION TRIGGER] handleCopyToSlots: Calling batchUpdateMealPlan with requests:",
+        updateRequests
+      );
+      await batchUpdateMealPlan(updateRequests);
+      setRecipeToClone(null);
+      HapticService.success();
+      Alert.alert(
+        "Recipe Copied!",
+        `Successfully copied "${recipeToClone.recipe.recipe_name}" to ${
+          slots.length
+        } meal slot${slots.length > 1 ? "s" : ""}.`
+      );
+    } catch (err) {
+      console.error("❌ ERROR in handleCopyToSlots:", err);
+      ErrorHandler.handleError(err, "copying recipe to meal slots");
+    }
+  };
+
+  const handleRefresh = useCallback(async () => {
+    await refetchMealPlan();
+  }, [refetchMealPlan]);
+
+  const handleCreateMealPlan = async () => {
     if (!isPremium) {
-      console.log('❌ Premium gate triggered');
       setShowPremiumGate(true);
       return;
     }
-
-    if (!user) {
-      console.log('❌ No user found');
-      return;
-    }
-
-    try {
-      console.log('🔄 Starting meal plan creation...');
-      setIsCreatingMealPlan(true);
-      HapticService.medium();
-      
-      const weekStartDate = getCurrentWeekStartDate();
-      const request: CreateMealPlanRequest = {
-        title: `Week of ${new Date(weekStartDate).toLocaleDateString()}`,
-        week_start_date: weekStartDate
-      };
-
-      console.log('📅 Creating meal plan with request:', request);
-      const newMealPlan = await MealPlanService.createMealPlan(user.id, request);
-      console.log('✅ Meal plan created successfully:', newMealPlan);
-      
-      // Invalidate all meal plan caches to force fresh data
-      console.log('🗑️ Invalidating all meal plan caches...');
-      await queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
-      
-      // Force refetch and wait for it to complete
-      console.log('🔄 Refetching meal plan data for week:', weekStartDate);
-      const refetchResult = await refetchMealPlan();
-      console.log('✅ Meal plan data refetched:', { 
-        data: refetchResult.data, 
-        isSuccess: refetchResult.isSuccess,
-        error: refetchResult.error 
-      });
-      
-      HapticService.success();
-      ErrorHandler.showSuccessToast('Meal plan created successfully!');
-    } catch (err) {
-      console.error('❌ Error creating meal plan:', err);
-      ErrorHandler.handleError(err, 'creating meal plan');
-    } finally {
-      setIsCreatingMealPlan(false);
-    }
+    HapticService.medium();
+    const newPlanData = {
+      title: `Week of ${new Date(weekStartDate).toLocaleDateString()}`,
+      week_start_date: weekStartDate,
+    };
+    await createMealPlan(newPlanData);
   };
 
   const handleAddRecipe = (date: string, mealType: MealType) => {
@@ -186,197 +191,90 @@ export const MealPlannerScreen: React.FC = () => {
       setShowPremiumGate(true);
       return;
     }
-
     HapticService.light();
-    setSelectedMealSlot({ 
-      date, 
-      mealType, 
-      meal_plan_id: activeMealPlan?.id 
-    });
-    
-    // Show options: Add Recipe or Add Food Item
-    Alert.alert(
-      "Add to Meal Plan",
-      "What would you like to add?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "📖 Recipe",
-          onPress: () => setShowRecipeSelector(true)
+    setSelectedMealSlot({ date, mealType });
+    Alert.alert("Add to Meal Plan", "What would you like to add?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "📖 Recipe", onPress: () => setShowRecipeSelector(true) },
+      {
+        text: "🔍 Food Item",
+        onPress: () => {
+          setSelectedDate(date);
+          setShowFoodEntry(true);
         },
-        {
-          text: "🔍 Food Item",
-          onPress: () => {
-            setSelectedDate(date);
-            setShowFoodEntry(true);
-          }
-        }
-      ]
-    );
+      },
+    ]);
   };
 
   const handleSelectRecipe = async (recipeId: string) => {
-    if (!activeMealPlan || !selectedMealSlot || !user) return;
-
+    if (!mealPlan || !selectedMealSlot || !user) return;
     try {
       HapticService.medium();
-      
-      // Ensure recipe is available in cache before adding to meal plan
-      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for cache consistency
-      
-      // Use the mutation with optimistic updates
-      updateMealPlan({
-        meal_plan_id: activeMealPlan.id,
+      setShowRecipeSelector(false);
+      await updateMealPlan({
+        meal_plan_id: mealPlan.id,
         date: selectedMealSlot.date,
         meal_type: selectedMealSlot.mealType,
         recipe_id: recipeId,
-        servings: 2 // Default servings
+        servings: 2,
       });
-
-      setShowRecipeSelector(false);
       setSelectedMealSlot(null);
-      
       HapticService.success();
-      ErrorHandler.showSuccessToast('Recipe added to meal plan!');
+      ErrorHandler.showSuccessToast("Recipe added to meal plan!");
     } catch (err) {
-      ErrorHandler.handleError(err, 'adding recipe to meal plan');
+      ErrorHandler.handleError(err, "adding recipe to meal plan");
     }
   };
 
-  const handleRemoveRecipe = async (date: string, mealType: MealType) => {
-    if (!activeMealPlan) return;
-
+  const handleRemoveRecipe = (date: string, mealType: MealType) => {
+    if (!mealPlan) return;
     Alert.alert(
-      'Remove Recipe',
-      'Are you sure you want to remove this recipe from your meal plan?',
+      "Remove Recipe",
+      "Are you sure you want to remove this recipe from your meal plan?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Remove',
-          style: 'destructive',
+          text: "Remove",
+          style: "destructive",
           onPress: async () => {
-            try {
-              HapticService.medium();
-              
-              // Use the mutation with optimistic updates
-              updateMealPlan({
-                meal_plan_id: activeMealPlan.id,
-                date,
-                meal_type: mealType,
-                // No recipe_id = remove
-              });
-
-              HapticService.success();
-            } catch (err) {
-              ErrorHandler.handleError(err, 'removing recipe from meal plan');
-            }
-          }
-        }
+            HapticService.medium();
+            await updateMealPlan({
+              meal_plan_id: mealPlan.id,
+              date,
+              meal_type: mealType,
+            });
+            HapticService.success();
+          },
+        },
       ]
     );
   };
 
   const handleViewRecipe = (recipeId: string) => {
-    const recipe = recipes.find(r => r.id === recipeId);
+    const recipe = recipes.find((r) => r.id === recipeId);
     if (recipe) {
-      navigation.navigate('RecipeDetail', { recipe });
+      navigation.navigate("RecipeDetail", { recipe });
     }
   };
 
-  const handleCloneRecipe = (recipe: MealPlanRecipe, mealType: MealType) => {
-    setRecipeToClone({ recipe, mealType });
-    setShowMealPrepModal(true);
-    HapticService.light();
-  };
-
-  const generateSmartSuggestions = () => {
-    if (!activeMealPlan || !profile) return [];
-    
-    // Analyze current meal plan for gaps and patterns
-    const suggestions = [];
-    const weekDates = require('../types/mealPlan').getWeekDates(activeMealPlan.week_start_date);
-    
-    // Count current meals per type
-    const mealCounts = { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
-    activeMealPlan.days.forEach(day => {
-      if (day.breakfast) mealCounts.breakfast++;
-      if (day.lunch) mealCounts.lunch++;
-      if (day.dinner) mealCounts.dinner++;
-      if (day.snacks?.length) mealCounts.snacks += day.snacks.length;
-    });
-
-    // Suggest based on meal frequency
-    if (mealCounts.breakfast < 5) {
-      suggestions.push({
-        type: 'meal_frequency',
-        title: '🍳 Morning Fuel Needed',
-        description: `You only have ${mealCounts.breakfast} breakfasts planned. Add quick, protein-rich morning meals?`,
-        action: 'Generate breakfast recipes',
-        priority: 'high'
-      });
-    }
-
-    if (mealCounts.dinner < 6) {
-      suggestions.push({
-        type: 'meal_frequency', 
-        title: '🍽️ Dinner Planning',
-        description: `Plan ${7 - mealCounts.dinner} more dinners for complete week coverage.`,
-        action: 'Suggest dinner recipes',
-        priority: 'medium'
-      });
-    }
-
-    // Suggest meal prep opportunities
-    const hasRepeatedRecipes = activeMealPlan.days.some(day => 
-      activeMealPlan.days.some(otherDay => 
-        day.date !== otherDay.date && 
-        day.dinner?.recipe_id === otherDay.dinner?.recipe_id
-      )
-    );
-
-    if (!hasRepeatedRecipes && mealCounts.dinner >= 4) {
-      suggestions.push({
-        type: 'meal_prep',
-        title: '📋 Meal Prep Opportunity',
-        description: 'Make cooking easier by using the same recipe for multiple days.',
-        action: 'Clone a recipe',
-        priority: 'low'
-      });
-    }
-
-    // Suggest nutritional balance
-    if (macroProgress?.goal_protein && macroProgress.total_protein < macroProgress.goal_protein * 0.8) {
-      suggestions.push({
-        type: 'nutrition',
-        title: '💪 Protein Boost Needed',
-        description: 'Your current meal plan may be low in protein. Add protein-rich options?',
-        action: 'Find high-protein recipes',
-        priority: 'high'
-      });
-    }
-
-    return suggestions.slice(0, 3); // Limit to 3 suggestions
-  };
-
+  const { addMealEntry } = useMealTracking();
   const handleUpgradeToPremium = () => {
-    // In real app, this would navigate to subscription screen
     Alert.alert(
-      'Upgrade to Premium',
-      'This would open the subscription flow. For demo purposes, we\'ll enable premium features.',
+      "Upgrade to Premium",
+      "This would open the subscription flow. For demo purposes, we'll enable premium features.",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Enable Premium (Demo)',
+          text: "Enable Premium (Demo)",
           onPress: () => {
             setIsPremium(true);
             setShowPremiumGate(false);
-            ErrorHandler.showSuccessToast('Premium features enabled!');
-          }
-        }
+            ErrorHandler.showSuccessToast("Premium features enabled!");
+          },
+        },
       ]
     );
   };
-
   const handleFoodAdded = async (foodData: any) => {
     try {
       await addMealEntry(
@@ -388,15 +286,13 @@ export const MealPlannerScreen: React.FC = () => {
       setShowFoodEntry(false);
       setSelectedMealSlot(null);
       HapticService.success();
-      ErrorHandler.showSuccessToast('Food item added successfully!');
+      ErrorHandler.showSuccessToast("Food item added successfully!");
     } catch (error) {
-      ErrorHandler.handleError(error, 'adding food item');
+      ErrorHandler.handleError(error, "adding food item");
     }
   };
-
   const getDailyMacros = (): DailyMacros | null => {
     if (!profile?.macro_goals_set || !macroProgress) return null;
-    
     return {
       calories: {
         current: macroProgress.total_calories || 0,
@@ -417,22 +313,103 @@ export const MealPlannerScreen: React.FC = () => {
     };
   };
 
+  const renderHeader = () => (
+    <Box
+      backgroundColor="surface"
+      paddingHorizontal="lg"
+      paddingVertical="md"
+      borderBottomWidth={1}
+      borderBottomColor="border"
+      style={{ paddingTop: Math.max(insets.top, 16) }}
+    >
+      <Box
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="center"
+        marginBottom="sm"
+      >
+        <TouchableOpacity
+          onPress={() => setCurrentWeekOffset(currentWeekOffset - 1)}
+          disabled={currentWeekOffset <= -4}
+          style={{ opacity: currentWeekOffset <= -4 ? 0.3 : 1 }}
+        >
+          <Box flexDirection="row" alignItems="center" padding="xs">
+            <Text fontSize={16}>←</Text>
+            <Text variant="caption" color="primary" marginLeft="xs">
+              Previous
+            </Text>
+          </Box>
+        </TouchableOpacity>
+        <Box flex={1} alignItems="center">
+          <Text variant="h3" color="primaryText">
+            {currentWeekOffset === 0
+              ? "This Week"
+              : currentWeekOffset === 1
+              ? "Next Week"
+              : currentWeekOffset > 1
+              ? `${currentWeekOffset} Weeks Ahead`
+              : currentWeekOffset === -1
+              ? "Last Week"
+              : `${Math.abs(currentWeekOffset)} Weeks Ago`}
+          </Text>
+        </Box>
+        <TouchableOpacity
+          onPress={() => setCurrentWeekOffset(currentWeekOffset + 1)}
+          disabled={currentWeekOffset >= 8}
+          style={{ opacity: currentWeekOffset >= 8 ? 0.3 : 1 }}
+        >
+          <Box flexDirection="row" alignItems="center" padding="xs">
+            <Text variant="caption" color="primary" marginRight="xs">
+              Next
+            </Text>
+            <Text fontSize={16}>→</Text>
+          </Box>
+        </TouchableOpacity>
+      </Box>
+      <Box
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="flex-start"
+        marginTop="sm"
+      >
+        <Box flex={1}>
+          <Text variant="h2" color="primaryText" marginBottom="xs">
+            {mealPlan?.title ||
+              `Week of ${new Date(weekStartDate).toLocaleDateString()}`}
+          </Text>
+          <Text variant="caption" color="secondaryText">
+            {`Week of ${new Date(weekStartDate).toLocaleDateString()}`}
+          </Text>
+        </Box>
+        {profile?.macro_goals_set && (
+          <Button
+            variant="secondary"
+            onPress={() => setShowMacroSummary(true)}
+            paddingHorizontal="sm"
+            paddingVertical="xs"
+          >
+            <Text variant="caption" color="primaryText">
+              📊 Macros
+            </Text>
+          </Button>
+        )}
+      </Box>
+    </Box>
+  );
+
   if (showPremiumGate) {
     return (
       <PremiumGate
         feature="Meal Planning"
-        description="Plan your entire week of meals, generate smart grocery lists, and never wonder &apos;what&apos;s for dinner?&apos; again."
+        description="Plan your entire week of meals, generate smart grocery lists, and never wonder 'what's for dinner?' again."
         onUpgrade={handleUpgradeToPremium}
         onClose={() => setShowPremiumGate(false)}
       />
     );
   }
 
-  if (isLoading || isBatchUpdating) {
-    const message = isLoading 
-      ? "Loading your meal plan..." 
-      : "Updating meal plan...";
-    return <LoadingSpinner message={message} />;
+  if (isLoadingMealPlan && !isRefetching) {
+    return <LoadingSpinner message="Loading your meal plan..." />;
   }
 
   if (mealPlanError) {
@@ -440,235 +417,66 @@ export const MealPlannerScreen: React.FC = () => {
       <ErrorMessage
         variant="fullscreen"
         title="Failed to Load Meal Plan"
-        message={mealPlanError?.message || 'Unknown error'}
+        message={mealPlanError?.message || "Unknown error"}
         onRetry={refetchMealPlan}
       />
     );
   }
 
-  if (!activeMealPlan) {
+  if (!mealPlan) {
     return (
-      <Box 
-        flex={1} 
-        backgroundColor="mainBackground" 
-        justifyContent="center" 
-        alignItems="center"
-        padding="xl"
-      >
-        <Text fontSize={64} marginBottom="lg">📅</Text>
-        <Text variant="h1" textAlign="center" marginBottom="sm">
-          Plan Your Week
-        </Text>
-        <Text variant="body" color="secondaryText" textAlign="center" marginBottom="xl">
-          Create a weekly meal plan to organize your cooking and never wonder what&apos;s for dinner again.
-        </Text>
-        
-        <Button variant="primary" onPress={handleCreateMealPlan} disabled={isCreatingMealPlan}>
-          <Text variant="button" color="primaryButtonText">
-            {isCreatingMealPlan ? 'Creating Plan...' : "Create This Week's Plan"}
+      <Box flex={1} backgroundColor="mainBackground">
+        {renderHeader()}
+        <Box flex={1} justifyContent="center" alignItems="center" padding="xl">
+          <Text fontSize={64} marginBottom="lg">
+            📅
           </Text>
-        </Button>
-        
-        {!isPremium && (
-          <Text variant="caption" color="tertiaryText" textAlign="center" marginTop="md">
-            Premium feature - Start your free trial to begin meal planning
+          <Text variant="h1" textAlign="center" marginBottom="sm">
+            No Plan For This Week
           </Text>
-        )}
+          <Text
+            variant="body"
+            color="secondaryText"
+            textAlign="center"
+            marginBottom="xl"
+          >
+            Create a meal plan for this week to start organizing your meals.
+          </Text>
+          <Button
+            variant="primary"
+            onPress={handleCreateMealPlan}
+            disabled={isCreating}
+          >
+            <Text variant="button" color="primaryButtonText">
+              {isCreating ? "Creating Plan..." : "Create Meal Plan"}
+            </Text>
+          </Button>
+          {!isPremium && (
+            <Text
+              variant="caption"
+              color="tertiaryText"
+              textAlign="center"
+              marginTop="md"
+            >
+              Premium feature - Start your free trial to begin meal planning
+            </Text>
+          )}
+        </Box>
       </Box>
     );
   }
 
   return (
     <Box flex={1} backgroundColor="mainBackground">
-      {/* Header */}
-      <Box 
-        backgroundColor="surface" 
-        paddingHorizontal="lg" 
-        paddingVertical="md"
-        borderBottomWidth={1}
-        borderBottomColor="border"
-        style={{ paddingTop: Math.max(insets.top, 16) }}
-      >
-        <Box>
-          {/* Week Navigation */}
-          <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="sm">
-            <TouchableOpacity 
-              onPress={() => setCurrentWeekOffset(currentWeekOffset - 1)}
-              disabled={currentWeekOffset <= -4} // Limit to 4 weeks in the past
-              style={{ opacity: currentWeekOffset <= -4 ? 0.3 : 1 }}
-            >
-              <Box flexDirection="row" alignItems="center" padding="xs">
-                <Text fontSize={16}>←</Text>
-                <Text variant="caption" color="primary" marginLeft="xs">Previous</Text>
-              </Box>
-            </TouchableOpacity>
-            
-            <Box flex={1} alignItems="center">
-              <Text variant="h3" color="primaryText">
-                {currentWeekOffset === 0 ? "This Week" : 
-                 currentWeekOffset === 1 ? "Next Week" :
-                 currentWeekOffset > 1 ? `${currentWeekOffset} Weeks Ahead` :
-                 currentWeekOffset === -1 ? "Last Week" :
-                 `${Math.abs(currentWeekOffset)} Weeks Ago`}
-              </Text>
-            </Box>
-            
-            <TouchableOpacity 
-              onPress={() => setCurrentWeekOffset(currentWeekOffset + 1)}
-              disabled={currentWeekOffset >= 8} // Limit to 8 weeks ahead
-              style={{ opacity: currentWeekOffset >= 8 ? 0.3 : 1 }}
-            >
-              <Box flexDirection="row" alignItems="center" padding="xs">
-                <Text variant="caption" color="primary" marginRight="xs">Next</Text>
-                <Text fontSize={16}>→</Text>
-              </Box>
-            </TouchableOpacity>
-          </Box>
-
-          {/* Meal Plan Title and Macros */}
-          <Box flexDirection="row" justifyContent="space-between" alignItems="flex-start">
-            <Box flex={1}>
-              <Text variant="h2" color="primaryText" marginBottom="xs">
-                {activeMealPlan.title}
-              </Text>
-              <Text variant="caption" color="secondaryText">
-                Week of {new Date(activeMealPlan.week_start_date).toLocaleDateString()}
-              </Text>
-            </Box>
-            
-            {profile?.macro_goals_set && (
-              <Button 
-                variant="secondary" 
-                onPress={() => setShowMacroSummary(true)}
-                paddingHorizontal="sm"
-                paddingVertical="xs"
-              >
-                <Text variant="caption" color="primaryText">📊 Macros</Text>
-              </Button>
-            )}
-          </Box>
-        </Box>
-      </Box>
-
-      {/* Meal Grid */}
-      <ScrollView 
+      {renderHeader()}
+      <ScrollView
         refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-          />
+          <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Smart Suggestions */}
-        {(() => {
-          const suggestions = generateSmartSuggestions();
-          if (suggestions.length === 0) return null;
-          
-          return (
-            <Box padding="lg" paddingBottom="md">
-              <Text variant="h3" color="primaryText" marginBottom="md">
-                🧠 Smart Suggestions
-              </Text>
-              
-              {suggestions.map((suggestion, index) => (
-                <Box 
-                  key={index}
-                  backgroundColor="surface" 
-                  padding="md" 
-                  borderRadius="md" 
-                  marginBottom="sm"
-                  borderLeftWidth={4}
-                  style={{ 
-                    borderLeftColor: suggestion.priority === 'high' 
-                      ? '#FF6B35' 
-                      : suggestion.priority === 'medium' 
-                        ? '#FF9800' 
-                        : '#4CAF50' 
-                  }}
-                >
-                  <Text variant="h3" color="primaryText" marginBottom="xs">
-                    {suggestion.title}
-                  </Text>
-                  <Text variant="body" color="secondaryText" marginBottom="md">
-                    {suggestion.description}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      // Handle suggestion actions
-                      if (suggestion.type === 'meal_frequency') {
-                        // Better meal type detection from suggestion title
-                        let mealType: MealType = 'dinner'; // default
-                        if (suggestion.title.toLowerCase().includes('breakfast')) {
-                          mealType = 'breakfast';
-                        } else if (suggestion.title.toLowerCase().includes('lunch')) {
-                          mealType = 'lunch';
-                        } else if (suggestion.title.toLowerCase().includes('dinner')) {
-                          mealType = 'dinner';
-                        }
-                        // Find first empty slot of this meal type
-                        const weekDates = require('../types/mealPlan').getWeekDates(activeMealPlan.week_start_date);
-                        const emptySlot = weekDates.find((date: string) => {
-                          const dayPlan = activeMealPlan.days.find(day => day.date === date);
-                          return !dayPlan?.[mealType];
-                        });
-                        if (emptySlot) {
-                          // Navigate to recipe generation with context for automatic addition
-                          navigation.navigate('RecipeGeneration', {
-                            initialPrompt: `Generate a ${mealType} recipe for my meal plan`,
-                            fromMealPlanner: true,
-                            mealPlanContext: { 
-                              date: emptySlot, 
-                              mealType,
-                              meal_plan_id: activeMealPlan?.id 
-                            }
-                          });
-                        }
-                      } else if (suggestion.type === 'nutrition') {
-                        // Find next empty meal slot for today
-                        const today = formatDateForMealPlan(new Date());
-                        const todayPlan = activeMealPlan.days.find(day => day.date === today);
-                        let targetMealSlot = null;
-                        
-                        // Try to find an empty slot in order: breakfast, lunch, dinner
-                        if (!todayPlan?.breakfast) {
-                          targetMealSlot = { date: today, mealType: 'breakfast' as MealType };
-                        } else if (!todayPlan?.lunch) {
-                          targetMealSlot = { date: today, mealType: 'lunch' as MealType };
-                        } else if (!todayPlan?.dinner) {
-                          targetMealSlot = { date: today, mealType: 'dinner' as MealType };
-                        }
-                        
-                        // Navigate to recipe generator with protein focus and meal context
-                        navigation.navigate('RecipeGeneration', { 
-                          initialPrompt: 'Generate a high-protein recipe for my meal plan',
-                          fromMealPlanner: true,
-                          mealPlanContext: targetMealSlot
-                        });
-                      }
-                      HapticService.light();
-                    }}
-                  >
-                    <Box 
-                      backgroundColor="primary" 
-                      paddingHorizontal="md" 
-                      paddingVertical="sm" 
-                      borderRadius="sm"
-                      alignSelf="flex-start"
-                    >
-                      <Text variant="caption" color="primaryButtonText" fontWeight="600">
-                        {suggestion.action}
-                      </Text>
-                    </Box>
-                  </TouchableOpacity>
-                </Box>
-              ))}
-            </Box>
-          );
-        })()}
-
         <WeeklyMealGrid
-          mealPlan={activeMealPlan}
+          mealPlan={mealPlan}
           onAddRecipe={handleAddRecipe}
           onViewRecipe={handleViewRecipe}
           onRemoveRecipe={handleRemoveRecipe}
@@ -676,7 +484,7 @@ export const MealPlannerScreen: React.FC = () => {
         />
       </ScrollView>
 
-      {/* Recipe Selector Sheet */}
+      {/* Bottom Sheets and Modals */}
       <BottomSheet
         isVisible={showRecipeSelector}
         onClose={() => {
@@ -688,16 +496,24 @@ export const MealPlannerScreen: React.FC = () => {
         <Box padding="md">
           {recipes.length === 0 ? (
             <Box alignItems="center" padding="xl">
-              <Text variant="body" color="secondaryText" textAlign="center" marginBottom="lg">
-                You don&apos;t have any saved recipes yet.
+              <Text
+                variant="body"
+                color="secondaryText"
+                textAlign="center"
+                marginBottom="lg"
+              >
+                You don't have any saved recipes yet.
               </Text>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onPress={() => {
                   setShowRecipeSelector(false);
-                  navigation.navigate('RecipeGeneration', { 
+                  navigation.navigate("RecipeGeneration", {
                     fromMealPlanner: true,
-                    mealPlanContext: selectedMealSlot 
+                    mealPlanContext: {
+                      ...selectedMealSlot,
+                      meal_plan_id: mealPlan.id,
+                    },
                   });
                 }}
               >
@@ -708,22 +524,35 @@ export const MealPlannerScreen: React.FC = () => {
             </Box>
           ) : (
             <>
-              {/* Generate New Recipe Option */}
-              <Box marginBottom="lg" padding="md" backgroundColor="surface" borderRadius="lg" borderWidth={1} borderColor="border">
+              <Box
+                marginBottom="lg"
+                padding="md"
+                backgroundColor="surface"
+                borderRadius="lg"
+                borderWidth={1}
+                borderColor="border"
+              >
                 <Box flexDirection="row" alignItems="center" marginBottom="sm">
-                  <Text fontSize={24} marginRight="sm">✨</Text>
-                  <Text variant="h3" flex={1}>Generate New Recipe</Text>
+                  <Text fontSize={24} marginRight="sm">
+                    ✨
+                  </Text>
+                  <Text variant="h3" flex={1}>
+                    Generate New Recipe
+                  </Text>
                 </Box>
                 <Text variant="body" color="secondaryText" marginBottom="md">
                   Create a personalized recipe just for this meal
                 </Text>
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   onPress={() => {
                     setShowRecipeSelector(false);
-                    navigation.navigate('RecipeGeneration', { 
+                    navigation.navigate("RecipeGeneration", {
                       fromMealPlanner: true,
-                      mealPlanContext: selectedMealSlot 
+                      mealPlanContext: {
+                        ...selectedMealSlot,
+                        meal_plan_id: mealPlan.id,
+                      },
                     });
                   }}
                 >
@@ -732,17 +561,17 @@ export const MealPlannerScreen: React.FC = () => {
                   </Text>
                 </Button>
               </Box>
-
-              {/* Divider */}
               <Box flexDirection="row" alignItems="center" marginBottom="lg">
                 <Box flex={1} height={1} backgroundColor="border" />
-                <Text variant="caption" color="secondaryText" marginHorizontal="md">
+                <Text
+                  variant="caption"
+                  color="secondaryText"
+                  marginHorizontal="md"
+                >
                   OR CHOOSE FROM SAVED
                 </Text>
                 <Box flex={1} height={1} backgroundColor="border" />
               </Box>
-
-              {/* Existing Recipes */}
               {recipes.map((recipe) => (
                 <Box key={recipe.id} marginBottom="md">
                   <RecipeCard
@@ -756,7 +585,6 @@ export const MealPlannerScreen: React.FC = () => {
         </Box>
       </BottomSheet>
 
-      {/* Food Entry Sheet */}
       <BottomSheet
         isVisible={showFoodEntry}
         onClose={() => {
@@ -764,7 +592,7 @@ export const MealPlannerScreen: React.FC = () => {
           setSelectedMealSlot(null);
         }}
         title={`Add Food Item to ${selectedMealSlot?.mealType} - ${selectedMealSlot?.date}`}
-        snapPoints={['95%']}
+        snapPoints={["95%"]}
       >
         {selectedMealSlot && (
           <AddFoodEntry
@@ -779,12 +607,32 @@ export const MealPlannerScreen: React.FC = () => {
         )}
       </BottomSheet>
 
-      {/* Macro Summary Sheet */}
+      <BottomSheet
+        isVisible={showMealPrepModal}
+        onClose={() => {
+          setShowMealPrepModal(false);
+          setRecipeToClone(null);
+        }}
+      >
+        <MealPrepInterface
+          recipe={recipeToClone?.recipe}
+          originalMealType={recipeToClone?.mealType}
+          mealPlan={mealPlan}
+          onCopyToSlots={handleCopyToSlots}
+          onClose={() => {
+            setShowMealPrepModal(false);
+            setRecipeToClone(null);
+          }}
+        />
+      </BottomSheet>
+
       <BottomSheet
         isVisible={showMacroSummary}
         onClose={() => setShowMacroSummary(false)}
-        title={`Daily Macro Progress - ${new Date(selectedDate).toLocaleDateString()}`}
-        snapPoints={['90%']}
+        title={`Daily Macro Progress - ${new Date(
+          selectedDate
+        ).toLocaleDateString()}`}
+        snapPoints={["90%"]}
       >
         <Box padding="md">
           {(() => {
@@ -795,12 +643,21 @@ export const MealPlannerScreen: React.FC = () => {
                   <Text variant="h3" color="primaryText" marginBottom="sm">
                     🎯 Set Your Macro Goals
                   </Text>
-                  <Text variant="body" color="secondaryText" textAlign="center" marginBottom="lg">
-                    Track your daily nutrition progress by setting your macro targets in your profile.
+                  <Text
+                    variant="body"
+                    color="secondaryText"
+                    textAlign="center"
+                    marginBottom="lg"
+                  >
+                    Track your daily nutrition progress by setting your macro
+                    targets in your profile.
                   </Text>
-                  <Button variant="primary" onPress={() => {
-                    setShowMacroGoalsSetup(true);
-                  }}>
+                  <Button
+                    variant="primary"
+                    onPress={() => {
+                      setShowMacroGoalsSetup(true);
+                    }}
+                  >
                     <Text variant="button" color="primaryButtonText">
                       Set Macro Goals
                     </Text>
@@ -808,7 +665,6 @@ export const MealPlannerScreen: React.FC = () => {
                 </Box>
               );
             }
-
             return (
               <ScrollView showsVerticalScrollIndicator={false}>
                 <DailyMacroSummary
@@ -816,25 +672,32 @@ export const MealPlannerScreen: React.FC = () => {
                   date={new Date(selectedDate).toLocaleDateString()}
                   showDate={true}
                 />
-                
                 {mealEntries && mealEntries.length > 0 && (
                   <Box marginTop="lg">
                     <Text variant="h3" color="primaryText" marginBottom="md">
-                      📝 Today&apos;s Food Log
+                      📝 Today's Food Log
                     </Text>
-                    {mealEntries.map((entry, index) => (
-                      <Box 
-                        key={entry.id} 
-                        backgroundColor="surface" 
-                        padding="sm" 
-                        borderRadius="md" 
+                    {mealEntries.map((entry: MealEntry) => (
+                      <Box
+                        key={entry.id}
+                        backgroundColor="surface"
+                        padding="sm"
+                        borderRadius="md"
                         marginBottom="sm"
                         borderWidth={1}
                         borderColor="border"
                       >
-                        <Box flexDirection="row" justifyContent="space-between" alignItems="flex-start">
+                        <Box
+                          flexDirection="row"
+                          justifyContent="space-between"
+                          alignItems="flex-start"
+                        >
                           <Box flex={1}>
-                            <Text variant="body" color="primaryText" fontWeight="600">
+                            <Text
+                              variant="body"
+                              color="primaryText"
+                              fontWeight="600"
+                            >
                               {entry.food_name}
                             </Text>
                             {entry.brand_name && (
@@ -847,11 +710,22 @@ export const MealPlannerScreen: React.FC = () => {
                             </Text>
                           </Box>
                           <Box alignItems="flex-end">
-                            <Text variant="caption" color="secondaryText" textTransform="capitalize">
+                            <Text
+                              variant="caption"
+                              color="secondaryText"
+                              textTransform="capitalize"
+                            >
                               {entry.meal_type}
                             </Text>
-                            <Text variant="body" color="primaryText" fontWeight="600">
-                              {Math.round(entry.calories_per_serving * entry.quantity)} cal
+                            <Text
+                              variant="body"
+                              color="primaryText"
+                              fontWeight="600"
+                            >
+                              {Math.round(
+                                entry.calories_per_serving * entry.quantity
+                              )}{" "}
+                              cal
                             </Text>
                           </Box>
                         </Box>
@@ -864,71 +738,10 @@ export const MealPlannerScreen: React.FC = () => {
           })()}
         </Box>
       </BottomSheet>
-
-      {/* Meal Prep Modal */}
-      <BottomSheet
-        isVisible={showMealPrepModal}
-        onClose={() => {
-          setShowMealPrepModal(false);
-          setRecipeToClone(null);
-        }}
-      >
-        <MealPrepInterface
-          recipe={recipeToClone?.recipe}
-          originalMealType={recipeToClone?.mealType}
-          mealPlan={activeMealPlan}
-          onCopyToSlots={async (slots) => {
-            if (!activeMealPlan || !recipeToClone) {
-              console.error('❌ Missing data for meal prep cloning:', { activeMealPlan: !!activeMealPlan, recipeToClone: !!recipeToClone });
-              return;
-            }
-            
-            try {
-              HapticService.medium();
-              
-              // Create batch update requests for all slots
-              const updateRequests = slots.map(slot => ({
-                meal_plan_id: activeMealPlan.id,
-                date: slot.date,
-                meal_type: slot.mealType,
-                recipe_id: recipeToClone.recipe.recipe_id,
-                servings: recipeToClone.recipe.servings,
-              }));
-              
-              // Use batch update with optimistic updates
-              console.log(`🍴 Copying recipe "${recipeToClone.recipe.recipe_name}" to ${slots.length} slots...`);
-              console.log(`📊 Update requests:`, updateRequests);
-              console.log(`📅 Current week date: ${getCurrentWeekStartDate()}`);
-              console.log(`📋 Current meal plan ID: ${activeMealPlan.id}`);
-              
-              await batchUpdateMealPlan(updateRequests);
-              
-              setShowMealPrepModal(false);
-              setRecipeToClone(null);
-              
-              HapticService.success();
-              Alert.alert(
-                "Recipe Copied!", 
-                `Successfully copied "${recipeToClone.recipe.recipe_name}" to ${slots.length} meal slot${slots.length > 1 ? 's' : ''}.`
-              );
-            } catch (err) {
-              console.error('Error in meal prep copying:', err);
-              ErrorHandler.handleError(err, 'copying recipe to meal slots');
-              // Don't close modal on error so user can try again
-            }
-          }}
-          onClose={() => {
-            setShowMealPrepModal(false);
-            setRecipeToClone(null);
-          }}
-        />
-      </BottomSheet>
-
-      {/* Macro Goals Setup Modal */}
       <BottomSheet
         isVisible={showMacroGoalsSetup}
         onClose={() => setShowMacroGoalsSetup(false)}
-        snapPoints={['100%']}
+        snapPoints={["100%"]}
       >
         <MacroGoalsEditor
           onSave={async (goals: MacroGoals) => {
@@ -939,7 +752,6 @@ export const MealPlannerScreen: React.FC = () => {
               dailyFatGoal: goals.dailyFat,
             });
             setShowMacroGoalsSetup(false);
-            // Refresh the macro summary modal to show the new goals
             setShowMacroSummary(true);
           }}
           onCancel={() => setShowMacroGoalsSetup(false)}
@@ -947,7 +759,6 @@ export const MealPlannerScreen: React.FC = () => {
           showTDEECalculator={true}
           title="🎯 Set Macro Goals"
           subtitle="Set your daily macro targets to track nutrition progress"
-          disableScroll={true} // Disable internal scroll since it's inside BottomSheet
         />
       </BottomSheet>
     </Box>

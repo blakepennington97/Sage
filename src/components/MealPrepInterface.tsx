@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
-import { ScrollView, TouchableOpacity } from 'react-native';
-import { Box, Text, Button } from './ui';
-import { 
-  MealPlanRecipe, 
-  MealType, 
-  WeeklyMealPlan, 
-  DAYS_OF_WEEK, 
+// src/components/MealPrepInterface.tsx
+
+import React, { useState } from "react";
+import { ScrollView, TouchableOpacity } from "react-native";
+import {
+  DAYS_OF_WEEK,
   MEAL_TYPES,
-  getWeekDates 
-} from '../types/mealPlan';
+  MealPlanRecipe,
+  MealType,
+  WeeklyMealPlan,
+  getWeekDates,
+} from "../types/mealPlan";
+import { Box, Button, Text } from "./ui";
 
 interface MealSlot {
   date: string;
@@ -27,21 +29,16 @@ interface MealPrepInterfaceProps {
 
 const getMealTypeEmoji = (mealType: MealType): string => {
   switch (mealType) {
-    case 'breakfast': return '🍳';
-    case 'lunch': return '🥗';
-    case 'dinner': return '🍽️';
-    case 'snacks': return '🍎';
-    default: return '🍴';
-  }
-};
-
-const getMealTypeColor = (mealType: MealType): string => {
-  switch (mealType) {
-    case 'breakfast': return '#FF9800'; // Orange
-    case 'lunch': return '#4CAF50'; // Green  
-    case 'dinner': return '#2196F3'; // Blue
-    case 'snacks': return '#9C27B0'; // Purple
-    default: return '#666';
+    case "breakfast":
+      return "🍳";
+    case "lunch":
+      return "🥗";
+    case "dinner":
+      return "🍽️";
+    case "snacks":
+      return "🍎";
+    default:
+      return "🍴";
   }
 };
 
@@ -57,24 +54,20 @@ export const MealPrepInterface: React.FC<MealPrepInterfaceProps> = ({
   if (!recipe || !mealPlan) return null;
 
   const weekDates = getWeekDates(mealPlan.week_start_date);
-  
-  // Create available meal slots for the week
+
   const availableSlots: MealSlot[] = [];
-  
   weekDates.forEach((date, dayIndex) => {
-    const dayMealPlan = mealPlan.days.find(day => day.date === date);
-    
-    MEAL_TYPES.forEach(mealType => {
+    const dayMealPlan = mealPlan.days.find((day) => day.date === date);
+    MEAL_TYPES.forEach((mealType) => {
       let isOccupied = false;
-      
-      if (mealType === 'snacks') {
-        // For snacks, we can always add more
-        isOccupied = false;
-      } else {
-        // For regular meals, check if slot is occupied
-        isOccupied = Boolean(dayMealPlan?.[mealType]);
+      if (dayMealPlan) {
+        if (mealType === "snacks") {
+          // A slot is occupied if there's at least one snack
+          isOccupied = (dayMealPlan.snacks?.length || 0) > 0;
+        } else {
+          isOccupied = !!dayMealPlan[mealType];
+        }
       }
-      
       availableSlots.push({
         date,
         mealType,
@@ -95,43 +88,51 @@ export const MealPrepInterface: React.FC<MealPrepInterfaceProps> = ({
   };
 
   const handleCopyToSelected = () => {
-    const slotsToUpdate = Array.from(selectedSlots).map(slotKey => {
-      const [date, mealType] = slotKey.split('-');
-      return { date, mealType: mealType as MealType };
+    const slotsToUpdate = Array.from(selectedSlots).map((slotKey) => {
+      const parts = slotKey.split("-");
+      const mealType = parts.pop() as MealType;
+      const date = parts.join("-");
+      return { date, mealType };
     });
-    
     onCopyToSlots(slotsToUpdate);
   };
 
   const selectSameMealType = () => {
     if (!originalMealType) return;
-    
     const sameMealSlots = availableSlots
-      .filter(slot => slot.mealType === originalMealType && !slot.isOccupied)
-      .map(slot => `${slot.date}-${slot.mealType}`);
-    
+      .filter((slot) => slot.mealType === originalMealType && !slot.isOccupied)
+      .map((slot) => `${slot.date}-${slot.mealType}`);
     setSelectedSlots(new Set(sameMealSlots));
   };
 
   const selectAllEmpty = () => {
     const emptySlots = availableSlots
-      .filter(slot => !slot.isOccupied)
-      .map(slot => `${slot.date}-${slot.mealType}`);
-    
+      .filter((slot) => !slot.isOccupied)
+      .map((slot) => `${slot.date}-${slot.mealType}`);
     setSelectedSlots(new Set(emptySlots));
   };
 
   return (
     <Box padding="lg">
-      <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="lg">
+      <Box
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="center"
+        marginBottom="lg"
+      >
         <Text variant="h2">🍽️ Meal Prep Helper</Text>
         <TouchableOpacity onPress={onClose}>
-          <Text fontSize={24} color="textSecondary">✕</Text>
+          <Text fontSize={24} color="secondaryText">
+            ✕
+          </Text>
         </TouchableOpacity>
       </Box>
-
-      {/* Recipe Info */}
-      <Box backgroundColor="surface" padding="md" borderRadius="md" marginBottom="lg">
+      <Box
+        backgroundColor="surface"
+        padding="md"
+        borderRadius="md"
+        marginBottom="lg"
+      >
         <Text variant="h3" color="primaryText" marginBottom="xs">
           📋 {recipe.recipe_name}
         </Text>
@@ -143,12 +144,10 @@ export const MealPrepInterface: React.FC<MealPrepInterfaceProps> = ({
             👥 {recipe.servings} servings
           </Text>
           <Text variant="caption" color="secondaryText">
-            {'★'.repeat(recipe.difficulty_level)}
+            {"★".repeat(recipe.difficulty_level)}
           </Text>
         </Box>
       </Box>
-
-      {/* Quick Actions */}
       <Box flexDirection="row" gap="sm" marginBottom="lg">
         <Button
           variant="secondary"
@@ -156,54 +155,61 @@ export const MealPrepInterface: React.FC<MealPrepInterfaceProps> = ({
           onPress={selectSameMealType}
           disabled={!originalMealType}
         >
-          <Text variant="caption" color="primaryText" numberOfLines={1} textAlign="center" fontSize={12}>
+          <Text
+            variant="caption"
+            color="primaryText"
+            numberOfLines={1}
+            textAlign="center"
+            fontSize={12}
+          >
             Same Meals
           </Text>
         </Button>
-        
-        <Button
-          variant="secondary"
-          flex={1}
-          onPress={selectAllEmpty}
-        >
-          <Text variant="caption" color="primaryText" numberOfLines={1} textAlign="center" fontSize={12}>
+        <Button variant="secondary" flex={1} onPress={selectAllEmpty}>
+          <Text
+            variant="caption"
+            color="primaryText"
+            numberOfLines={1}
+            textAlign="center"
+            fontSize={12}
+          >
             All Empty
           </Text>
         </Button>
-        
         <Button
           variant="secondary"
           flex={1}
           onPress={() => setSelectedSlots(new Set())}
         >
-          <Text variant="button" color="primaryText" numberOfLines={1} textAlign="center">
+          <Text
+            variant="button"
+            color="primaryText"
+            numberOfLines={1}
+            textAlign="center"
+          >
             Clear
           </Text>
         </Button>
       </Box>
-
       <Text variant="body" color="secondaryText" marginBottom="md">
         Select meal slots where you want to copy this recipe:
       </Text>
-
-      {/* Meal Slot Grid */}
       <Box maxHeight={300}>
         <ScrollView showsVerticalScrollIndicator={false}>
           {DAYS_OF_WEEK.map((dayName, dayIndex) => {
             const date = weekDates[dayIndex];
-            const daySlots = availableSlots.filter(slot => slot.date === date);
-            
+            const daySlots = availableSlots.filter(
+              (slot) => slot.date === date
+            );
             return (
               <Box key={date} marginBottom="md">
                 <Text variant="h3" color="primaryText" marginBottom="sm">
-                  {dayName} {new Date(date).getDate()}
+                  {dayName} {new Date(date + "T00:00:00").getDate()}
                 </Text>
-                
                 <Box flexDirection="row" gap="xs">
-                  {daySlots.map(slot => {
+                  {daySlots.map((slot) => {
                     const slotKey = `${slot.date}-${slot.mealType}`;
                     const isSelected = selectedSlots.has(slotKey);
-                    
                     return (
                       <TouchableOpacity
                         key={slotKey}
@@ -213,21 +219,21 @@ export const MealPrepInterface: React.FC<MealPrepInterfaceProps> = ({
                       >
                         <Box
                           backgroundColor={
-                            slot.isOccupied 
-                              ? "disabled" 
-                              : isSelected 
-                                ? "primary" 
-                                : "surface"
+                            slot.isOccupied
+                              ? "disabled"
+                              : isSelected
+                              ? "primary"
+                              : "surface"
                           }
                           padding="sm"
                           borderRadius="md"
                           borderWidth={isSelected ? 2 : 1}
                           borderColor={
-                            isSelected 
-                              ? "primary" 
-                              : slot.isOccupied 
-                                ? "disabled" 
-                                : "border"
+                            isSelected
+                              ? "primary"
+                              : slot.isOccupied
+                              ? "disabled"
+                              : "border"
                           }
                           opacity={slot.isOccupied ? 0.5 : 1}
                           alignItems="center"
@@ -237,23 +243,27 @@ export const MealPrepInterface: React.FC<MealPrepInterfaceProps> = ({
                           <Text fontSize={16} marginBottom="xs">
                             {getMealTypeEmoji(slot.mealType)}
                           </Text>
-                          <Text 
-                            variant="caption" 
+                          <Text
+                            variant="caption"
                             color={
-                              isSelected 
-                                ? "primaryButtonText" 
-                                : slot.isOccupied 
-                                  ? "disabled" 
-                                  : "secondaryText"
+                              isSelected ? "primaryButtonText" : "secondaryText"
                             }
                             textAlign="center"
                             numberOfLines={1}
+                            textTransform="capitalize"
                           >
                             {slot.mealType}
                           </Text>
                           {slot.isOccupied && (
-                            <Text variant="caption" color="disabled" textAlign="center">
-                              occupied
+                            // *** THIS IS THE FIX ***
+                            // We use the 'style' prop for non-theme properties
+                            <Text
+                              variant="small"
+                              color="secondaryText"
+                              textAlign="center"
+                              style={{ position: "absolute", bottom: 4 }}
+                            >
+                              Taken
                             </Text>
                           )}
                         </Box>
@@ -266,17 +276,12 @@ export const MealPrepInterface: React.FC<MealPrepInterfaceProps> = ({
           })}
         </ScrollView>
       </Box>
-
-      {/* Action Buttons */}
       <Box flexDirection="row" gap="md" marginTop="lg">
-        <Button
-          variant="secondary"
-          flex={1}
-          onPress={onClose}
-        >
-          <Text variant="button" color="primaryText">Cancel</Text>
+        <Button variant="secondary" flex={1} onPress={onClose}>
+          <Text variant="button" color="primaryText">
+            Cancel
+          </Text>
         </Button>
-        
         <Button
           variant="primary"
           flex={2}
@@ -284,7 +289,8 @@ export const MealPrepInterface: React.FC<MealPrepInterfaceProps> = ({
           disabled={selectedSlots.size === 0}
         >
           <Text variant="button" color="primaryButtonText">
-            Copy to {selectedSlots.size} slot{selectedSlots.size !== 1 ? 's' : ''}
+            Copy to {selectedSlots.size} slot
+            {selectedSlots.size !== 1 ? "s" : ""}
           </Text>
         </Button>
       </Box>
