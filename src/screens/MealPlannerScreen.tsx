@@ -88,6 +88,20 @@ export const MealPlannerScreen: React.FC = () => {
     `🗓️ MealPlannerScreen: Current week start date is ${weekStartDate}`
   );
 
+  // Sync selectedDate with the current week being viewed
+  useEffect(() => {
+    const today = formatDateForMealPlan(new Date());
+    const weekStart = new Date(weekStartDate);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    
+    // If current selectedDate is not within the current week, update it to the first day of the week
+    const selected = new Date(selectedDate);
+    if (selected < weekStart || selected > weekEnd) {
+      setSelectedDate(weekStartDate);
+    }
+  }, [weekStartDate, selectedDate]);
+
   const {
     data: mealPlan,
     isLoading: isLoadingMealPlan,
@@ -113,17 +127,18 @@ export const MealPlannerScreen: React.FC = () => {
   });
 
   const { data: mealEntries } = useMealEntriesForDay(selectedDate);
-  const { data: macroProgress } = useDailyMacroProgress(selectedDate);
+  const { data: macroProgress, refetch: refetchMacroProgress } = useDailyMacroProgress(selectedDate);
   const { setMacroGoals, isLoading: macroLoading } = useUserProfile();
 
   useFocusEffect(
     useCallback(() => {
       console.log(
-        "✨ MealPlannerScreen: Screen focused. Refetching meal plan and recipes."
+        "✨ MealPlannerScreen: Screen focused. Refetching meal plan, recipes, and macro progress."
       );
       refetchMealPlan();
       refetchRecipes();
-    }, [refetchMealPlan, refetchRecipes])
+      refetchMacroProgress();
+    }, [refetchMealPlan, refetchRecipes, refetchMacroProgress])
   );
 
   const handleCloneRecipe = (recipe: MealPlanRecipe, mealType: MealType) => {
@@ -150,7 +165,8 @@ export const MealPlannerScreen: React.FC = () => {
 
   const handleRefresh = useCallback(async () => {
     await refetchMealPlan();
-  }, [refetchMealPlan]);
+    await refetchMacroProgress();
+  }, [refetchMealPlan, refetchMacroProgress]);
 
   const handleCreateMealPlan = async () => {
     if (!isPremium) {

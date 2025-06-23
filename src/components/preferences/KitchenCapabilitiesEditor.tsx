@@ -51,10 +51,10 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
     if (!customApplianceInput.trim()) return;
     
     const normalized = customApplianceInput.trim().toLowerCase().replace(/\s+/g, '_');
-    if (!preferences.kitchenCapabilities.customAppliances.includes(normalized)) {
+    if (!(preferences.kitchenCapabilities.customAppliances || []).includes(normalized)) {
       onUpdate({
         customAppliances: [
-          ...preferences.kitchenCapabilities.customAppliances,
+          ...(preferences.kitchenCapabilities.customAppliances || []),
           normalized,
         ],
       });
@@ -65,7 +65,7 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
 
   const handleRemoveCustomAppliance = (appliance: string) => {
     onUpdate({
-      customAppliances: preferences.kitchenCapabilities.customAppliances.filter(
+      customAppliances: (preferences.kitchenCapabilities.customAppliances || []).filter(
         (item) => item !== appliance
       ),
     });
@@ -236,7 +236,7 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
         )}
 
         <Box flexDirection="row" flexWrap="wrap" gap="xs">
-          {preferences.kitchenCapabilities.customAppliances.map((appliance) => (
+          {(preferences.kitchenCapabilities.customAppliances || []).map((appliance) => (
             <TouchableOpacity
               key={appliance}
               onPress={() => handleRemoveCustomAppliance(appliance)}
@@ -259,7 +259,7 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
               </Box>
             </TouchableOpacity>
           ))}
-          {preferences.kitchenCapabilities.customAppliances.length === 0 && (
+          {(preferences.kitchenCapabilities.customAppliances || []).length === 0 && (
             <Text variant="body" color="tertiaryText" fontStyle="italic">
               No custom appliances added yet
             </Text>

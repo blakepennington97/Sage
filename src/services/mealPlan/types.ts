@@ -100,3 +100,12 @@ export interface MealPlanValidationError extends Error {
   value: any;
   reason: string;
 }
+
+// Navigation context for meal planning flows
+export interface MealPlanContext {
+  dayIndex: number; // 0-6 (Monday-Sunday)
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks';
+  slotIndex?: number; // For snacks array
+  weekStartDate: string; // ISO date string
+  currentMealPlan?: Partial<MealPlan>; // Optional current meal plan data
+}

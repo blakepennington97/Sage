@@ -244,7 +244,7 @@ export const RecipeBookScreen: React.FC = () => {
             </Text>
             <Box alignItems="center" paddingHorizontal="sm">
               <CustomSlider
-                value={difficultyFilter || 0}
+                value={difficultyFilter === null ? 0 : difficultyFilter}
                 onValueChange={(value) => setDifficultyFilter(value === 0 ? null : value)}
                 minimumValue={0}
                 maximumValue={5}

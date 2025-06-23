@@ -45,10 +45,10 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
     if (!customCuisineInput.trim()) return;
     
     const normalized = customCuisineInput.trim().toLowerCase().replace(/\s+/g, '_');
-    if (!preferences.cookingStyles.customCuisines.includes(normalized)) {
+    if (!(preferences.cookingStyles.customCuisines || []).includes(normalized)) {
       onUpdate({
         customCuisines: [
-          ...preferences.cookingStyles.customCuisines,
+          ...(preferences.cookingStyles.customCuisines || []),
           normalized,
         ],
       });
@@ -59,7 +59,7 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
 
   const handleRemoveCustomCuisine = (cuisine: string) => {
     onUpdate({
-      customCuisines: preferences.cookingStyles.customCuisines.filter(
+      customCuisines: (preferences.cookingStyles.customCuisines || []).filter(
         (item) => item !== cuisine
       ),
     });
@@ -81,9 +81,9 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
               key={key}
               onPress={() =>
                 onUpdate({
-                  preferredCuisines: preferences.cookingStyles.preferredCuisines.includes(key)
-                    ? preferences.cookingStyles.preferredCuisines.filter(c => c !== key)
-                    : [...preferences.cookingStyles.preferredCuisines, key],
+                  preferredCuisines: (preferences.cookingStyles.preferredCuisines || []).includes(key)
+                    ? (preferences.cookingStyles.preferredCuisines || []).filter(c => c !== key)
+                    : [...(preferences.cookingStyles.preferredCuisines || []), key],
                 })
               }
             >
@@ -93,7 +93,7 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
                 padding="sm"
                 marginBottom="xs"
                 backgroundColor={
-                  preferences.cookingStyles.preferredCuisines.includes(key)
+                  (preferences.cookingStyles.preferredCuisines || []).includes(key)
                     ? "primaryGreen"
                     : "surface"
                 }
@@ -106,7 +106,7 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
                   variant="body"
                   flex={1}
                   color={
-                    preferences.cookingStyles.preferredCuisines.includes(key)
+                    (preferences.cookingStyles.preferredCuisines || []).includes(key)
                       ? "white"
                       : "primaryText"
                   }
@@ -116,12 +116,12 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
                 <Text
                   variant="body"
                   color={
-                    preferences.cookingStyles.preferredCuisines.includes(key)
+                    (preferences.cookingStyles.preferredCuisines || []).includes(key)
                       ? "white"
                       : "primaryText"
                   }
                 >
-                  {preferences.cookingStyles.preferredCuisines.includes(key) ? "✅" : "⬜"}
+                  {(preferences.cookingStyles.preferredCuisines || []).includes(key) ? "✅" : "⬜"}
                 </Text>
               </Box>
             </TouchableOpacity>
@@ -178,7 +178,7 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
         )}
 
         <Box flexDirection="row" flexWrap="wrap" gap="xs">
-          {preferences.cookingStyles.customCuisines.map((cuisine) => (
+          {(preferences.cookingStyles.customCuisines || []).map((cuisine) => (
             <TouchableOpacity
               key={cuisine}
               onPress={() => handleRemoveCustomCuisine(cuisine)}
@@ -201,7 +201,7 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
               </Box>
             </TouchableOpacity>
           ))}
-          {preferences.cookingStyles.customCuisines.length === 0 && (
+          {(preferences.cookingStyles.customCuisines || []).length === 0 && (
             <Text variant="body" color="tertiaryText" fontStyle="italic">
               No custom cuisines added yet
             </Text>
@@ -223,9 +223,9 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
               key={key}
               onPress={() =>
                 onUpdate({
-                  cookingMoods: preferences.cookingStyles.cookingMoods.includes(key)
-                    ? preferences.cookingStyles.cookingMoods.filter(m => m !== key)
-                    : [...preferences.cookingStyles.cookingMoods, key],
+                  cookingMoods: (preferences.cookingStyles.cookingMoods || []).includes(key)
+                    ? (preferences.cookingStyles.cookingMoods || []).filter(m => m !== key)
+                    : [...(preferences.cookingStyles.cookingMoods || []), key],
                 })
               }
             >
@@ -235,7 +235,7 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
                 padding="sm"
                 marginBottom="xs"
                 backgroundColor={
-                  preferences.cookingStyles.cookingMoods.includes(key)
+                  (preferences.cookingStyles.cookingMoods || []).includes(key)
                     ? "primaryGreen"
                     : "surface"
                 }
@@ -248,7 +248,7 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
                   variant="body"
                   flex={1}
                   color={
-                    preferences.cookingStyles.cookingMoods.includes(key)
+                    (preferences.cookingStyles.cookingMoods || []).includes(key)
                       ? "white"
                       : "primaryText"
                   }
@@ -258,12 +258,12 @@ export const CookingStylesEditor: React.FC<CookingStylesEditorProps> = ({
                 <Text
                   variant="body"
                   color={
-                    preferences.cookingStyles.cookingMoods.includes(key)
+                    (preferences.cookingStyles.cookingMoods || []).includes(key)
                       ? "white"
                       : "primaryText"
                   }
                 >
-                  {preferences.cookingStyles.cookingMoods.includes(key) ? "✅" : "⬜"}
+                  {(preferences.cookingStyles.cookingMoods || []).includes(key) ? "✅" : "⬜"}
                 </Text>
               </Box>
             </TouchableOpacity>

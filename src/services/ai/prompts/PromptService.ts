@@ -12,6 +12,7 @@ import {
 } from './types';
 import { PROMPT_TEMPLATES, INSTRUCTION_GUIDELINES, COST_ESTIMATION_GUIDELINES, NUTRITIONAL_GUIDELINES } from './templates';
 import { ContextBuilder } from './contextBuilders';
+import { buildFewShotExamplesPrompt, getErrorCorrectionExamples } from './examples';
 
 export class PromptService {
   /**
@@ -106,6 +107,12 @@ export class PromptService {
       prompt += '\n\n' + INSTRUCTION_GUIDELINES;
       prompt += '\n\n' + COST_ESTIMATION_GUIDELINES;
       prompt += '\n\n' + NUTRITIONAL_GUIDELINES;
+    }
+
+    // Add few-shot examples for better JSON consistency
+    const fewShotExamples = this.buildFewShotExamples(templateName);
+    if (fewShotExamples) {
+      prompt += '\n\n' + fewShotExamples;
     }
 
     return prompt;
@@ -209,7 +216,21 @@ export class PromptService {
    * Build enhanced few-shot examples for better JSON consistency
    */
   static buildFewShotExamples(templateName: string): string {
-    // This will be implemented in the next task for few-shot prompting
-    return '';
+    const fewShotPrompt = buildFewShotExamplesPrompt(templateName, 2);
+    const errorCorrection = getErrorCorrectionExamples(templateName);
+    
+    if (!fewShotPrompt && !errorCorrection) {
+      return '';
+    }
+
+    let result = '';
+    if (fewShotPrompt) {
+      result += fewShotPrompt;
+    }
+    if (errorCorrection) {
+      result += errorCorrection;
+    }
+
+    return result;
   }
 }

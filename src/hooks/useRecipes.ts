@@ -14,24 +14,36 @@ import { ErrorHandler, withErrorHandling } from "../utils/errorHandling";
 const geminiService = new GeminiService();
 
 const reconstructMarkdownFromData = (data: RecipeData): string => {
-  let content = `**Why This Recipe Is Good For You:**\n${data.whyGood}\n\n`;
+  let content = `**Why This Recipe Is Good For You:**\n${data.whyGood || 'This recipe provides balanced nutrition and great flavors.'}\n\n`;
 
   content += "**Ingredients:**\n";
-  data.ingredients.forEach((ing: RecipeIngredient) => {
-    content += `- ${ing.amount} ${ing.name}\n`;
-  });
+  if (data.ingredients && Array.isArray(data.ingredients)) {
+    data.ingredients.forEach((ing: RecipeIngredient) => {
+      content += `- ${ing.amount} ${ing.name}\n`;
+    });
+  } else {
+    content += "- Ingredients not available\n";
+  }
   content += "\n";
 
   content += "**Instructions:**\n";
-  data.instructions.forEach((inst: RecipeInstruction) => {
-    content += `${inst.step}. ${inst.text}\n`;
-  });
+  if (data.instructions && Array.isArray(data.instructions)) {
+    data.instructions.forEach((inst: RecipeInstruction) => {
+      content += `${inst.step}. ${inst.text}\n`;
+    });
+  } else {
+    content += "1. Instructions not available\n";
+  }
   content += "\n";
 
   content += "**Success Tips for Beginners:**\n";
-  data.tips.forEach((tip: string) => {
-    content += `- ${tip}\n`;
-  });
+  if (data.tips && Array.isArray(data.tips)) {
+    data.tips.forEach((tip: string) => {
+      content += `- ${tip}\n`;
+    });
+  } else {
+    content += "- Follow the instructions carefully and don't rush the process.\n";
+  }
 
   return content;
 };

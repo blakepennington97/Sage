@@ -234,6 +234,7 @@ export const MacroGoalsEditor: React.FC<MacroGoalsEditorProps> = ({
             borderRadius="md"
             padding="sm"
             textAlign="center"
+            color="primaryText"
           />
         </Box>
         <Box flex={1}>
@@ -254,6 +255,7 @@ export const MacroGoalsEditor: React.FC<MacroGoalsEditorProps> = ({
             borderRadius="md"
             padding="sm"
             textAlign="center"
+            color="primaryText"
           />
         </Box>
       </Box>
@@ -276,6 +278,7 @@ export const MacroGoalsEditor: React.FC<MacroGoalsEditorProps> = ({
             borderRadius="md"
             padding="sm"
             textAlign="center"
+            color="primaryText"
           />
         </Box>
         <Box flex={1}>

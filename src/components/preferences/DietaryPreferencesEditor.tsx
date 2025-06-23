@@ -27,10 +27,10 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
           onPress: (ingredient) => {
             if (ingredient?.trim()) {
               const normalized = ingredient.trim().toLowerCase();
-              if (!preferences.dietary.customFavoriteIngredients.includes(normalized)) {
+              if (!(preferences.dietary.customFavoriteIngredients || []).includes(normalized)) {
                 onUpdate({
                   customFavoriteIngredients: [
-                    ...preferences.dietary.customFavoriteIngredients,
+                    ...(preferences.dietary.customFavoriteIngredients || []),
                     normalized,
                   ],
                 });
@@ -45,7 +45,7 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
 
   const handleRemoveCustomFavoriteIngredient = (ingredient: string) => {
     onUpdate({
-      customFavoriteIngredients: preferences.dietary.customFavoriteIngredients.filter(
+      customFavoriteIngredients: (preferences.dietary.customFavoriteIngredients || []).filter(
         (item) => item !== ingredient
       ),
     });
@@ -62,10 +62,10 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
           onPress: (ingredient) => {
             if (ingredient?.trim()) {
               const normalized = ingredient.trim().toLowerCase();
-              if (!preferences.dietary.customAvoidedIngredients.includes(normalized)) {
+              if (!(preferences.dietary.customAvoidedIngredients || []).includes(normalized)) {
                 onUpdate({
                   customAvoidedIngredients: [
-                    ...preferences.dietary.customAvoidedIngredients,
+                    ...(preferences.dietary.customAvoidedIngredients || []),
                     normalized,
                   ],
                 });
@@ -80,7 +80,7 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
 
   const handleRemoveCustomAvoidedIngredient = (ingredient: string) => {
     onUpdate({
-      customAvoidedIngredients: preferences.dietary.customAvoidedIngredients.filter(
+      customAvoidedIngredients: (preferences.dietary.customAvoidedIngredients || []).filter(
         (item) => item !== ingredient
       ),
     });
@@ -97,10 +97,10 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
           onPress: (restriction) => {
             if (restriction?.trim()) {
               const normalized = restriction.trim().toLowerCase();
-              if (!preferences.dietary.customDietaryRestrictions.includes(normalized)) {
+              if (!(preferences.dietary.customDietaryRestrictions || []).includes(normalized)) {
                 onUpdate({
                   customDietaryRestrictions: [
-                    ...preferences.dietary.customDietaryRestrictions,
+                    ...(preferences.dietary.customDietaryRestrictions || []),
                     normalized,
                   ],
                 });
@@ -115,7 +115,7 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
 
   const handleRemoveCustomDietaryRestriction = (restriction: string) => {
     onUpdate({
-      customDietaryRestrictions: preferences.dietary.customDietaryRestrictions.filter(
+      customDietaryRestrictions: (preferences.dietary.customDietaryRestrictions || []).filter(
         (item) => item !== restriction
       ),
     });
@@ -319,7 +319,7 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
           Add ingredients you especially enjoy
         </Text>
         <Box flexDirection="row" flexWrap="wrap" gap="xs">
-          {preferences.dietary.customFavoriteIngredients.map((ingredient) => (
+          {(preferences.dietary.customFavoriteIngredients || []).map((ingredient) => (
             <TouchableOpacity
               key={ingredient}
               onPress={() => handleRemoveCustomFavoriteIngredient(ingredient)}
@@ -342,7 +342,7 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
               </Box>
             </TouchableOpacity>
           ))}
-          {preferences.dietary.customFavoriteIngredients.length === 0 && (
+          {(preferences.dietary.customFavoriteIngredients || []).length === 0 && (
             <Text variant="body" color="tertiaryText" fontStyle="italic">
               No custom favorites added yet
             </Text>
@@ -369,7 +369,7 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
           Add ingredients you prefer to avoid
         </Text>
         <Box flexDirection="row" flexWrap="wrap" gap="xs">
-          {preferences.dietary.customAvoidedIngredients.map((ingredient) => (
+          {(preferences.dietary.customAvoidedIngredients || []).map((ingredient) => (
             <TouchableOpacity
               key={ingredient}
               onPress={() => handleRemoveCustomAvoidedIngredient(ingredient)}
@@ -392,7 +392,7 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
               </Box>
             </TouchableOpacity>
           ))}
-          {preferences.dietary.customAvoidedIngredients.length === 0 && (
+          {(preferences.dietary.customAvoidedIngredients || []).length === 0 && (
             <Text variant="body" color="tertiaryText" fontStyle="italic">
               No custom avoided ingredients added yet
             </Text>
@@ -419,7 +419,7 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
           Add allergies, intolerances, or health objectives
         </Text>
         <Box flexDirection="row" flexWrap="wrap" gap="xs">
-          {preferences.dietary.customDietaryRestrictions.map((restriction) => (
+          {(preferences.dietary.customDietaryRestrictions || []).map((restriction) => (
             <TouchableOpacity
               key={restriction}
               onPress={() => handleRemoveCustomDietaryRestriction(restriction)}
@@ -442,7 +442,7 @@ export const DietaryPreferencesEditor: React.FC<DietaryPreferencesEditorProps> =
               </Box>
             </TouchableOpacity>
           ))}
-          {preferences.dietary.customDietaryRestrictions.length === 0 && (
+          {(preferences.dietary.customDietaryRestrictions || []).length === 0 && (
             <Text variant="body" color="tertiaryText" fontStyle="italic">
               No custom restrictions added yet
             </Text>

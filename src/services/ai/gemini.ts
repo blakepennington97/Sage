@@ -172,7 +172,27 @@ export class GeminiService {
       });
       
       const result = await this.model.generateContent(prompt);
-      const recipeData = JSON.parse(result.response.text()) as RecipeData;
+      const responseText = result.response.text();
+      
+      let recipeData: RecipeData;
+      try {
+        recipeData = JSON.parse(responseText) as RecipeData;
+      } catch (parseError) {
+        console.error("JSON parsing error:", parseError);
+        console.error("Raw response:", responseText);
+        throw new Error("AI response was not valid JSON. Please try again.");
+      }
+      
+      // Validate that required fields exist
+      if (!recipeData.ingredients || !Array.isArray(recipeData.ingredients)) {
+        recipeData.ingredients = [];
+      }
+      if (!recipeData.instructions || !Array.isArray(recipeData.instructions)) {
+        recipeData.instructions = [];
+      }
+      if (!recipeData.tips || !Array.isArray(recipeData.tips)) {
+        recipeData.tips = [];
+      }
       
       // Apply regional cost adjustments
       const adjustedRecipe = this.applyCostAdjustments(recipeData);
