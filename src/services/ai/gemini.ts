@@ -78,21 +78,12 @@ export class GeminiService {
     if (!apiKey) throw new Error("API key not found in settings.");
     this.genAI = new GoogleGenerativeAI(apiKey);
 
-    // Define the system instruction for reliable JSON output
-    const systemInstruction = {
-      role: "model",
-      parts: [{
-        text: `You are Sage, an expert, encouraging, and patient AI cooking coach. Your primary goal is to make cooking accessible and enjoyable for beginners. 
-        You MUST ALWAYS prioritize user safety, especially regarding allergies and dietary restrictions. 
-        Your ONLY output MUST be a single, valid JSON object that strictly adheres to the structure requested in the user's prompt. 
-        Do NOT output any other text, explanations, or apologies. If you cannot fulfill the request due to safety concerns or ambiguity, you must still return a valid JSON object with an "error" key, like: {"error": "Could not generate recipe due to safety constraints regarding a requested ingredient."}`
-      }],
-    };
-
+    // REMOVE the systemInstruction object entirely.
+    // The model configuration should be simple.
     this.model = this.genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       generationConfig: { responseMimeType: "application/json" },
-      systemInstruction: systemInstruction,
+      // NO systemInstruction property here.
     });
   }
 
@@ -198,7 +189,7 @@ export class GeminiService {
         );
       }
 
-      // Check if the AI returned a structured error, as per our new system instruction.
+      // NEW: Check for the structured error from our prompt instructions.
       if (recipeData.error) {
         console.warn("AI returned a structured error:", recipeData.error);
         throw new Error(`AI Error: ${recipeData.error}`);
@@ -230,9 +221,8 @@ export class GeminiService {
       return adjustedRecipe;
     } catch (error) {
       console.error("Recipe generation error:", error);
-      throw new Error(
-        "Failed to generate recipe from AI. The response may not be valid JSON."
-      );
+      // Re-throw the specific error message for the UI to display.
+      throw new Error(error instanceof Error ? error.message : "Failed to generate recipe from AI.");
     }
   }
 
@@ -279,9 +269,8 @@ export class GeminiService {
       return this.applyCostAdjustments(modifiedRecipe);
     } catch (error) {
       console.error("Recipe modification error:", error);
-      throw new Error(
-        "Failed to modify recipe from AI. The response may not be valid JSON."
-      );
+      // Re-throw the specific error message for the UI to display.
+      throw new Error(error instanceof Error ? error.message : "Failed to modify recipe from AI.");
     }
   }
 

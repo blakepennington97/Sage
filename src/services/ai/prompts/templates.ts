@@ -110,16 +110,23 @@ MACRO OPTIMIZATION REQUIREMENTS:
 export const PROMPT_TEMPLATES: Record<string, PromptTemplate> = {
   recipeGeneration: {
     name: 'Recipe Generation',
-    version: '1.0',
+    version: '1.1', // Increment version to reflect a major change
     basePrompt: `${SAGE_IDENTITY}
 
-Generate a beginner-friendly recipe based on the user's request and profile, including cost analysis and nutritional information.
+You will act as an expert cooking coach and generate a recipe based on the user's request and their detailed profile.
 
 USER REQUEST: "{{userRequest}}"
 
 {{contextSections}}
 
-The JSON object must match this exact structure:
+---
+**OUTPUT REQUIREMENTS:**
+
+1.  **JSON ONLY:** Your entire response MUST be a single, valid JSON object. Do not include any text, markdown, or explanations outside of the JSON structure.
+2.  **STRICT SCHEMA:** The JSON object must perfectly match the schema below. All fields are required unless marked optional.
+3.  **ERROR HANDLING:** If you cannot fulfill the request for any reason (e.g., safety concerns, ambiguity), you MUST respond with a valid JSON object containing only an "error" key. Example: \`{"error": "The request is unsafe as it involves non-edible ingredients."}\`
+
+**JSON SCHEMA:**
 {
   "recipeName": "A catchy but clear name for the recipe",
   "difficulty": <number between 1 and 5 (1=easiest)>,
@@ -128,17 +135,17 @@ The JSON object must match this exact structure:
   "ingredients": [ { "amount": "string", "name": "string" } ],
   "instructions": [ { "step": <number>, "text": "string" } ],
   "tips": [ "string" ],
-  "servings": <number (how many servings this recipe makes)>,
-  "totalCost": <number (estimated total cost in USD for all ingredients)>,
-  "costPerServing": <number (estimated cost per serving in USD)>,
+  "servings": <number>,
+  "totalCost": <number (USD)>,
+  "costPerServing": <number (USD)>,
   "costBreakdown": [ { "ingredient": "string", "estimatedCost": <number> } ],
-  "caloriesPerServing": <number (estimated calories per serving)>,
-  "proteinPerServing": <number (grams of protein per serving, decimal)>,
-  "carbsPerServing": <number (grams of carbs per serving, decimal)>,
-  "fatPerServing": <number (grams of fat per serving, decimal)>,
-  "sugarPerServing": <number (grams of sugar per serving, decimal, optional)>,
-  "fiberPerServing": <number (grams of fiber per serving, decimal, optional)>,
-  "sodiumPerServing": <number (mg of sodium per serving, whole number, optional)>
+  "caloriesPerServing": <number>,
+  "proteinPerServing": <number (grams, decimal)>,
+  "carbsPerServing": <number (grams, decimal)>,
+  "fatPerServing": <number (grams, decimal)>,
+  "sugarPerServing": <number (grams, decimal, optional)>,
+  "fiberPerServing": <number (grams, decimal, optional)>,
+  "sodiumPerServing": <number (mg, whole number, optional)>
 }`,
     contextSections: [
       'userProfile',
