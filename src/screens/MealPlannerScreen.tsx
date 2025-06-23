@@ -553,9 +553,9 @@ export const MealPlannerScreen: React.FC = () => {
             }
             return (
               <ScrollView showsVerticalScrollIndicator={false}>
+                {/* No longer need to call getDailyMacros(). Just pass the date. */}
                 <DailyMacroSummary
-                  macros={dailyMacros}
-                  date={new Date(selectedDate).toLocaleDateString()}
+                  date={selectedDate}
                   showDate={true}
                 />
                 {mealEntries && mealEntries.length > 0 && (

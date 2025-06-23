@@ -103,7 +103,10 @@ export const useRecipes = () => {
       );
     },
     onError: (error: any) => {
-      ErrorHandler.handleError(error, "recipe generation");
+      // The error message from gemini.ts is now user-friendly.
+      Alert.alert("Recipe Generation Failed", error.message);
+      // Log the full error for developers
+      console.error("Full recipe generation error:", error);
     },
   });
 

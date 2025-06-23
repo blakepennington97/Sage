@@ -72,6 +72,10 @@ export interface KitchenCapabilities {
     braising: number;
   };
   
+  // Known Techniques and Available Appliances (for KitchenCapabilitiesEditor)
+  knownTechniques: string[];
+  availableAppliances: string[];
+  
   // Custom Preferences (used by components)
   customAppliances: string[];
 }
@@ -144,6 +148,8 @@ export const createDefaultPreferences = (): UserPreferences => ({
       deep_frying: 1,
       braising: 1,
     },
+    knownTechniques: [], // Add default empty array
+    availableAppliances: [], // Add default empty array
     customAppliances: [],
   },
   cookingStyles: {

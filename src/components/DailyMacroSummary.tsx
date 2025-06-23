@@ -1,8 +1,11 @@
 import React from "react";
-import { ScrollView } from "react-native";
-import { Box, Text } from "./ui";
+import { ScrollView, ActivityIndicator } from "react-native";
+import { Box, Text, LoadingSpinner, ErrorMessage } from "./ui";
 import { MacroProgressRing } from "./MacroProgressRing";
+import { useDailyMacroProgress } from "../hooks/useMealTracking";
+import { useAuthStore } from "../stores/authStore";
 
+// Keep this interface for internal use
 export interface DailyMacros {
   calories: { current: number; goal: number };
   protein: { current: number; goal: number };
@@ -10,17 +13,75 @@ export interface DailyMacros {
   fat: { current: number; goal: number };
 }
 
+// Modify the props interface
 interface DailyMacroSummaryProps {
-  macros: DailyMacros;
-  date?: string;
+  date: string;
   showDate?: boolean;
 }
 
 export const DailyMacroSummary: React.FC<DailyMacroSummaryProps> = ({
-  macros,
   date,
   showDate = true,
 }) => {
+  const { profile } = useAuthStore();
+  // Fetch data directly inside the component
+  const { data: macroProgress, isLoading, error, refetch } = useDailyMacroProgress(date);
+
+  if (isLoading) {
+    return (
+      <Box padding="xl" alignItems="center">
+        <ActivityIndicator size="large" color="#4CAF50" />
+        <Text variant="body" color="secondaryText" marginTop="sm">
+          Loading daily progress...
+        </Text>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box padding="xl" alignItems="center">
+        <Text variant="h3" color="errorText" marginBottom="sm">Could not load macros</Text>
+        <Text variant="body" color="secondaryText" textAlign="center" marginBottom="md">
+          {error.message}
+        </Text>
+        <Text variant="body" color="primary" onPress={() => refetch()}>
+          Tap to retry
+        </Text>
+      </Box>
+    );
+  }
+
+  if (!macroProgress || !profile?.macro_goals_set) {
+    return (
+      <Box padding="xl" alignItems="center">
+        <Text variant="h3">No Progress to Show</Text>
+        <Text variant="body" color="secondaryText" textAlign="center" marginTop="sm">
+            Set your macro goals or log a meal to see your progress here.
+        </Text>
+      </Box>
+    );
+  }
+
+  // Construct the macros object from the fetched data
+  const macros: DailyMacros = {
+    calories: {
+      current: macroProgress.total_calories || 0,
+      goal: macroProgress.goal_calories || 2000,
+    },
+    protein: {
+      current: macroProgress.total_protein || 0,
+      goal: macroProgress.goal_protein || 100,
+    },
+    carbs: {
+      current: macroProgress.total_carbs || 0,
+      goal: macroProgress.goal_carbs || 200,
+    },
+    fat: {
+      current: macroProgress.total_fat || 0,
+      goal: macroProgress.goal_fat || 70,
+    },
+  };
   const totalCaloriesFromMacros = 
     (macros.protein.current * 4) + 
     (macros.carbs.current * 4) + 

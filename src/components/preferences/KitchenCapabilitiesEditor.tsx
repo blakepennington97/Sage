@@ -111,14 +111,26 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
           {techniqueCategories.map(({ key, label, icon }) => (
             <TouchableOpacity
               key={key}
-              onPress={() => {}}
+              // Replace the empty onPress handler with this logic
+              onPress={() => {
+                const currentTechniques = preferences.kitchenCapabilities.knownTechniques || [];
+                const newTechniques = currentTechniques.includes(key)
+                  ? currentTechniques.filter(t => t !== key)
+                  : [...currentTechniques, key];
+                onUpdate({ knownTechniques: newTechniques });
+              }}
             >
               <Box
                 flexDirection="row"
                 alignItems="center"
                 padding="sm"
                 marginBottom="xs"
-                backgroundColor="surface"
+                // Update backgroundColor based on selection state
+                backgroundColor={
+                  (preferences.kitchenCapabilities.knownTechniques || []).includes(key)
+                    ? "primary"
+                    : "surface"
+                }
                 borderRadius="md"
               >
                 <Text fontSize={20} marginRight="sm">
@@ -127,15 +139,25 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
                 <Text
                   variant="body"
                   flex={1}
-                  color="primaryText"
+                  // Update text color based on selection
+                  color={
+                    (preferences.kitchenCapabilities.knownTechniques || []).includes(key)
+                      ? "primaryButtonText"
+                      : "primaryText"
+                  }
                 >
                   {label}
                 </Text>
                 <Text
                   variant="body"
-                  color="primaryText"
+                  // Update text color based on selection
+                  color={
+                    (preferences.kitchenCapabilities.knownTechniques || []).includes(key)
+                      ? "primaryButtonText"
+                      : "primaryText"
+                  }
                 >
-                  ⬜
+                  {(preferences.kitchenCapabilities.knownTechniques || []).includes(key) ? "✅" : "⬜"}
                 </Text>
               </Box>
             </TouchableOpacity>
@@ -155,14 +177,26 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
           {applianceCategories.map(({ key, label, icon }) => (
             <TouchableOpacity
               key={key}
-              onPress={() => {}}
+              // Replace the empty onPress handler with this logic
+              onPress={() => {
+                const currentAppliances = preferences.kitchenCapabilities.availableAppliances || [];
+                const newAppliances = currentAppliances.includes(key)
+                  ? currentAppliances.filter(a => a !== key)
+                  : [...currentAppliances, key];
+                onUpdate({ availableAppliances: newAppliances });
+              }}
             >
               <Box
                 flexDirection="row"
                 alignItems="center"
                 padding="sm"
                 marginBottom="xs"
-                backgroundColor="surface"
+                // Update backgroundColor based on selection state
+                backgroundColor={
+                  (preferences.kitchenCapabilities.availableAppliances || []).includes(key)
+                    ? "primary"
+                    : "surface"
+                }
                 borderRadius="md"
               >
                 <Text fontSize={20} marginRight="sm">
@@ -171,15 +205,25 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
                 <Text
                   variant="body"
                   flex={1}
-                  color="primaryText"
+                  // Update text color based on selection
+                  color={
+                    (preferences.kitchenCapabilities.availableAppliances || []).includes(key)
+                      ? "primaryButtonText"
+                      : "primaryText"
+                  }
                 >
                   {label}
                 </Text>
                 <Text
                   variant="body"
-                  color="primaryText"
+                  // Update text color based on selection
+                  color={
+                    (preferences.kitchenCapabilities.availableAppliances || []).includes(key)
+                      ? "primaryButtonText"
+                      : "primaryText"
+                  }
                 >
-                  ⬜
+                  {(preferences.kitchenCapabilities.availableAppliances || []).includes(key) ? "✅" : "⬜"}
                 </Text>
               </Box>
             </TouchableOpacity>

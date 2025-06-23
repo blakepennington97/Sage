@@ -78,9 +78,21 @@ export class GeminiService {
     if (!apiKey) throw new Error("API key not found in settings.");
     this.genAI = new GoogleGenerativeAI(apiKey);
 
+    // Define the system instruction for reliable JSON output
+    const systemInstruction = {
+      role: "model",
+      parts: [{
+        text: `You are Sage, an expert, encouraging, and patient AI cooking coach. Your primary goal is to make cooking accessible and enjoyable for beginners. 
+        You MUST ALWAYS prioritize user safety, especially regarding allergies and dietary restrictions. 
+        Your ONLY output MUST be a single, valid JSON object that strictly adheres to the structure requested in the user's prompt. 
+        Do NOT output any other text, explanations, or apologies. If you cannot fulfill the request due to safety concerns or ambiguity, you must still return a valid JSON object with an "error" key, like: {"error": "Could not generate recipe due to safety constraints regarding a requested ingredient."}`
+      }],
+    };
+
     this.model = this.genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       generationConfig: { responseMimeType: "application/json" },
+      systemInstruction: systemInstruction,
     });
   }
 
@@ -174,16 +186,31 @@ export class GeminiService {
       const result = await this.model.generateContent(prompt);
       const responseText = result.response.text();
       
-      let recipeData: RecipeData;
+      let recipeData: any; // Use 'any' temporarily to check for an error key
       try {
-        recipeData = JSON.parse(responseText) as RecipeData;
+        recipeData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error("JSON parsing error:", parseError);
-        console.error("Raw response:", responseText);
-        throw new Error("AI response was not valid JSON. Please try again.");
+        console.error("CRITICAL: AI response was not valid JSON.", parseError);
+        // Log the raw response for debugging! This is crucial.
+        console.error("RAW AI RESPONSE:", responseText);
+        throw new Error(
+          "The AI returned an unexpected response. Please try rephrasing your request."
+        );
+      }
+
+      // Check if the AI returned a structured error, as per our new system instruction.
+      if (recipeData.error) {
+        console.warn("AI returned a structured error:", recipeData.error);
+        throw new Error(`AI Error: ${recipeData.error}`);
+      }
+
+      // Validate that the response contains essential fields before proceeding
+      if (!recipeData.recipeName || !recipeData.ingredients || !recipeData.instructions) {
+          console.error("AI response is missing essential recipe fields.", recipeData);
+          throw new Error("The AI response was incomplete. Please try again.");
       }
       
-      // Validate that required fields exist
+      // Validate that required fields exist and set defaults if needed
       if (!recipeData.ingredients || !Array.isArray(recipeData.ingredients)) {
         recipeData.ingredients = [];
       }
@@ -223,7 +250,30 @@ export class GeminiService {
       });
 
       const result = await this.model.generateContent(prompt);
-      const modifiedRecipe = JSON.parse(result.response.text()) as RecipeData;
+      const responseText = result.response.text();
+      
+      let modifiedRecipe: any;
+      try {
+        modifiedRecipe = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("CRITICAL: AI recipe modification response was not valid JSON.", parseError);
+        console.error("RAW AI RESPONSE:", responseText);
+        throw new Error(
+          "The AI returned an unexpected response while modifying the recipe. Please try rephrasing your request."
+        );
+      }
+
+      // Check if the AI returned a structured error
+      if (modifiedRecipe.error) {
+        console.warn("AI returned a structured error during modification:", modifiedRecipe.error);
+        throw new Error(`AI Error: ${modifiedRecipe.error}`);
+      }
+
+      // Validate that the response contains essential fields
+      if (!modifiedRecipe.recipeName || !modifiedRecipe.ingredients || !modifiedRecipe.instructions) {
+          console.error("AI modification response is missing essential recipe fields.", modifiedRecipe);
+          throw new Error("The AI recipe modification was incomplete. Please try again.");
+      }
       
       // Apply regional cost adjustments
       return this.applyCostAdjustments(modifiedRecipe);
