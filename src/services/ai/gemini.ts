@@ -1,10 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { AuthService, ProfileService, UserProfile, UserPreferencesService } from "../supabase";
-import { APIKeyManager } from "./config";
-import { UserPreferences, migratePreferences } from "../../types/userPreferences";
 import { CostEstimationService } from "../costEstimation";
-import { RecipeCacheService } from "./recipeCache";
+import { APIKeyManager } from "./config";
 import { PromptService } from "./prompts/PromptService";
+import { RecipeCacheService } from "./recipeCache";
 
 export interface RecipeInstruction {
   step: number;
@@ -47,7 +45,6 @@ export interface GroceryListCategory {
 }
 export type GroceryListData = GroceryListCategory[];
 
-
 export interface CookingCoachResponse {
   message: string;
 }
@@ -63,7 +60,7 @@ export interface FoodMacros {
   sugarPerServing?: number;
   fiberPerServing?: number;
   sodiumPerServing?: number;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: "high" | "medium" | "low";
   source: string;
 }
 
@@ -101,8 +98,6 @@ export class GeminiService {
     });
   }
 
-
-
   public async getCookingAdvice(
     userMessage: string
   ): Promise<CookingCoachResponse> {
@@ -113,13 +108,13 @@ export class GeminiService {
       const textModel = this.genAI!.getGenerativeModel({
         model: "gemini-1.5-flash",
       });
-      
+
       // Use PromptService to build centralized prompt
       const prompt = await PromptService.buildCookingAdvicePrompt({
         userMessage,
-        context: {} as any // context will be built internally by PromptService
+        context: {} as any, // context will be built internally by PromptService
       });
-      
+
       const result = await textModel.generateContent(prompt);
       return { message: result.response.text() };
     } catch (error) {
@@ -134,31 +129,51 @@ export class GeminiService {
   private applyCostAdjustments(recipeData: RecipeData): RecipeData {
     const currentRegion = CostEstimationService.getCurrentRegion();
     const adjustedRecipe = { ...recipeData };
-    
+
     if (adjustedRecipe.totalCost) {
-      adjustedRecipe.totalCost = CostEstimationService.adjustCostForRegion(adjustedRecipe.totalCost);
+      adjustedRecipe.totalCost = CostEstimationService.adjustCostForRegion(
+        adjustedRecipe.totalCost
+      );
     }
     if (adjustedRecipe.costPerServing) {
-      adjustedRecipe.costPerServing = CostEstimationService.adjustCostForRegion(adjustedRecipe.costPerServing);
+      adjustedRecipe.costPerServing = CostEstimationService.adjustCostForRegion(
+        adjustedRecipe.costPerServing
+      );
     }
     if (adjustedRecipe.costBreakdown) {
-      adjustedRecipe.costBreakdown = adjustedRecipe.costBreakdown.map(item => ({
-        ...item,
-        estimatedCost: CostEstimationService.adjustCostForRegion(item.estimatedCost),
-      }));
+      adjustedRecipe.costBreakdown = adjustedRecipe.costBreakdown.map(
+        (item) => ({
+          ...item,
+          estimatedCost: CostEstimationService.adjustCostForRegion(
+            item.estimatedCost
+          ),
+        })
+      );
     }
-    
+
     return adjustedRecipe;
   }
 
-  public async generateRecipe(request: string, context?: { remainingMacros?: { calories: number; protein: number; carbs: number; fat: number } }): Promise<RecipeData> {
+  public async generateRecipe(
+    request: string,
+    context?: {
+      remainingMacros?: {
+        calories: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+      };
+    }
+  ): Promise<RecipeData> {
     await this.initialize();
     try {
       // Get cache request information using PromptService
       const cacheRequest = await PromptService.buildCacheRequest(request);
-      
+
       // Try to get cached recipe first
-      const cachedRecipe = await RecipeCacheService.getCachedRecipe(cacheRequest);
+      const cachedRecipe = await RecipeCacheService.getCachedRecipe(
+        cacheRequest
+      );
       if (cachedRecipe) {
         // Apply regional cost adjustments to cached recipe
         return this.applyCostAdjustments(cachedRecipe);
@@ -170,16 +185,20 @@ export class GeminiService {
         context: {
           user: {} as any, // will be built internally
           macro: context,
-          safety: {} as any // will be built internally
-        }
+          safety: {} as any, // will be built internally
+        },
       });
-      
+
       const result = await this.model.generateContent(prompt);
       const responseText = result.response.text();
-      
+
       let recipeData: any; // Use 'any' temporarily to check for an error key
       try {
         recipeData = JSON.parse(responseText);
+        console.log(
+          "SUCCESSFULLY PARSED AI RESPONSE:",
+          JSON.stringify(recipeData, null, 2)
+        );
       } catch (parseError) {
         console.error("CRITICAL: AI response was not valid JSON.", parseError);
         // Log the raw response for debugging! This is crucial.
@@ -196,11 +215,18 @@ export class GeminiService {
       }
 
       // Validate that the response contains essential fields before proceeding
-      if (!recipeData.recipeName || !recipeData.ingredients || !recipeData.instructions) {
-          console.error("AI response is missing essential recipe fields.", recipeData);
-          throw new Error("The AI response was incomplete. Please try again.");
+      if (
+        !recipeData.recipeName ||
+        !recipeData.ingredients ||
+        !recipeData.instructions
+      ) {
+        console.error(
+          "AI response is missing essential recipe fields.",
+          recipeData
+        );
+        throw new Error("The AI response was incomplete. Please try again.");
       }
-      
+
       // Validate that required fields exist and set defaults if needed
       if (!recipeData.ingredients || !Array.isArray(recipeData.ingredients)) {
         recipeData.ingredients = [];
@@ -211,22 +237,29 @@ export class GeminiService {
       if (!recipeData.tips || !Array.isArray(recipeData.tips)) {
         recipeData.tips = [];
       }
-      
+
       // Apply regional cost adjustments
       const adjustedRecipe = this.applyCostAdjustments(recipeData);
-      
+
       // Cache the generated recipe for future use
       await RecipeCacheService.cacheRecipe(cacheRequest, adjustedRecipe);
-      
+
       return adjustedRecipe;
     } catch (error) {
       console.error("Recipe generation error:", error);
       // Re-throw the specific error message for the UI to display.
-      throw new Error(error instanceof Error ? error.message : "Failed to generate recipe from AI.");
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate recipe from AI."
+      );
     }
   }
 
-  public async modifyRecipe(originalRecipe: RecipeData, modificationRequest: string): Promise<RecipeData> {
+  public async modifyRecipe(
+    originalRecipe: RecipeData,
+    modificationRequest: string
+  ): Promise<RecipeData> {
     await this.initialize();
     try {
       // Use PromptService to build centralized prompt
@@ -235,18 +268,21 @@ export class GeminiService {
         modificationRequest,
         context: {
           user: {} as any, // will be built internally
-          safety: {} as any // will be built internally
-        }
+          safety: {} as any, // will be built internally
+        },
       });
 
       const result = await this.model.generateContent(prompt);
       const responseText = result.response.text();
-      
+
       let modifiedRecipe: any;
       try {
         modifiedRecipe = JSON.parse(responseText);
       } catch (parseError) {
-        console.error("CRITICAL: AI recipe modification response was not valid JSON.", parseError);
+        console.error(
+          "CRITICAL: AI recipe modification response was not valid JSON.",
+          parseError
+        );
         console.error("RAW AI RESPONSE:", responseText);
         throw new Error(
           "The AI returned an unexpected response while modifying the recipe. Please try rephrasing your request."
@@ -255,22 +291,38 @@ export class GeminiService {
 
       // Check if the AI returned a structured error
       if (modifiedRecipe.error) {
-        console.warn("AI returned a structured error during modification:", modifiedRecipe.error);
+        console.warn(
+          "AI returned a structured error during modification:",
+          modifiedRecipe.error
+        );
         throw new Error(`AI Error: ${modifiedRecipe.error}`);
       }
 
       // Validate that the response contains essential fields
-      if (!modifiedRecipe.recipeName || !modifiedRecipe.ingredients || !modifiedRecipe.instructions) {
-          console.error("AI modification response is missing essential recipe fields.", modifiedRecipe);
-          throw new Error("The AI recipe modification was incomplete. Please try again.");
+      if (
+        !modifiedRecipe.recipeName ||
+        !modifiedRecipe.ingredients ||
+        !modifiedRecipe.instructions
+      ) {
+        console.error(
+          "AI modification response is missing essential recipe fields.",
+          modifiedRecipe
+        );
+        throw new Error(
+          "The AI recipe modification was incomplete. Please try again."
+        );
       }
-      
+
       // Apply regional cost adjustments
       return this.applyCostAdjustments(modifiedRecipe);
     } catch (error) {
       console.error("Recipe modification error:", error);
       // Re-throw the specific error message for the UI to display.
-      throw new Error(error instanceof Error ? error.message : "Failed to modify recipe from AI.");
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : "Failed to modify recipe from AI."
+      );
     }
   }
 
@@ -281,7 +333,7 @@ export class GeminiService {
     try {
       // Use PromptService to build centralized prompt
       const prompt = await PromptService.buildGroceryListPrompt(recipeContent);
-      
+
       const result = await this.model.generateContent(prompt);
       return JSON.parse(result.response.text()) as GroceryListData;
     } catch (error) {
@@ -295,7 +347,7 @@ export class GeminiService {
   public async lookupFoodMacros(foodQuery: string): Promise<FoodMacros> {
     try {
       const webSearchModel = await this.initializeWebSearch();
-      
+
       const prompt = `Provide nutritional information for this food item based on your knowledge: "${foodQuery}"
         
         Use your knowledge of common foods, brands, and nutritional databases to provide accurate information.
@@ -330,16 +382,22 @@ export class GeminiService {
 
       const result = await webSearchModel.generateContent(prompt);
       const macroData = JSON.parse(result.response.text()) as FoodMacros;
-      
+
       // Validate the response has required fields
-      if (!macroData.foodName || !macroData.servingSize || macroData.caloriesPerServing === undefined) {
+      if (
+        !macroData.foodName ||
+        !macroData.servingSize ||
+        macroData.caloriesPerServing === undefined
+      ) {
         throw new Error("Incomplete nutritional data received");
       }
-      
+
       return macroData;
     } catch (error) {
       console.error("Food macro lookup error:", error);
-      throw new Error("Failed to look up nutritional information. Please try a more specific food name.");
+      throw new Error(
+        "Failed to look up nutritional information. Please try a more specific food name."
+      );
     }
   }
 }

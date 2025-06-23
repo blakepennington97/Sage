@@ -16,31 +16,31 @@ export class ContextBuilder {
     };
 
     // Profile-level constraints (highest priority)
-    if (profile?.allergies?.length > 0) {
-      constraints.allergies = [...profile.allergies];
-      constraints.profileRestrictions.push(...profile.allergies.map((a: string) => `ALLERGY: ${a}`));
+    if ((profile?.allergies || []).length > 0) {
+      constraints.allergies = [...(profile.allergies || [])];
+      constraints.profileRestrictions.push(...(profile.allergies || []).map((a: string) => `ALLERGY: ${a}`));
     }
     
-    if (profile?.dietary_restrictions?.length > 0) {
-      constraints.dietaryRestrictions = [...profile.dietary_restrictions];
-      constraints.profileRestrictions.push(...profile.dietary_restrictions.map((d: string) => `DIET: ${d}`));
+    if ((profile?.dietary_restrictions || []).length > 0) {
+      constraints.dietaryRestrictions = [...(profile.dietary_restrictions || [])];
+      constraints.profileRestrictions.push(...(profile.dietary_restrictions || []).map((d: string) => `DIET: ${d}`));
     }
 
     // Preference-level constraints
     if (preferences?.dietary) {
       const { dietary } = preferences;
       
-      if (dietary.allergies?.length > 0) {
-        constraints.allergies.push(...dietary.allergies);
-        constraints.customRestrictions.push(...dietary.allergies.map(a => `ALLERGY: ${a}`));
+      if ((dietary.allergies || []).length > 0) {
+        constraints.allergies.push(...(dietary.allergies || []));
+        constraints.customRestrictions.push(...(dietary.allergies || []).map(a => `ALLERGY: ${a}`));
       }
       
-      if (dietary.intolerances?.length > 0) {
-        constraints.customRestrictions.push(...dietary.intolerances.map(i => `INTOLERANCE: ${i}`));
+      if ((dietary.intolerances || []).length > 0) {
+        constraints.customRestrictions.push(...(dietary.intolerances || []).map(i => `INTOLERANCE: ${i}`));
       }
       
-      if (dietary.customDietaryRestrictions?.length > 0) {
-        constraints.customRestrictions.push(...dietary.customDietaryRestrictions.map(c => `CUSTOM: ${c}`));
+      if ((dietary.customDietaryRestrictions || []).length > 0) {
+        constraints.customRestrictions.push(...(dietary.customDietaryRestrictions || []).map(c => `CUSTOM: ${c}`));
       }
     }
 
@@ -94,7 +94,7 @@ USER COOKING PROFILE:
 - Skill Level: ${this.getSkillDescription(profile)}
 - Kitchen Setup: ${this.getKitchenSummary(profile)}
 - Confidence: ${profile?.confidence_level || "Unknown"}/5
-- Cooking Concerns: ${userFears.join(", ") || "None specified"}
+- Cooking Concerns: ${(userFears || []).join(", ") || "None specified"}
     `.trim();
   }
 
@@ -124,17 +124,17 @@ USER COOKING PROFILE:
    * Build kitchen constraints context section
    */
   static buildKitchenConstraintsContext(profile: any, preferences?: UserPreferences): string {
-    const availableTools = profile?.kitchen_tools?.join(", ") || "Basic tools";
+    const availableTools = (profile?.kitchen_tools || []).join(", ") || "Basic tools";
     const ovenStatus = profile?.has_oven ? "" : "NO OVEN - stovetop/microwave only";
     const stoveStatus = profile?.stove_type === "none" ? "NO STOVE - microwave/no-cook only" : "";
     const spaceConstraints = profile?.space_level <= 2 ? "Limited prep space - suggest one-pot or minimal dish recipes" : "";
     
-    const specialtyAppliances = preferences?.kitchenCapabilities?.appliances?.specialty?.length 
-      ? preferences.kitchenCapabilities.appliances.specialty.map(a => a.replace(/_/g, ' ')).join(", ")
+    const specialtyAppliances = (preferences?.kitchenCapabilities?.appliances?.specialty || []).length 
+      ? (preferences?.kitchenCapabilities?.appliances?.specialty || []).map(a => a.replace(/_/g, ' ')).join(", ")
       : "None";
       
-    const customAppliances = preferences?.kitchenCapabilities?.customAppliances?.length
-      ? preferences.kitchenCapabilities.customAppliances.map(a => a.replace(/_/g, ' ')).join(", ")
+    const customAppliances = (preferences?.kitchenCapabilities?.customAppliances || []).length
+      ? (preferences?.kitchenCapabilities?.customAppliances || []).map(a => a.replace(/_/g, ' ')).join(", ")
       : "None";
 
     return `
@@ -185,11 +185,11 @@ CONSTRAINT REQUIREMENTS:
 - Dietary Style: ${dietary.dietaryStyle}
 - Spice Tolerance: ${dietary.spiceTolerance}
 - Nutrition Goals: ${nutritionGoals}
-- Health Objectives: ${dietary.healthObjectives.map(o => o.replace(/_/g, ' ')).join(", ") || "None"}
-- Flavor Preferences: ${dietary.flavorPreferences.map(f => f.replace(/_/g, ' ')).join(", ") || "None"}
+- Health Objectives: ${(dietary.healthObjectives || []).map(o => o.replace(/_/g, ' ')).join(", ") || "None"}
+- Flavor Preferences: ${(dietary.flavorPreferences || []).map(f => f.replace(/_/g, ' ')).join(", ") || "None"}
 - Favorite Ingredients: ${favoriteIngredients}
 - Avoided Ingredients: ${avoidedIngredients}
-- Custom Dietary Needs: ${dietary.customDietaryRestrictions.map(c => c.replace(/_/g, ' ')).join(", ") || "None"}
+- Custom Dietary Needs: ${(dietary.customDietaryRestrictions || []).map(c => c.replace(/_/g, ' ')).join(", ") || "None"}
     `.trim();
   }
 
@@ -209,7 +209,7 @@ CONSTRAINT REQUIREMENTS:
 - Budget Level: ${cookingContext.budgetLevel.replace('_', ' ')}
 - Typical Servings: ${cookingContext.typicalServings}
 - Meal Prep Style: ${cookingContext.mealPrepStyle.replace('_', ' ')}
-- Lifestyle Factors: ${cookingContext.lifestyleFactors.join(", ") || "Not specified"}
+- Lifestyle Factors: ${(cookingContext.lifestyleFactors || []).join(", ") || "Not specified"}
     `.trim();
   }
 
@@ -230,9 +230,9 @@ CONSTRAINT REQUIREMENTS:
     return `
 👨‍🍳 KITCHEN CAPABILITIES:
 - Technique Comfort Levels: ${techniqueComfort}
-- Pantry Staples: ${kitchenCapabilities.pantryStaples.map(p => p.replace(/_/g, ' ')).join(", ")}
-- Storage: ${kitchenCapabilities.storageSpace.refrigerator} fridge, ${kitchenCapabilities.storageSpace.freezer} freezer, ${kitchenCapabilities.storageSpace.pantry} pantry
-- Custom Equipment: ${kitchenCapabilities.customAppliances.map(a => a.replace(/_/g, ' ')).join(", ") || "None"}
+- Pantry Staples: ${(kitchenCapabilities.pantryStaples || []).map(p => p.replace(/_/g, ' ')).join(", ")}
+- Storage: ${kitchenCapabilities.storageSpace?.refrigerator || "unknown"} fridge, ${kitchenCapabilities.storageSpace?.freezer || "unknown"} freezer, ${kitchenCapabilities.storageSpace?.pantry || "unknown"} pantry
+- Custom Equipment: ${(kitchenCapabilities.customAppliances || []).map(a => a.replace(/_/g, ' ')).join(", ") || "None"}
     `.trim();
   }
 
@@ -247,14 +247,14 @@ CONSTRAINT REQUIREMENTS:
     const { cookingStyles } = preferences;
     
     const allCuisines = [
-      ...cookingStyles.preferredCuisines,
+      ...(cookingStyles.preferredCuisines || []),
       ...(cookingStyles.customCuisines || [])
     ].map(c => c.replace(/_/g, ' ')).join(", ") || "None";
 
     return `
 🌍 COOKING STYLE PREFERENCES:
 - Preferred Cuisines: ${allCuisines}
-- Cooking Moods: ${cookingStyles.cookingMoods.map(m => m.replace(/_/g, ' ')).join(", ") || "None"}
+- Cooking Moods: ${(cookingStyles.cookingMoods || []).map(m => m.replace(/_/g, ' ')).join(", ") || "None"}
 - Flavor Intensity: ${cookingStyles.flavorIntensity}
     `.trim();
   }
