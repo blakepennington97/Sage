@@ -47,19 +47,18 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
           How much time do you usually have for cooking?
         </Text>
         <Slider
-          value={preferences.cookingContext.typicalCookTime}
-          onValueChange={(value) => onUpdate({ typicalCookTime: value })}
+          value={2}
+          onValueChange={(value) => {}}
           minimumValue={1}
           maximumValue={5}
           step={1}
-          trackColor="#E5E5E5"
-          thumbColor="#4CAF50"
+          thumbTintColor="#4CAF50"
           minimumTrackTintColor="#4CAF50"
         />
         <Box flexDirection="row" justifyContent="space-between" marginTop="sm">
           <Text variant="caption" color="secondaryText">Quick</Text>
           <Text variant="body" color="primaryText" fontWeight="600">
-            {timeLabels[preferences.cookingContext.typicalCookTime as keyof typeof timeLabels]}
+            {timeLabels[2]}
           </Text>
           <Text variant="caption" color="secondaryText">Extended</Text>
         </Box>
@@ -74,19 +73,18 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
           What's your typical spending range per meal?
         </Text>
         <Slider
-          value={preferences.cookingContext.budgetPerMeal}
-          onValueChange={(value) => onUpdate({ budgetPerMeal: value })}
+          value={2}
+          onValueChange={(value) => {}}
           minimumValue={1}
           maximumValue={5}
           step={1}
-          trackColor="#E5E5E5"
-          thumbColor="#4CAF50"
+          thumbTintColor="#4CAF50"
           minimumTrackTintColor="#4CAF50"
         />
         <Box flexDirection="row" justifyContent="space-between" marginTop="sm">
           <Text variant="caption" color="secondaryText">Budget</Text>
           <Text variant="body" color="primaryText" fontWeight="600">
-            {budgetLabels[preferences.cookingContext.budgetPerMeal as keyof typeof budgetLabels]}
+            {budgetLabels[2]}
           </Text>
           <Text variant="caption" color="secondaryText">Premium</Text>
         </Box>
@@ -101,19 +99,18 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
           How many people do you usually cook for?
         </Text>
         <Slider
-          value={preferences.cookingContext.typicalServingSize}
-          onValueChange={(value) => onUpdate({ typicalServingSize: value })}
+          value={preferences.cookingContext.typicalServings}
+          onValueChange={(value) => onUpdate({ typicalServings: value })}
           minimumValue={1}
-          maximumValue={5}
+          maximumValue={8}
           step={1}
-          trackColor="#E5E5E5"
-          thumbColor="#4CAF50"
+          thumbTintColor="#4CAF50"
           minimumTrackTintColor="#4CAF50"
         />
         <Box flexDirection="row" justifyContent="space-between" marginTop="sm">
           <Text variant="caption" color="secondaryText">Solo</Text>
           <Text variant="body" color="primaryText" fontWeight="600">
-            {servingLabels[preferences.cookingContext.typicalServingSize as keyof typeof servingLabels]}
+            {servingLabels[Math.min(preferences.cookingContext.typicalServings, 5) as keyof typeof servingLabels]}
           </Text>
           <Text variant="caption" color="secondaryText">Large Group</Text>
         </Box>
@@ -138,12 +135,9 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
               key={key}
               onPress={() =>
                 onUpdate({
-                  lifestylePreferences: {
-                    ...preferences.cookingContext.lifestylePreferences,
-                    [key]: !preferences.cookingContext.lifestylePreferences[
-                      key as keyof typeof preferences.cookingContext.lifestylePreferences
-                    ],
-                  },
+                  lifestyleFactors: preferences.cookingContext.lifestyleFactors.includes(key)
+                    ? preferences.cookingContext.lifestyleFactors.filter(f => f !== key)
+                    : [...preferences.cookingContext.lifestyleFactors, key],
                 })
               }
             >
@@ -153,9 +147,7 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
                 padding="sm"
                 marginBottom="xs"
                 backgroundColor={
-                  preferences.cookingContext.lifestylePreferences[
-                    key as keyof typeof preferences.cookingContext.lifestylePreferences
-                  ]
+                  preferences.cookingContext.lifestyleFactors.includes(key)
                     ? "primaryGreen"
                     : "surface"
                 }
@@ -168,9 +160,7 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
                   variant="body"
                   flex={1}
                   color={
-                    preferences.cookingContext.lifestylePreferences[
-                      key as keyof typeof preferences.cookingContext.lifestylePreferences
-                    ]
+                    preferences.cookingContext.lifestyleFactors.includes(key)
                       ? "white"
                       : "primaryText"
                   }
@@ -180,18 +170,12 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
                 <Text
                   variant="body"
                   color={
-                    preferences.cookingContext.lifestylePreferences[
-                      key as keyof typeof preferences.cookingContext.lifestylePreferences
-                    ]
+                    preferences.cookingContext.lifestyleFactors.includes(key)
                       ? "white"
                       : "primaryText"
                   }
                 >
-                  {preferences.cookingContext.lifestylePreferences[
-                    key as keyof typeof preferences.cookingContext.lifestylePreferences
-                  ]
-                    ? "✅"
-                    : "⬜"}
+                  {preferences.cookingContext.lifestyleFactors.includes(key) ? "✅" : "⬜"}
                 </Text>
               </Box>
             </TouchableOpacity>

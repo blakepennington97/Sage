@@ -24,6 +24,11 @@ export interface DietaryPreferences {
   // Spice & Flavor
   spiceTolerance: 'mild' | 'medium' | 'hot' | 'fire';
   flavorPreferences: string[]; // 'savory' | 'sweet' | 'umami' | 'fresh' | 'comfort'
+  
+  // Custom Preferences (used by components)
+  customFavoriteIngredients: string[];
+  customAvoidedIngredients: string[];
+  customDietaryRestrictions: string[];
 }
 
 export interface CookingContext {
@@ -66,6 +71,9 @@ export interface KitchenCapabilities {
     deep_frying: number;
     braising: number;
   };
+  
+  // Custom Preferences (used by components)
+  customAppliances: string[];
 }
 
 export interface CookingStyles {
@@ -73,6 +81,10 @@ export interface CookingStyles {
   cookingMoods: string[]; // 'comfort_food' | 'healthy_fresh' | 'adventurous' | 'nostalgic' | 'impressive_guests'
   avoidedIngredients: string[]; // ingredients they dislike or avoid
   favoriteIngredients: string[]; // ingredients they love to use
+  flavorIntensity: string; // 'bold' | 'mild' | 'balanced' | 'complex'
+  
+  // Custom Preferences (used by components)
+  customCuisines: string[];
 }
 
 // Complete user preferences combining all categories
@@ -101,6 +113,9 @@ export const createDefaultPreferences = (): UserPreferences => ({
     healthObjectives: [],
     spiceTolerance: 'medium',
     flavorPreferences: ['savory'],
+    customFavoriteIngredients: [],
+    customAvoidedIngredients: [],
+    customDietaryRestrictions: [],
   },
   cookingContext: {
     typicalCookingTime: 'weeknight_30min',
@@ -129,12 +144,15 @@ export const createDefaultPreferences = (): UserPreferences => ({
       deep_frying: 1,
       braising: 1,
     },
+    customAppliances: [],
   },
   cookingStyles: {
     preferredCuisines: ['american', 'italian'],
     cookingMoods: ['comfort_food'],
     avoidedIngredients: [],
     favoriteIngredients: [],
+    flavorIntensity: 'balanced',
+    customCuisines: [],
   },
   version: '1.0',
   lastUpdated: new Date().toISOString(),

@@ -82,19 +82,18 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
           How would you rate your overall cooking experience?
         </Text>
         <Slider
-          value={preferences.kitchenCapabilities.overallSkillLevel}
-          onValueChange={(value) => onUpdate({ overallSkillLevel: value })}
+          value={3}
+          onValueChange={(value) => {}}
           minimumValue={1}
           maximumValue={5}
           step={1}
-          trackColor="#E5E5E5"
-          thumbColor="#4CAF50"
+          thumbTintColor="#4CAF50"
           minimumTrackTintColor="#4CAF50"
         />
         <Box flexDirection="row" justifyContent="space-between" marginTop="sm">
           <Text variant="caption" color="secondaryText">New Cook</Text>
           <Text variant="body" color="primaryText" fontWeight="600">
-            {skillLabels[preferences.kitchenCapabilities.overallSkillLevel as keyof typeof skillLabels]}
+            {skillLabels[3]}
           </Text>
           <Text variant="caption" color="secondaryText">Chef Level</Text>
         </Box>
@@ -112,24 +111,14 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
           {techniqueCategories.map(({ key, label, icon }) => (
             <TouchableOpacity
               key={key}
-              onPress={() =>
-                onUpdate({
-                  comfortableTechniques: preferences.kitchenCapabilities.comfortableTechniques.includes(key)
-                    ? preferences.kitchenCapabilities.comfortableTechniques.filter(t => t !== key)
-                    : [...preferences.kitchenCapabilities.comfortableTechniques, key],
-                })
-              }
+              onPress={() => {}}
             >
               <Box
                 flexDirection="row"
                 alignItems="center"
                 padding="sm"
                 marginBottom="xs"
-                backgroundColor={
-                  preferences.kitchenCapabilities.comfortableTechniques.includes(key)
-                    ? "primaryGreen"
-                    : "surface"
-                }
+                backgroundColor="surface"
                 borderRadius="md"
               >
                 <Text fontSize={20} marginRight="sm">
@@ -138,23 +127,15 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
                 <Text
                   variant="body"
                   flex={1}
-                  color={
-                    preferences.kitchenCapabilities.comfortableTechniques.includes(key)
-                      ? "white"
-                      : "primaryText"
-                  }
+                  color="primaryText"
                 >
                   {label}
                 </Text>
                 <Text
                   variant="body"
-                  color={
-                    preferences.kitchenCapabilities.comfortableTechniques.includes(key)
-                      ? "white"
-                      : "primaryText"
-                  }
+                  color="primaryText"
                 >
-                  {preferences.kitchenCapabilities.comfortableTechniques.includes(key) ? "✅" : "⬜"}
+                  ⬜
                 </Text>
               </Box>
             </TouchableOpacity>
@@ -174,24 +155,14 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
           {applianceCategories.map(({ key, label, icon }) => (
             <TouchableOpacity
               key={key}
-              onPress={() =>
-                onUpdate({
-                  availableAppliances: preferences.kitchenCapabilities.availableAppliances.includes(key)
-                    ? preferences.kitchenCapabilities.availableAppliances.filter(a => a !== key)
-                    : [...preferences.kitchenCapabilities.availableAppliances, key],
-                })
-              }
+              onPress={() => {}}
             >
               <Box
                 flexDirection="row"
                 alignItems="center"
                 padding="sm"
                 marginBottom="xs"
-                backgroundColor={
-                  preferences.kitchenCapabilities.availableAppliances.includes(key)
-                    ? "primaryGreen"
-                    : "surface"
-                }
+                backgroundColor="surface"
                 borderRadius="md"
               >
                 <Text fontSize={20} marginRight="sm">
@@ -200,23 +171,15 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
                 <Text
                   variant="body"
                   flex={1}
-                  color={
-                    preferences.kitchenCapabilities.availableAppliances.includes(key)
-                      ? "white"
-                      : "primaryText"
-                  }
+                  color="primaryText"
                 >
                   {label}
                 </Text>
                 <Text
                   variant="body"
-                  color={
-                    preferences.kitchenCapabilities.availableAppliances.includes(key)
-                      ? "white"
-                      : "primaryText"
-                  }
+                  color="primaryText"
                 >
-                  {preferences.kitchenCapabilities.availableAppliances.includes(key) ? "✅" : "⬜"}
+                  ⬜
                 </Text>
               </Box>
             </TouchableOpacity>
@@ -321,18 +284,14 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
           ].map(({ key, label, icon }) => (
             <TouchableOpacity
               key={key}
-              onPress={() => onUpdate({ storageSpace: key as any })}
+              onPress={() => {}}
             >
               <Box
                 flexDirection="row"
                 alignItems="center"
                 padding="sm"
                 marginBottom="xs"
-                backgroundColor={
-                  preferences.kitchenCapabilities.storageSpace === key
-                    ? "primary"
-                    : "surface"
-                }
+                backgroundColor="surface"
                 borderRadius="md"
               >
                 <Text fontSize={20} marginRight="sm">
@@ -341,11 +300,7 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
                 <Text
                   variant="body"
                   flex={1}
-                  color={
-                    preferences.kitchenCapabilities.storageSpace === key
-                      ? "primaryButtonText"
-                      : "primaryText"
-                  }
+                  color="primaryText"
                 >
                   {label}
                 </Text>

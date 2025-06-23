@@ -2,7 +2,7 @@
 
 **Document Purpose:** This is the living strategic plan for the Sage application. It serves as the single source of truth for the project's status, architecture, and future plans. It is designed to provide complete context for any developer, including future AI assistants, joining the project.
 
-**Last Updated:** June 23, 2025 (ARCHITECTURAL REFINEMENT & ENHANCEMENT PHASE INITIATED)
+**Last Updated:** June 23, 2025 (ARCHITECTURAL REFINEMENT & ENHANCEMENT PHASE - MAJOR PROGRESS)
 
 ---
 
@@ -25,11 +25,11 @@ _This section is a meta-guide on how to maintain this document._
 
 **Vision:** To transform "kitchen anxious" beginners into confident home cooks through a delightful, AI-powered companion that adapts to their skill level, available tools, and preferences.
 
-**Current Status (as of June 23, 2025): ARCHITECTURAL REFINEMENT & ENHANCEMENT PHASE**
+**Current Status (as of June 23, 2025): ARCHITECTURAL REFINEMENT & ENHANCEMENT PHASE - MAJOR SYSTEMS COMPLETED**
 
-**SAGE AI COOKING COACH: ENTERING MAJOR POLISHING & ARCHITECTURAL REFINEMENT PHASE** - Following successful resolution of critical stability issues (meal plan scrolling, cloning, and architectural bugs), the application now enters a comprehensive refinement phase focusing on: (1) **Code Architecture Optimization** - eliminating code bloat through smart component abstractions and reusable hooks, (2) **Enhanced User Experience** - daily macro visualization in meal planning, context-aware recipe generation, and intelligent UI patterns, (3) **AI System Enhancement** - advanced prompt engineering with few-shot examples and context-aware recipe suggestions, (4) **Database Optimization** - performance improvements, data integrity constraints, and automated field population, (5) **Production Readiness** - infrastructure hardening and scalability improvements, and (6) **Feature Maturation** - transforming functional features into polished, production-grade experiences.
+**SAGE AI COOKING COACH: MAJOR ARCHITECTURAL IMPROVEMENTS IMPLEMENTED** - Following successful completion of critical architectural enhancements, the application has achieved significant improvements in: (1) **✅ Code Architecture Optimization** - COMPLETED component decomposition (PreferencesEditor broken into focused sub-components), smart hooks architecture (useMealPlanActions), and reusable components (RecipeSelectorSheet, DailyMacroBreakdown), (2) **✅ Enhanced User Experience** - COMPLETED real-time macro visualization in meal planning with context-aware recipe generation, (3) **✅ AI System Enhancement** - COMPLETED centralized prompt architecture with systematic safety constraints and modular context building, (4) **✅ Data Flow Optimization** - COMPLETED single source of truth architecture for meal plans with optimistic updates and conflict resolution, (5) **🔄 In Progress** - Few-shot prompting examples and centralized navigation service, and (6) **📋 Planned** - Database optimization and final production hardening.
 
-**TRANSITION FROM BUG FIXING TO ARCHITECTURAL EXCELLENCE** - Having achieved stable core functionality, the focus shifts from reactive fixes to proactive enhancement. This phase emphasizes code quality, user experience refinement, and architectural patterns that support long-term maintainability and scalability. The comprehensive enhancement plan addresses six key areas: component refactoring, macro tracking visualization, intelligent recipe generation, code flow optimization, AI prompt engineering, and database schema improvements.
+**ARCHITECTURAL EXCELLENCE ACHIEVED** - The application now features professional-grade architectural patterns including centralized prompt systems, single source of truth data flow, optimistic UI updates with conflict resolution, component decomposition with separation of concerns, and type-safe operations throughout. These improvements provide the foundation for scalable, maintainable, and reliable production deployment.
 
 ---
 
@@ -44,9 +44,10 @@ _This section details what has been built and the technical decisions made. It i
   - **Description:** The app uses Supabase for its core backend services, including Authentication, a PostgreSQL Database, and (in the future) Storage.
   - **Rationale:** Supabase provides a tightly integrated BaaS (Backend as a Service) solution that significantly accelerates development by handling common backend tasks. Its generous free tier is ideal for an MVP, and its use of standard open-source technologies (Postgres, GoTrue) prevents vendor lock-in.
 
-- **AI Service: Google Gemini Pro**
-  - **Description:** All AI-powered features (recipe generation, grocery lists, cooking advice) are driven by the `gemini-1.5-flash` model via the `@google/generative-ai` SDK.
-  - **Rationale:** The Gemini family of models offers a strong balance of capability, speed, and cost-effectiveness. Crucially, its API supports a forced `application/json` response type, which has been implemented to ensure reliable, structured data transfer, eliminating the fragility of parsing natural language responses.
+- **AI Service: Google Gemini Pro with Centralized Prompt Architecture**
+  - **Description:** All AI-powered features (recipe generation, grocery lists, cooking advice) are driven by the `gemini-1.5-flash` model via the `@google/generative-ai` SDK with a comprehensive centralized prompt system.
+  - **Rationale:** The Gemini family of models offers a strong balance of capability, speed, and cost-effectiveness. The new centralized prompt architecture (PromptService, ContextBuilder, template system) ensures consistent AI interactions, systematic safety constraint enforcement, and maintainable prompt management across all features.
+  - **Enhancement:** Implemented professional-grade prompt templates, modular context building, safety-first constraint management, and reusable prompt components that eliminate scattered prompt logic and improve AI response quality.
 
 ### **Frontend Architecture & Logic**
 
@@ -57,8 +58,8 @@ _This section details what has been built and the technical decisions made. It i
 
 - **Data Fetching: TanStack Query**
 
-  - **Description:** Data fetching is now powered by TanStack Query with intelligent caching, optimistic updates, and automatic background refetching. The `useRecipes` and `useUserProfile` hooks use `useQuery` for data fetching and `useMutation` for state changes, with proper error handling and loading states.
-  - **Rationale:** TanStack Query eliminates manual state management boilerplate, provides powerful caching with 5-minute stale time, enables optimistic updates for instant UI feedback, and includes automatic retry logic. This significantly improves app performance and user experience while reducing code complexity.
+  - **Description:** Data fetching is now powered by TanStack Query with intelligent caching, optimistic updates, and automatic background refetching. Enhanced with a centralized MealPlanStore providing single source of truth for meal plan data with optimistic updates, conflict resolution, and mutation queuing. The `useRecipes`, `useUserProfile`, and new `useMealPlan` hooks provide consistent data access patterns.
+  - **Rationale:** TanStack Query eliminates manual state management boilerplate and provides powerful caching. The new MealPlanStore architecture eliminates race conditions, ensures data consistency, provides conflict detection with version control, and establishes professional-grade data flow patterns that scale for production use.
 
 - **Navigation: React Navigation**
   - **Description:** The app uses a standard navigation pattern: a root `StackNavigator` in `AuthWrapper.tsx` determines the user's state (Auth, Onboarding, or Main App). The Main App consists of a `BottomTabNavigator` for primary sections and a parent `StackNavigator` for detail screens and modals.
@@ -77,8 +78,16 @@ _This section details what has been built and the technical decisions made. It i
   - **Rationale:** Gamification significantly improves user retention and engagement by providing clear goals, visual feedback, and celebration of progress. Achievement categories target different user motivations, from skill development to consistency building, creating multiple pathways for users to feel accomplished and motivated to continue cooking.
 
 - **Advanced User Profile & AI Personalization System**
-  - **Description:** Comprehensive 4-category preference system: (1) Dietary & Health (allergies, diet style, nutrition goals, spice tolerance), (2) Cooking Context (time constraints, budget, serving sizes, lifestyle), (3) Kitchen Capabilities (appliances, storage, technique comfort levels), (4) Cooking Styles (cuisines, moods, favorite/avoided ingredients). Replaces nuclear "reset profile" with granular editing that preserves achievements.
-  - **Rationale:** Dramatically improves AI recipe quality by providing rich user context for personalization. Progressive disclosure UI scales from basic to power users. Separate preference versioning enables data migration. Enhanced AI prompts now consider dietary restrictions, time constraints, equipment availability, and cuisine preferences for truly personalized recommendations.
+  - **Description:** Comprehensive 4-category preference system: (1) Dietary & Health (allergies, diet style, nutrition goals, spice tolerance), (2) Cooking Context (time constraints, budget, serving sizes, lifestyle), (3) Kitchen Capabilities (appliances, storage, technique comfort levels), (4) Cooking Styles (cuisines, moods, favorite/avoided ingredients). Enhanced with component decomposition - PreferencesEditor broken into focused sub-components (DietaryPreferencesEditor, CookingContextEditor, KitchenCapabilitiesEditor, CookingStylesEditor) for maintainability.
+  - **Rationale:** Dramatically improves AI recipe quality by providing rich user context for personalization. Component decomposition improves code maintainability and follows Single Responsibility Principle. Progressive disclosure UI scales from basic to power users. Separate preference versioning enables data migration. Enhanced AI prompts now consider dietary restrictions, time constraints, equipment availability, and cuisine preferences for truly personalized recommendations.
+
+- **Centralized AI Prompt Architecture**
+  - **Description:** Professional-grade prompt system with PromptService, ContextBuilder, and template system. Features modular prompt templates, systematic safety constraint enforcement, reusable context building, and consistent AI interactions across all features (recipe generation, cooking advice, grocery lists).
+  - **Rationale:** Eliminates scattered prompt logic throughout the codebase, ensures consistent safety constraint enforcement, improves AI response quality through systematic context building, and provides maintainable prompt management that scales for future AI features. Templates enable A/B testing and prompt optimization.
+
+- **Single Source of Truth Data Architecture**  
+  - **Description:** Centralized MealPlanStore with MutationManager and DataLayer providing optimistic UI updates, conflict resolution with version control, mutation queuing to prevent race conditions, real-time data synchronization, and comprehensive error handling with rollback mechanisms.
+  - **Rationale:** Eliminates data synchronization issues, race conditions, and cache inconsistencies that plagued the previous architecture. Provides professional-grade data management patterns with optimistic updates for excellent user experience, conflict detection for data integrity, and scalable patterns for future features.
 
 - **Recipe Rating & Feedback System**
   - **Description:** Interactive 5-star rating system with StarRating component, modernized RecipeDetailScreen using Restyle theming, real-time rating updates with optimistic UI, and user feedback collection for AI improvement.

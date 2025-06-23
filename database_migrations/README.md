@@ -16,6 +16,7 @@ Run these migrations in numerical order. Each migration is designed to be idempo
 | `05_usage_tracking.sql` | Usage tracking and subscription limits | Free Tier Limits & Premium Features | ✅ Required |
 | `06_webhook_events.sql` | Webhook event logging and subscription management | Payment Integration & Webhooks | ✅ Required |
 | `07_dietary_safety_fields.sql` | Dietary safety fields for onboarding | Enhanced Safety Collection | ✅ Required |
+| `07_meal_plan_optimizations.sql` | Version control and performance optimizations | Single Source of Truth Architecture | ✅ Required |
 
 ## 🚀 How to Run Migrations
 
@@ -34,6 +35,7 @@ Run these migrations in numerical order. Each migration is designed to be idempo
    - Copy contents of `05_usage_tracking.sql` → Paste → Run
    - Copy contents of `06_webhook_events.sql` → Paste → Run
    - Copy contents of `07_dietary_safety_fields.sql` → Paste → Run
+   - Copy contents of `07_meal_plan_optimizations.sql` → Paste → Run
 
 ### Verification
 After running each migration, you can verify success by checking:
@@ -187,7 +189,7 @@ After running all migrations, your database will include:
 
 ### Feature Tables  
 - `user_preferences` (AI personalization data)
-- `meal_plans` (weekly meal planning)
+- `meal_plans` (weekly meal planning with version control)
 - `meal_plan_grocery_lists` (grocery lists)
 - `app_config` (centralized configuration management)
 - `user_usage_tracking` (usage limits & premium status)
@@ -322,6 +324,7 @@ If you encounter issues:
 | 2025-06-20 | 05_usage_tracking | Claude | Usage tracking and subscription limits system |
 | 2025-06-20 | 06_webhook_events | Claude | Webhook event logging and subscription management |
 | 2025-06-20 | 07_dietary_safety_fields | Claude | Enhanced onboarding with dietary safety collection |
+| 2025-06-23 | 07_meal_plan_optimizations | Claude | Version control and performance optimizations for single source of truth |
 
 ---
 
