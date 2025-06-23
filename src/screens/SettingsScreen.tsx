@@ -13,8 +13,8 @@ import { useAchievements } from "../hooks/useAchievements";
 import { useSavings } from "../hooks/useSavings";
 import { AuthService } from "../services/supabase";
 import { HapticService } from "../services/haptics";
-import { Box, Text, Button, Input, Card } from "../components/ui";
-import { BottomSheet } from "../components/ui";
+import { Box, Text, Button, Input, Card , BottomSheet } from "../components/ui";
+
 import { PreferencesEditor } from "../components/PreferencesEditor";
 import { useTheme } from "@shopify/restyle";
 import { Theme } from "../constants/restyleTheme";
@@ -355,7 +355,10 @@ export const SettingsScreen: React.FC = () => {
               variant="primary" 
               onPress={() => {
                 setShowSettingsSheet(false);
-                setShowPreferencesEditor(true);
+                // Add small delay to prevent BottomSheet conflicts
+                setTimeout(() => {
+                  setShowPreferencesEditor(true);
+                }, 100);
               }}
               marginBottom="md"
             >

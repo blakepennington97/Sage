@@ -15,8 +15,8 @@ import {
   UserRecipe,
 } from "../services/supabase";
 import { CostEstimationService } from "../services/costEstimation";
-import { Box, Text, Button, Card } from "../components/ui";
-import { BottomSheet } from "../components/ui";
+import { Box, Text, Button, Card , BottomSheet } from "../components/ui";
+
 import { useTheme } from "@shopify/restyle";
 import { Theme } from "../constants/restyleTheme";
 
@@ -161,6 +161,7 @@ export const CookingCoachScreen: React.FC = () => {
   const completeSession = () => {
     const recipeCost = recipe.recipe_data?.costPerServing;
     const servings = recipe.recipe_data?.servings || 1;
+    const nutritionalInfo = recipe.recipe_data?.nutritionalInfo;
     
     // Estimate restaurant cost using regional multiplier
     const restaurantMultiplier = CostEstimationService.getRestaurantMultiplier();
@@ -173,9 +174,14 @@ export const CookingCoachScreen: React.FC = () => {
       ? `\n💰 You saved approximately $${totalSavings.toFixed(2)} vs. restaurant!` 
       : "";
     
+    // Add macro information similar to cost breakdown
+    const macroMessage = nutritionalInfo 
+      ? `\n📊 Nutrition per serving: ${nutritionalInfo.caloriesPerServing} cal | ${nutritionalInfo.proteinPerServing}g protein | ${nutritionalInfo.carbsPerServing}g carbs | ${nutritionalInfo.fatPerServing}g fat`
+      : "";
+    
     Alert.alert(
       "🎉 Recipe Complete!", 
-      `How did it turn out?${savingsMessage}`, 
+      `How did it turn out?${savingsMessage}${macroMessage}`, 
       [
         { text: "Awesome!", onPress: () => handleSessionComplete(5) },
         {
@@ -345,7 +351,7 @@ export const CookingCoachScreen: React.FC = () => {
             <TextInput
               value={helpQuestion}
               onChangeText={setHelpQuestion}
-              placeholder="e.g., 'How do I know when it's done?' or 'My sauce is too thick'"
+              placeholder="e.g., &apos;How do I know when it&apos;s done?&apos; or &apos;My sauce is too thick&apos;"
               multiline
               numberOfLines={3}
               style={{

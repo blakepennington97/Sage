@@ -184,7 +184,7 @@ export const DietaryRestrictionsScreen: React.FC = () => {
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>Do you have any food allergies?</Text>
       <Text style={styles.stepSubtitle}>
-        ⚠️ This is critical for your safety - I'll never suggest recipes with these ingredients
+        ⚠️ This is critical for your safety - I&apos;ll never suggest recipes with these ingredients
       </Text>
 
       <View style={styles.allergiesGrid}>
@@ -259,7 +259,7 @@ export const DietaryRestrictionsScreen: React.FC = () => {
       </View>
 
       <Text style={styles.skipText}>
-        No restrictions? That's totally fine! 🍽️
+        No restrictions? That&apos;s totally fine! 🍽️
       </Text>
     </View>
   );
@@ -270,9 +270,9 @@ export const DietaryRestrictionsScreen: React.FC = () => {
 
     return (
       <View style={styles.stepContainer}>
-        <Text style={styles.stepTitle}>Let's confirm your dietary needs</Text>
+        <Text style={styles.stepTitle}>Let&apos;s confirm your dietary needs</Text>
         <Text style={styles.stepSubtitle}>
-          I'll use this information to keep you safe and suggest better recipes
+          I&apos;ll use this information to keep you safe and suggest better recipes
         </Text>
 
         <View style={styles.summaryCard}>

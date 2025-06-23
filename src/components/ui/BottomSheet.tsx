@@ -17,7 +17,7 @@ interface CustomBottomSheetProps extends Partial<BottomSheetProps> {
 }
 
 export const CustomBottomSheet = forwardRef<BottomSheet, CustomBottomSheetProps>(
-  ({ isVisible, onClose, children, title, snapPoints = ['90%', '95%'], scrollable = false, ...props }, ref) => {
+  ({ isVisible, onClose, children, title, snapPoints = ['90%', '95%'], scrollable = true, ...props }, ref) => {
     const snapPointsMemo = useMemo(() => snapPoints, [snapPoints]);
 
     if (!isVisible) {
@@ -61,3 +61,5 @@ export const CustomBottomSheet = forwardRef<BottomSheet, CustomBottomSheetProps>
     );
   }
 );
+
+CustomBottomSheet.displayName = 'CustomBottomSheet';

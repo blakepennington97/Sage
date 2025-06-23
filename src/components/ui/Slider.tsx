@@ -1,7 +1,7 @@
 import React from 'react';
 import Slider from '@react-native-community/slider';
-import { createBox, createText } from '@shopify/restyle';
-import { useTheme } from '@shopify/restyle';
+import { createBox, createText , useTheme } from '@shopify/restyle';
+
 import { Theme } from '../../constants/restyleTheme';
 
 // Create components directly to avoid circular imports

@@ -38,6 +38,16 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
     }
   }, [preferences, isLoading, initializePreferences]);
 
+  // Reset internal state when modal becomes visible
+  React.useEffect(() => {
+    if (isVisible) {
+      // Reset all internal state when modal opens
+      setSelectedCategory(null);
+      setCustomCuisineInput('');
+      setShowCustomCuisineInput(false);
+    }
+  }, [isVisible]);
+
   const categoryIcons = {
     macroGoals: '🎯',
     dietary: '🍽️',
@@ -1390,6 +1400,7 @@ export const PreferencesEditor: React.FC<PreferencesEditorProps> = ({
         showTDEECalculator={true}
         title="🎯 Edit Macro Goals"
         subtitle="Update your daily macro targets"
+        disableScroll={true} // Disable internal scroll since it's inside BottomSheet
       />
     );
   };

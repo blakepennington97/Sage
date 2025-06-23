@@ -190,6 +190,22 @@ export class RecipeService {
     return data || [];
   }
 
+  static async getRecipeById(recipeId: string): Promise<UserRecipe | null> {
+    const { data, error } = await supabase
+      .from("user_recipes")
+      .select("*")
+      .eq("id", recipeId)
+      .single();
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows returned
+        return null;
+      }
+      throw error;
+    }
+    return data;
+  }
+
   static async markAsCooked(recipeId: string): Promise<void> {
     try {
       const { data: recipe, error: fetchError } = await supabase

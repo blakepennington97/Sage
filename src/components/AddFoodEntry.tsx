@@ -266,11 +266,11 @@ export const AddFoodEntry: React.FC<AddFoodEntryProps> = ({
             💡 Try searching for:
           </Text>
           <Box gap="xs">
-            <Text variant="caption" color="secondaryText">• "McDonald's Big Mac"</Text>
-            <Text variant="caption" color="secondaryText">• "Greek yogurt plain"</Text>
-            <Text variant="caption" color="secondaryText">• "Quest Bar Cookies & Cream"</Text>
-            <Text variant="caption" color="secondaryText">• "Chipotle chicken burrito bowl"</Text>
-            <Text variant="caption" color="secondaryText">• "Banana medium"</Text>
+            <Text variant="caption" color="secondaryText">• &quot;McDonald&apos;s Big Mac&quot;</Text>
+            <Text variant="caption" color="secondaryText">• &quot;Greek yogurt plain&quot;</Text>
+            <Text variant="caption" color="secondaryText">• &quot;Quest Bar Cookies &amp; Cream&quot;</Text>
+            <Text variant="caption" color="secondaryText">• &quot;Chipotle chicken burrito bowl&quot;</Text>
+            <Text variant="caption" color="secondaryText">• &quot;Banana medium&quot;</Text>
           </Box>
         </Box>
       )}

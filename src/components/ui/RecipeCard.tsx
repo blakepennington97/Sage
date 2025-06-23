@@ -1,8 +1,8 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
 import { UserRecipe } from "../../services/supabase";
-import { createBox, createText } from '@shopify/restyle';
-import { useTheme } from "@shopify/restyle";
+import { createBox, createText , useTheme } from '@shopify/restyle';
+
 import { Theme } from "../../constants/restyleTheme";
 
 // Create components directly to avoid circular imports

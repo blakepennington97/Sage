@@ -298,7 +298,7 @@ export const KitchenAssessmentScreen: React.FC = () => {
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>What type of stove do you have?</Text>
       <Text style={styles.stepSubtitle}>
-        This affects cooking times and techniques I'll recommend
+        This affects cooking times and techniques I&apos;ll recommend
       </Text>
 
       <View style={styles.stoveGrid}>
@@ -390,7 +390,7 @@ export const KitchenAssessmentScreen: React.FC = () => {
         <View style={styles.spaceDescription}>
           {spaceLevel <= 2 && (
             <Text style={styles.spaceDescText}>
-              Perfect! I'll suggest one-pot meals and minimal prep recipes.
+              Perfect! I&apos;ll suggest one-pot meals and minimal prep recipes.
             </Text>
           )}
           {spaceLevel === 3 && (
@@ -429,7 +429,7 @@ export const KitchenAssessmentScreen: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.title}>🏠 Your Kitchen Setup</Text>
         <Text style={styles.subtitle}>
-          Help me understand what you're working with
+          Help me understand what you&apos;re working with
         </Text>
         {renderProgressBar()}
       </View>

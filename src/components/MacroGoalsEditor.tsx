@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ScrollView, Alert, TouchableOpacity } from "react-native";
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Box, Text, Button, Input, Card } from "./ui";
 import { TDEECalculator, UserPhysicalData, MacroRecommendations } from "../utils/tdeeCalculator";
 import { HapticService } from "../services/haptics";
@@ -19,6 +20,7 @@ interface MacroGoalsEditorProps {
   showTDEECalculator?: boolean;
   title?: string;
   subtitle?: string;
+  disableScroll?: boolean; // Add prop to disable internal ScrollView when inside BottomSheet
 }
 
 const GOAL_OPTIONS = [
@@ -35,6 +37,7 @@ export const MacroGoalsEditor: React.FC<MacroGoalsEditorProps> = ({
   showTDEECalculator = true,
   title = "🎯 Nutrition Goals",
   subtitle = "Set your daily macro targets for personalized recipes",
+  disableScroll = false,
 }) => {
   const [goals, setGoals] = useState<MacroGoals>({
     dailyCalories: initialGoals?.dailyCalories || 2000,
@@ -277,7 +280,7 @@ export const MacroGoalsEditor: React.FC<MacroGoalsEditorProps> = ({
       {/* Activity Level */}
       <Text variant="body" fontWeight="600" marginBottom="xs">Activity Level</Text>
       <Box gap="xs" marginBottom="md">
-        {(Object.keys(TDEECalculator.getActivityDescriptions()) as Array<'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active'>).map((level) => (
+        {(Object.keys(TDEECalculator.getActivityDescriptions()) as ('sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active')[]).map((level) => (
           <TouchableOpacity
             key={level}
             onPress={() => setPhysicalData(prev => ({ ...prev, activityLevel: level }))}
@@ -319,197 +322,182 @@ export const MacroGoalsEditor: React.FC<MacroGoalsEditorProps> = ({
     </Card>
   );
 
-  return (
-    <Box flex={1} backgroundColor="background">
-      {/* Header */}
-      <Box backgroundColor="primaryGreen" paddingTop="lg" paddingBottom="md" paddingHorizontal="md">
-        <Text variant="h1" color="white" textAlign="center">
-          {title}
+  const renderContent = () => (
+    <Box padding="md" gap="lg">
+      {/* TDEE Calculator */}
+      {showTDEECalculator && (
+        showCalculator ? renderTDEECalculator() : (
+          <Card variant="secondary">
+            <Box flexDirection="row" alignItems="center" justifyContent="space-between">
+              <Box flex={1}>
+                <Text variant="h3" marginBottom="xs">🧮 Smart Calculator</Text>
+                <Text variant="body" color="secondaryText" fontSize={14}>
+                  Calculate ideal calories based on your stats
+                </Text>
+              </Box>
+              <Button variant="primary" onPress={() => setShowCalculator(true)}>
+                <Text variant="button" color="primaryButtonText">Calculate</Text>
+              </Button>
+            </Box>
+          </Card>
+        )
+      )}
+
+      {/* Macro Breakdown Summary */}
+      <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
+        <Text variant="h3" color="primaryText" marginBottom="sm">
+          📊 Macro Breakdown
         </Text>
-        <Text variant="body" color="white" textAlign="center" marginTop="xs" opacity={0.9}>
-          {subtitle}
+        <Box flexDirection="row" justifyContent="space-between">
+          <Text variant="body" color="secondaryText">
+            Protein: {percentages.protein}% • Carbs: {percentages.carbs}% • Fat: {percentages.fat}%
+          </Text>
+        </Box>
+        <Text variant="caption" color="secondaryText" marginTop="xs">
+          Total: {goals.dailyCalories} calories/day
         </Text>
       </Box>
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <Box padding="md" gap="lg">
-          {/* TDEE Calculator */}
-          {showTDEECalculator && (
-            showCalculator ? renderTDEECalculator() : (
-              <Card variant="secondary">
-                <Box flexDirection="row" alignItems="center" justifyContent="space-between">
-                  <Box flex={1}>
-                    <Text variant="h3" marginBottom="xs">🧮 Smart Calculator</Text>
-                    <Text variant="body" color="secondaryText" fontSize={14}>
-                      Calculate ideal calories based on your stats
-                    </Text>
-                  </Box>
-                  <Button variant="primary" onPress={() => setShowCalculator(true)}>
-                    <Text variant="button" color="primaryButtonText">Calculate</Text>
-                  </Button>
-                </Box>
-              </Card>
-            )
+      {/* Macro Goals Input */}
+      <Box gap="md">
+        {/* Daily Calories */}
+        <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
+          <Text variant="h3" color="primaryText" marginBottom="sm">
+            🔥 Daily Calories
+          </Text>
+          <Input
+            value={goals.dailyCalories.toString()}
+            onChangeText={(value) => handleGoalChange('dailyCalories', value)}
+            placeholder="2000"
+            keyboardType="numeric"
+            backgroundColor="background"
+            borderRadius="md"
+            padding="md"
+            fontSize={24}
+            fontWeight="600"
+            textAlign="center"
+            color="primaryGreen"
+            marginBottom="sm"
+            borderWidth={inputErrors.dailyCalories ? 2 : 1}
+            borderColor={inputErrors.dailyCalories ? "error" : "border"}
+          />
+          {inputErrors.dailyCalories && (
+            <Text variant="caption" color="error" marginBottom="sm">
+              {inputErrors.dailyCalories}
+            </Text>
           )}
-
-          {/* Macro Breakdown Summary */}
-          <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
-            <Text variant="h3" color="primaryText" marginBottom="sm">
-              📊 Macro Breakdown
-            </Text>
-            <Box flexDirection="row" justifyContent="space-between">
-              <Text variant="body" color="secondaryText">
-                Protein: {percentages.protein}% • Carbs: {percentages.carbs}% • Fat: {percentages.fat}%
-              </Text>
-            </Box>
-            <Text variant="caption" color="secondaryText" marginTop="xs">
-              Total: {goals.dailyCalories} calories/day
-            </Text>
-          </Box>
-
-          {/* Macro Goals Input */}
-          <Box gap="md">
-            {/* Daily Calories */}
-            <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
-              <Text variant="h3" color="primaryText" marginBottom="sm">
-                🔥 Daily Calories
-              </Text>
-              <Input
-                value={goals.dailyCalories.toString()}
-                onChangeText={(value) => handleGoalChange('dailyCalories', value)}
-                placeholder="2000"
-                keyboardType="numeric"
-                backgroundColor="background"
-                borderRadius="md"
-                padding="md"
-                fontSize={24}
-                fontWeight="600"
-                textAlign="center"
-                color="primaryGreen"
-                marginBottom="sm"
-                borderWidth={inputErrors.dailyCalories ? 2 : 1}
-                borderColor={inputErrors.dailyCalories ? "error" : "border"}
-              />
-              {inputErrors.dailyCalories && (
-                <Text variant="caption" color="error" marginBottom="sm">
-                  {inputErrors.dailyCalories}
-                </Text>
-              )}
-              <Text variant="body" color="secondaryText" textAlign="center">
-                Recommended: 1200-4000 calories
-              </Text>
-            </Box>
-
-            {/* Daily Protein */}
-            <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
-              <Text variant="h3" color="primaryText" marginBottom="sm">
-                💪 Daily Protein
-              </Text>
-              <Input
-                value={goals.dailyProtein.toString()}
-                onChangeText={(value) => handleGoalChange('dailyProtein', value)}
-                placeholder="80"
-                keyboardType="numeric"
-                backgroundColor="background"
-                borderRadius="md"
-                padding="md"
-                fontSize={24}
-                fontWeight="600"
-                textAlign="center"
-                color="primary"
-                marginBottom="sm"
-                borderWidth={inputErrors.dailyProtein ? 2 : 1}
-                borderColor={inputErrors.dailyProtein ? "error" : "border"}
-              />
-              {inputErrors.dailyProtein && (
-                <Text variant="caption" color="error" marginBottom="sm">
-                  {inputErrors.dailyProtein}
-                </Text>
-              )}
-              <Text variant="body" color="secondaryText" textAlign="center">
-                Recommended: 30-300g (0.8-2.2g per kg body weight)
-              </Text>
-            </Box>
-
-            {/* Daily Carbs */}
-            <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
-              <Text variant="h3" color="primaryText" marginBottom="sm">
-                🌾 Daily Carbs
-              </Text>
-              <Input
-                value={goals.dailyCarbs.toString()}
-                onChangeText={(value) => handleGoalChange('dailyCarbs', value)}
-                placeholder="200"
-                keyboardType="numeric"
-                backgroundColor="background"
-                borderRadius="md"
-                padding="md"
-                fontSize={24}
-                fontWeight="600"
-                textAlign="center"
-                color="primary"
-                marginBottom="sm"
-                borderWidth={inputErrors.dailyCarbs ? 2 : 1}
-                borderColor={inputErrors.dailyCarbs ? "error" : "border"}
-              />
-              {inputErrors.dailyCarbs && (
-                <Text variant="caption" color="error" marginBottom="sm">
-                  {inputErrors.dailyCarbs}
-                </Text>
-              )}
-              <Text variant="body" color="secondaryText" textAlign="center">
-                Recommended: 20-500g (45-65% of calories)
-              </Text>
-            </Box>
-
-            {/* Daily Fat */}
-            <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
-              <Text variant="h3" color="primaryText" marginBottom="sm">
-                🥑 Daily Fats
-              </Text>
-              <Input
-                value={goals.dailyFat.toString()}
-                onChangeText={(value) => handleGoalChange('dailyFat', value)}
-                placeholder="60"
-                keyboardType="numeric"
-                backgroundColor="background"
-                borderRadius="md"
-                padding="md"
-                fontSize={24}
-                fontWeight="600"
-                textAlign="center"
-                color="primaryGreen"
-                marginBottom="sm"
-                borderWidth={inputErrors.dailyFat ? 2 : 1}
-                borderColor={inputErrors.dailyFat ? "error" : "border"}
-              />
-              {inputErrors.dailyFat && (
-                <Text variant="caption" color="error" marginBottom="sm">
-                  {inputErrors.dailyFat}
-                </Text>
-              )}
-              <Text variant="body" color="secondaryText" textAlign="center">
-                Recommended: 20-200g (20-35% of calories)
-              </Text>
-            </Box>
-          </Box>
-
-          {/* Help text */}
-          <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
-            <Text variant="h3" color="primaryText" marginBottom="sm">
-              💡 How This Helps
-            </Text>
-            <Text variant="body" color="secondaryText" lineHeight={20}>
-              Your macro goals help me suggest recipes that fit your nutritional needs. 
-              I'll show you the nutrition info for each recipe and track your daily progress 
-              towards these targets.
-            </Text>
-          </Box>
+          <Text variant="body" color="secondaryText" textAlign="center">
+            Recommended: 1200-4000 calories
+          </Text>
         </Box>
-      </ScrollView>
 
+        {/* Daily Protein */}
+        <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
+          <Text variant="h3" color="primaryText" marginBottom="sm">
+            💪 Daily Protein
+          </Text>
+          <Input
+            value={goals.dailyProtein.toString()}
+            onChangeText={(value) => handleGoalChange('dailyProtein', value)}
+            placeholder="80"
+            keyboardType="numeric"
+            backgroundColor="background"
+            borderRadius="md"
+            padding="md"
+            fontSize={24}
+            fontWeight="600"
+            textAlign="center"
+            color="primary"
+            marginBottom="sm"
+            borderWidth={inputErrors.dailyProtein ? 2 : 1}
+            borderColor={inputErrors.dailyProtein ? "error" : "border"}
+          />
+          {inputErrors.dailyProtein && (
+            <Text variant="caption" color="error" marginBottom="sm">
+              {inputErrors.dailyProtein}
+            </Text>
+          )}
+          <Text variant="body" color="secondaryText" textAlign="center">
+            Recommended: 30-300g (0.8-2.2g per kg body weight)
+          </Text>
+        </Box>
+
+        {/* Daily Carbs */}
+        <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
+          <Text variant="h3" color="primaryText" marginBottom="sm">
+            🌾 Daily Carbs
+          </Text>
+          <Input
+            value={goals.dailyCarbs.toString()}
+            onChangeText={(value) => handleGoalChange('dailyCarbs', value)}
+            placeholder="200"
+            keyboardType="numeric"
+            backgroundColor="background"
+            borderRadius="md"
+            padding="md"
+            fontSize={24}
+            fontWeight="600"
+            textAlign="center"
+            color="primary"
+            marginBottom="sm"
+            borderWidth={inputErrors.dailyCarbs ? 2 : 1}
+            borderColor={inputErrors.dailyCarbs ? "error" : "border"}
+          />
+          {inputErrors.dailyCarbs && (
+            <Text variant="caption" color="error" marginBottom="sm">
+              {inputErrors.dailyCarbs}
+            </Text>
+          )}
+          <Text variant="body" color="secondaryText" textAlign="center">
+            Recommended: 20-500g (45-65% of calories)
+          </Text>
+        </Box>
+
+        {/* Daily Fat */}
+        <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
+          <Text variant="h3" color="primaryText" marginBottom="sm">
+            🥑 Daily Fats
+          </Text>
+          <Input
+            value={goals.dailyFat.toString()}
+            onChangeText={(value) => handleGoalChange('dailyFat', value)}
+            placeholder="60"
+            keyboardType="numeric"
+            backgroundColor="background"
+            borderRadius="md"
+            padding="md"
+            fontSize={24}
+            fontWeight="600"
+            textAlign="center"
+            color="primaryGreen"
+            marginBottom="sm"
+            borderWidth={inputErrors.dailyFat ? 2 : 1}
+            borderColor={inputErrors.dailyFat ? "error" : "border"}
+          />
+          {inputErrors.dailyFat && (
+            <Text variant="caption" color="error" marginBottom="sm">
+              {inputErrors.dailyFat}
+            </Text>
+          )}
+          <Text variant="body" color="secondaryText" textAlign="center">
+            Recommended: 20-200g (20-35% of calories)
+          </Text>
+        </Box>
+      </Box>
+
+      {/* Help text */}
+      <Box backgroundColor="surface" padding="md" borderRadius="lg" borderWidth={1} borderColor="border">
+        <Text variant="h3" color="primaryText" marginBottom="sm">
+          💡 How This Helps
+        </Text>
+        <Text variant="body" color="secondaryText" lineHeight={20}>
+          Your macro goals help me suggest recipes that fit your nutritional needs. 
+          I&apos;ll show you the nutrition info for each recipe and track your daily progress 
+          towards these targets.
+        </Text>
+      </Box>
       {/* Action Buttons */}
-      <Box padding="md" backgroundColor="surface" borderTopWidth={1} borderTopColor="border">
+      <Box padding="md" backgroundColor="surface" borderRadius="lg" borderWidth={1} borderColor="border" marginTop="lg">
         <Box flexDirection="row" gap="sm">
           {onCancel && (
             <Button
@@ -534,6 +522,34 @@ export const MacroGoalsEditor: React.FC<MacroGoalsEditorProps> = ({
           </Button>
         </Box>
       </Box>
+    </Box>
+  );
+
+  return (
+    <Box flex={1} backgroundColor="background">
+      {/* Header */}
+      <Box backgroundColor="primaryGreen" paddingTop="lg" paddingBottom="md" paddingHorizontal="md">
+        <Text variant="h1" color="white" textAlign="center">
+          {title}
+        </Text>
+        <Text variant="body" color="white" textAlign="center" marginTop="xs" opacity={0.9}>
+          {subtitle}
+        </Text>
+      </Box>
+
+      {disableScroll ? (
+        renderContent()
+      ) : (
+        <BottomSheetScrollView 
+          style={{ flex: 1 }} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
+          {renderContent()}
+        </BottomSheetScrollView>
+      )}
     </Box>
   );
 };

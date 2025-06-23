@@ -34,12 +34,12 @@ export function UsageIndicator({
   showLabel = true, 
   size = 'medium' 
 }: UsageIndicatorProps) {
+  const { displayText, remaining, isPremium, isLoading } = useUsageDisplay(actionType);
+  
   // Don't show usage indicator if feature is disabled
   if (!isFeatureEnabled('usageTracking')) {
     return null;
   }
-  
-  const { displayText, remaining, isPremium, isLoading } = useUsageDisplay(actionType);
   
   if (isLoading) {
     return (
@@ -79,12 +79,12 @@ interface UsageCardProps {
  * Card showing detailed usage information with upgrade option
  */
 export function UsageCard({ actionType, onUpgrade }: UsageCardProps) {
+  const { usageData, isPremium, canPerformAction } = useUsageTracking();
+  
   // Don't show usage card if feature is disabled
   if (!isFeatureEnabled('usageTracking')) {
     return null;
   }
-  
-  const { usageData, isPremium, canPerformAction } = useUsageTracking();
   
   if (!usageData) {
     return null;
@@ -179,16 +179,9 @@ export function LimitReachedModal({
   onClose, 
   onUpgrade 
 }: LimitReachedModalProps) {
-  // Don't show modal if feature is disabled
-  if (!isFeatureEnabled('upgradePrompts')) {
-    return null;
-  }
-  
   const actionLabel = actionType === 'recipe_generation' ? 'recipe generation' : 'grocery list';
-  
-  if (!visible) return null;
 
-  const showAlert = () => {
+  const showAlert = React.useCallback(() => {
     Alert.alert(
       'Usage Limit Reached',
       `You've reached your weekly limit for ${actionLabel}. Upgrade to Premium for unlimited access!`,
@@ -208,14 +201,21 @@ export function LimitReachedModal({
         }] : []),
       ]
     );
-  };
+  }, [actionLabel, onClose, onUpgrade]);
 
   // Show alert immediately
   React.useEffect(() => {
-    if (visible) {
+    if (visible && isFeatureEnabled('upgradePrompts')) {
       showAlert();
     }
-  }, [visible]);
+  }, [visible, showAlert]);
+
+  // Don't show modal if feature is disabled
+  if (!isFeatureEnabled('upgradePrompts')) {
+    return null;
+  }
+  
+  if (!visible) return null;
 
   return null; // Alert handles the UI
 }
@@ -228,12 +228,12 @@ interface PremiumExpiryWarningProps {
  * Shows warning when premium is expiring soon
  */
 export function PremiumExpiryWarning({ onRenew }: PremiumExpiryWarningProps) {
+  const { isPremiumExpiringSoon, premiumExpiryText, daysUntilExpiry } = useUsageTracking();
+  
   // Don't show warning if premium features are disabled
   if (!isFeatureEnabled('premiumFeatures')) {
     return null;
   }
-  
-  const { isPremiumExpiringSoon, premiumExpiryText, daysUntilExpiry } = useUsageTracking();
   
   if (!isPremiumExpiringSoon) {
     return null;
@@ -276,6 +276,9 @@ interface WeeklyUsageOverviewProps {
  * Overview of all weekly usage limits
  */
 export function WeeklyUsageOverview({ onUpgrade }: WeeklyUsageOverviewProps) {
+  const { usageData, isPremium } = useUsageTracking();
+  const navigation = useNavigation<any>();
+  
   // Don't show overview if feature is disabled
   if (!isFeatureEnabled('usageTracking')) {
     return (
@@ -285,9 +288,6 @@ export function WeeklyUsageOverview({ onUpgrade }: WeeklyUsageOverviewProps) {
       </Box>
     );
   }
-  
-  const { usageData, isPremium } = useUsageTracking();
-  const navigation = useNavigation<any>();
   
   const handleUpgrade = onUpgrade || (() => {
     if (isFeatureEnabled('paymentSystem')) {

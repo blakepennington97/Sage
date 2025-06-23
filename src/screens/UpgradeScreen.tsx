@@ -27,7 +27,7 @@ const PREMIUM_FEATURES = [
   {
     icon: '📅',
     title: 'Advanced Meal Planning',
-    description: 'Plan your entire week, save time, and never wonder "what\'s for dinner?" again'
+    description: 'Plan your entire week, save time, and never wonder &quot;what&apos;s for dinner?&quot; again'
   },
   {
     icon: '💰',
@@ -190,7 +190,7 @@ export const UpgradeScreen: React.FC = () => {
       <Card variant="primary" margin="lg">
         <Box alignItems="center">
           <Text variant="h2" color="success" marginBottom="sm">
-            ✨ You're Premium!
+            ✨ You&apos;re Premium!
           </Text>
           <Text variant="body" color="primaryText" textAlign="center" marginBottom="md">
             You have unlimited access to all features

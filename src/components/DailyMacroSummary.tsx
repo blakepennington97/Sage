@@ -156,7 +156,7 @@ export const DailyMacroSummary: React.FC<DailyMacroSummaryProps> = ({
           )}
           {macros.calories.current > macros.calories.goal * 1.2 && (
             <Text variant="caption" color="errorText" textAlign="center">
-              ⚠️ You're significantly over your calorie goal today
+              ⚠️ You&apos;re significantly over your calorie goal today
             </Text>
           )}
           {macros.protein.current < macros.protein.goal * 0.7 && (

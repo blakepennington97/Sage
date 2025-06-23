@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, RecipeService } from './supabase';
 import { 
   WeeklyMealPlan, 
   MealPlanGroceryList,
@@ -22,7 +22,23 @@ export class MealPlanService {
       throw new Error(`Failed to fetch meal plans: ${error.message}`);
     }
 
-    return data || [];
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Parse the days field for each meal plan if it's a JSON string
+    return data.map(mealPlan => {
+      if (mealPlan.days && typeof mealPlan.days === 'string') {
+        try {
+          mealPlan.days = JSON.parse(mealPlan.days);
+        } catch (parseError) {
+          console.error('❌ Failed to parse days field in getUserMealPlans:', parseError);
+          // Return meal plan with empty days array if parsing fails
+          mealPlan.days = [];
+        }
+      }
+      return mealPlan;
+    });
   }
 
   // Get active meal plan for user
@@ -43,17 +59,43 @@ export class MealPlanService {
       throw new Error(`Failed to fetch active meal plan: ${error.message}`);
     }
 
+    if (!data) {
+      return null;
+    }
+
+    // Parse the days field if it's a JSON string
+    if (data.days && typeof data.days === 'string') {
+      try {
+        data.days = JSON.parse(data.days);
+      } catch (parseError) {
+        console.error('❌ Failed to parse days field in getActiveMealPlan:', parseError);
+        throw new Error(`Failed to parse meal plan days: ${parseError}`);
+      }
+    }
+
     return data;
   }
 
   // Get meal plan for specific week
   static async getMealPlanByWeek(userId: string, weekStartDate: string): Promise<WeeklyMealPlan | null> {
+    console.log(`🔍 getMealPlanByWeek called with:`, { userId, weekStartDate });
+    
+    // First, let's see all meal plans for this user to debug
+    const { data: allPlans } = await supabase
+      .from('meal_plans')
+      .select('*')
+      .eq('user_id', userId);
+    console.log(`🔍 All meal plans for user:`, allPlans);
+    
     const { data, error } = await supabase
       .from('meal_plans')
       .select('*')
       .eq('user_id', userId)
       .eq('week_start_date', weekStartDate)
+      .eq('is_active', true)
       .single();
+
+    console.log(`🔍 getMealPlanByWeek query result:`, { data, error });
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -64,35 +106,55 @@ export class MealPlanService {
       throw new Error(`Failed to fetch meal plan by week: ${error.message}`);
     }
 
+    if (!data) {
+      return null;
+    }
+
+    // CRITICAL FIX: Parse the days field if it's a JSON string
+    if (data.days && typeof data.days === 'string') {
+      try {
+        console.log(`🔧 Parsing days field from JSON string to array...`);
+        data.days = JSON.parse(data.days);
+        console.log(`✅ Successfully parsed days field:`, data.days);
+      } catch (parseError) {
+        console.error('❌ Failed to parse days field:', parseError);
+        throw new Error(`Failed to parse meal plan days: ${parseError}`);
+      }
+    }
+
     return data;
   }
 
   // Create new meal plan
   static async createMealPlan(userId: string, request: CreateMealPlanRequest): Promise<WeeklyMealPlan> {
-    // First, deactivate any existing active meal plan
-    await this.deactivateCurrentMealPlan(userId);
-
     const newMealPlan = createEmptyWeeklyMealPlan(request.title, request.week_start_date);
 
-    const { data, error } = await supabase
-      .from('meal_plans')
-      .insert({
-        user_id: userId,
-        ...newMealPlan
-      })
-      .select()
-      .single();
+    // Use a database function to atomically deactivate existing plans and create new one
+    const { data, error } = await supabase.rpc('create_meal_plan_atomic', {
+      p_user_id: userId,
+      p_title: newMealPlan.title,
+      p_week_start_date: newMealPlan.week_start_date,
+      p_days: JSON.stringify(newMealPlan.days),
+      p_is_active: newMealPlan.is_active
+    });
 
     if (error) {
       console.error('Error creating meal plan:', error);
       throw new Error(`Failed to create meal plan: ${error.message}`);
     }
 
-    return data;
+    // The RPC function returns a table (array), so we need the first item
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new Error('Failed to create meal plan: No data returned');
+    }
+
+    return data[0];
   }
 
   // Update meal plan (add/remove recipes)
   static async updateMealPlan(request: UpdateMealPlanRequest): Promise<WeeklyMealPlan> {
+    console.log(`🔧 MealPlanService.updateMealPlan called with:`, request);
+    
     // First, get the current meal plan
     const { data: currentPlan, error: fetchError } = await supabase
       .from('meal_plans')
@@ -101,8 +163,29 @@ export class MealPlanService {
       .single();
 
     if (fetchError) {
-      console.error('Error fetching meal plan for update:', fetchError);
+      console.error('❌ Error fetching meal plan for update:', fetchError);
       throw new Error(`Failed to fetch meal plan: ${fetchError.message}`);
+    }
+    
+    console.log(`📋 Found meal plan to update: ${currentPlan.title} (ID: ${currentPlan.id})`);
+    console.log(`📅 Plan week: ${currentPlan.week_start_date}, Target date: ${request.date}`);
+
+    // Parse the days field if it's a JSON string
+    if (currentPlan.days && typeof currentPlan.days === 'string') {
+      try {
+        currentPlan.days = JSON.parse(currentPlan.days);
+        console.log(`🔧 Parsed days field from JSON string in updateMealPlan`);
+      } catch (parseError) {
+        console.error('❌ Failed to parse days field in updateMealPlan:', parseError);
+        throw new Error(`Failed to parse meal plan days: ${parseError}`);
+      }
+    }
+
+    // Find the target day and update it
+    let recipeData = null;
+    if (request.recipe_id) {
+      // Fetch recipe data to populate meal plan entry
+      recipeData = await RecipeService.getRecipeById(request.recipe_id);
     }
 
     // Update the days array
@@ -110,23 +193,29 @@ export class MealPlanService {
       if (day.date === request.date) {
         const updatedDay = { ...day };
         
-        if (request.recipe_id) {
+        if (request.recipe_id && recipeData) {
+          const mealPlanRecipe = {
+            id: `${request.meal_plan_id}-${request.date}-${request.meal_type}`,
+            recipe_id: request.recipe_id,
+            recipe_name: recipeData.recipe_name || 'Unknown Recipe',
+            estimated_time: recipeData.estimated_time || '30 min',
+            difficulty_level: recipeData.difficulty_level || 3,
+            servings: request.servings || 1,
+            recipe_content: recipeData.recipe_content,
+            recipe_data: recipeData.recipe_data
+          };
+
           // Add/update recipe for the meal type
           if (request.meal_type === 'snacks') {
             // For snacks, add to array
             updatedDay.snacks = updatedDay.snacks || [];
             updatedDay.snacks.push({
-              id: `${request.meal_plan_id}-${request.date}-${request.meal_type}-${Date.now()}`,
-              recipe_id: request.recipe_id,
-              servings: request.servings || 1
+              ...mealPlanRecipe,
+              id: `${request.meal_plan_id}-${request.date}-${request.meal_type}-${Date.now()}`
             });
           } else {
             // For main meals, replace single recipe
-            updatedDay[request.meal_type] = {
-              id: `${request.meal_plan_id}-${request.date}-${request.meal_type}`,
-              recipe_id: request.recipe_id,
-              servings: request.servings || 1
-            };
+            updatedDay[request.meal_type] = mealPlanRecipe;
           }
         } else {
           // Remove recipe
@@ -142,6 +231,9 @@ export class MealPlanService {
       return day;
     });
 
+    console.log(`🔄 Updating meal plan in database...`);
+    console.log(`📊 Updated days structure:`, JSON.stringify(updatedDays, null, 2));
+    
     // Update the meal plan in database
     const { data, error } = await supabase
       .from('meal_plans')
@@ -154,10 +246,11 @@ export class MealPlanService {
       .single();
 
     if (error) {
-      console.error('Error updating meal plan:', error);
+      console.error('❌ Error updating meal plan in database:', error);
       throw new Error(`Failed to update meal plan: ${error.message}`);
     }
 
+    console.log(`✅ Meal plan updated successfully in database! Recipe added to ${request.date} ${request.meal_type}`);
     return data;
   }
 

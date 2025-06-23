@@ -195,7 +195,7 @@ export const SkillEvaluationScreen: React.FC = () => {
         What cooking challenges worry you most?
       </Text>
       <Text style={styles.stepSubtitle}>
-        Select any that apply - I'll help you overcome these! 💪
+        Select any that apply - I&apos;ll help you overcome these! 💪
       </Text>
 
       <View style={styles.fearsGrid}>
@@ -218,7 +218,7 @@ export const SkillEvaluationScreen: React.FC = () => {
       </View>
 
       <Text style={styles.skipText}>
-        Skip if none apply - that's awesome! 🎉
+        Skip if none apply - that&apos;s awesome! 🎉
       </Text>
     </View>
   );
@@ -250,13 +250,13 @@ export const SkillEvaluationScreen: React.FC = () => {
       <View style={styles.confidenceDescription}>
           {confidence <= 2 && (
             <Text style={styles.confidenceDescText}>
-              No worries! I'll start with the absolute basics and build your
+              No worries! I&apos;ll start with the absolute basics and build your
               confidence step by step.
             </Text>
           )}
           {confidence === 3 && (
             <Text style={styles.confidenceDescText}>
-              Perfect! I'll give you recipes that challenge you just enough to
+              Perfect! I&apos;ll give you recipes that challenge you just enough to
               keep growing.
             </Text>
           )}
@@ -286,7 +286,7 @@ export const SkillEvaluationScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>👋 Hi! I'm Sage</Text>
+        <Text style={styles.title}>👋 Hi! I&apos;m Sage</Text>
         {/* ProgressBar etc. */}
       </View>
 

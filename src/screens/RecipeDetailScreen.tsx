@@ -15,9 +15,9 @@ import {
 import Toast from "react-native-toast-message";
 
 import { MarkdownText } from "../components/MarkdownText";
-import { BottomSheet } from "../components/ui";
+import { BottomSheet , Box, Text, Button, Card } from "../components/ui";
 import { StarRating } from "../components/StarRating";
-import { Box, Text, Button, Card } from "../components/ui";
+
 import { useTheme } from "@shopify/restyle";
 import { Theme } from "../constants/restyleTheme";
 import { useRecipes } from "../hooks/useRecipes";
@@ -36,7 +36,7 @@ type RootStackParamList = {
   RecipeDetail: { 
     recipe: UserRecipe;
     fromMealPlanner?: boolean;
-    mealPlanContext?: { date: string; mealType: MealType };
+    mealPlanContext?: { date: string; mealType: MealType; meal_plan_id?: string };
   };
 };
 
@@ -163,19 +163,18 @@ export const RecipeDetailScreen: React.FC = () => {
     try {
       HapticService.medium();
       
-      // Get the active meal plan first
-      const activeMealPlan = await MealPlanService.getActiveMealPlan(user.id);
-      if (!activeMealPlan) {
+      // Use the meal plan ID from context (passed from MealPlannerScreen)
+      if (!mealPlanContext.meal_plan_id) {
         Toast.show({
           type: "error",
-          text1: "No Active Meal Plan",
-          text2: "Please create a meal plan first",
+          text1: "No Meal Plan Context",
+          text2: "Please navigate from the meal planner",
         });
         return;
       }
 
       await MealPlanService.updateMealPlan({
-        meal_plan_id: activeMealPlan.id,
+        meal_plan_id: mealPlanContext.meal_plan_id,
         date: mealPlanContext.date,
         meal_type: mealPlanContext.mealType,
         recipe_id: recipe.id,
@@ -583,21 +582,21 @@ ${modifiedRecipeData.tips.map(tip => `💡 ${tip}`).join('\n\n')}
               </Box>
               
               <Text variant="body" color="secondaryText" marginBottom="md">
-                Tell Sage how you'd like to modify this recipe. Examples:
+                Tell Sage how you&apos;d like to modify this recipe. Examples:
               </Text>
               
               <Box backgroundColor="surfaceVariant" padding="md" borderRadius="md" marginBottom="lg">
                 <Text variant="caption" color="secondaryText" marginBottom="xs">
-                  • "Can we not use chicken?"
+                  • &quot;Can we not use chicken?&quot;
                 </Text>
                 <Text variant="caption" color="secondaryText" marginBottom="xs">
-                  • "Make this higher in protein"
+                  • &quot;Make this higher in protein&quot;
                 </Text>
                 <Text variant="caption" color="secondaryText" marginBottom="xs">
-                  • "I don't have an oven, use stovetop only"
+                  • &quot;I don&apos;t have an oven, use stovetop only&quot;
                 </Text>
                 <Text variant="caption" color="secondaryText">
-                  • "Make it less spicy for kids"
+                  • &quot;Make it less spicy for kids&quot;
                 </Text>
               </Box>
               

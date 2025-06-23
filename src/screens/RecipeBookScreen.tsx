@@ -7,9 +7,10 @@ import {
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { useRecipes } from "../hooks/useRecipes";
 import { useUserPreferences } from "../hooks/useUserPreferences";
-import { RecipeGrid } from "../components/ui";
+import { RecipeGrid , Box, Text, Input, Slider, Button } from "../components/ui";
 import { UserRecipe } from "../services/supabase";
-import { Box, Text, Input, Slider, Button } from "../components/ui";
+
+import { CustomSlider } from "../components/ui/Slider";
 import { useTheme } from "@shopify/restyle";
 import { Theme } from "../constants/restyleTheme";
 
@@ -241,41 +242,33 @@ export const RecipeBookScreen: React.FC = () => {
             <Text variant="body" color="text" marginBottom="md" fontWeight="600">
               Difficulty Level
             </Text>
-            <Box paddingHorizontal="sm">
-              <Box style={{ width: '100%', height: 40 }}>
-                <Slider
-                  value={difficultyFilter || 0}
-                  onValueChange={(value) => setDifficultyFilter(value === 0 ? null : value)}
-                  minimumValue={0}
-                  maximumValue={5}
-                  step={1}
-                  minimumTrackTintColor={
-                    difficultyFilter === null || difficultyFilter === 0 ? theme.colors.border :
-                    difficultyFilter === 1 ? '#4CAF50' : // Green for Beginner
-                    difficultyFilter === 2 ? '#8BC34A' : // Light Green for Easy  
-                    difficultyFilter === 3 ? '#FF9800' : // Orange for Medium
-                    difficultyFilter === 4 ? '#FF5722' : // Red-Orange for Hard
-                    '#9C27B0' // Purple for Expert
-                  }
-                  maximumTrackTintColor={theme.colors.border}
-                />
-              </Box>
-              <Box flexDirection="row" justifyContent="space-between" marginTop="xs">
-                <Text variant="caption" color="textSecondary" fontSize={10}>All</Text>
-                <Text variant="caption" style={{ color: '#4CAF50' }} fontSize={10}>●</Text>
-                <Text variant="caption" style={{ color: '#8BC34A' }} fontSize={10}>●</Text>
-                <Text variant="caption" style={{ color: '#FF9800' }} fontSize={10}>●</Text>
-                <Text variant="caption" style={{ color: '#FF5722' }} fontSize={10}>●</Text>
-                <Text variant="caption" style={{ color: '#9C27B0' }} fontSize={10}>●</Text>
-              </Box>
-              <Box flexDirection="row" justifyContent="space-between" marginTop="xs">
-                <Text variant="caption" color="textSecondary" fontSize={9}></Text>
-                <Text variant="caption" color="textSecondary" fontSize={9}>Beginner</Text>
-                <Text variant="caption" color="textSecondary" fontSize={9}>Easy</Text>
-                <Text variant="caption" color="textSecondary" fontSize={9}>Medium</Text>
-                <Text variant="caption" color="textSecondary" fontSize={9}>Hard</Text>
-                <Text variant="caption" color="textSecondary" fontSize={9}>Expert</Text>
-              </Box>
+            <Box alignItems="center" paddingHorizontal="sm">
+              <CustomSlider
+                value={difficultyFilter || 0}
+                onValueChange={(value) => setDifficultyFilter(value === 0 ? null : value)}
+                minimumValue={0}
+                maximumValue={5}
+                step={1}
+                showLabels={true}
+                labels={['All', 'Beginner', 'Easy', 'Medium', 'Hard', 'Expert']}
+                minimumTrackTintColor={
+                  difficultyFilter === null || difficultyFilter === 0 ? theme.colors.border :
+                  difficultyFilter === 1 ? '#4CAF50' : // Green for Beginner
+                  difficultyFilter === 2 ? '#8BC34A' : // Light Green for Easy  
+                  difficultyFilter === 3 ? '#FF9800' : // Orange for Medium
+                  difficultyFilter === 4 ? '#FF5722' : // Red-Orange for Hard
+                  '#9C27B0' // Purple for Expert
+                }
+                maximumTrackTintColor={theme.colors.border}
+                thumbTintColor={
+                  difficultyFilter === null || difficultyFilter === 0 ? theme.colors.primary :
+                  difficultyFilter === 1 ? '#4CAF50' : // Green for Beginner
+                  difficultyFilter === 2 ? '#8BC34A' : // Light Green for Easy  
+                  difficultyFilter === 3 ? '#FF9800' : // Orange for Medium
+                  difficultyFilter === 4 ? '#FF5722' : // Red-Orange for Hard
+                  '#9C27B0' // Purple for Expert
+                }
+              />
               <Text variant="caption" color="text" textAlign="center" marginTop="sm" fontWeight="600">
                 {difficultyFilter === null ? "All levels" : 
                 difficultyFilter === 1 ? "Beginner" :

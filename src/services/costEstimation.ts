@@ -50,11 +50,11 @@ export class CostEstimationService {
     return `${region.currencySymbol}${amount.toFixed(2)}`;
   }
 
-  static getRegionComparison(baseCostUSD: number): Array<{
+  static getRegionComparison(baseCostUSD: number): {
     region: CostRegion;
     adjustedCost: number;
     formattedCost: string;
-  }> {
+  }[] {
     return COST_REGIONS.map(region => ({
       region,
       adjustedCost: baseCostUSD * region.multiplier,

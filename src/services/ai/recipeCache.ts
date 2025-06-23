@@ -261,7 +261,7 @@ export class RecipeCacheService {
       if (cacheKeys.length <= this.MAX_CACHE_SIZE) return;
 
       // Get all cached recipes with their metadata
-      const cachedRecipes: Array<{key: string, recipe: CachedRecipe}> = [];
+      const cachedRecipes: {key: string, recipe: CachedRecipe}[] = [];
       
       for (const key of cacheKeys) {
         try {

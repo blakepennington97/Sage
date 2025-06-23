@@ -170,9 +170,9 @@ export const RecipeGenerationScreen: React.FC = () => {
       const contextualSuggestions = [
         "A quick and healthy weeknight dinner using whatever vegetables I have",
         "Something comforting and warm for a cozy evening",
-        "A simple one-pot meal that won't make too many dishes",
+        "A simple one-pot meal that won&apos;t make too many dishes",
         "A nutritious lunch I can make in under 20 minutes",
-        "An impressive dish that's easier than it looks",
+        "An impressive dish that&apos;s easier than it looks",
         "Something with bold flavors to try a new cuisine",
         "A filling breakfast that will give me energy for the day",
         "A light and fresh meal perfect for today's weather",
@@ -249,7 +249,7 @@ export const RecipeGenerationScreen: React.FC = () => {
     <View style={styles.savedSection}>
       <Text style={styles.savedTitle}>📚 My Recipe Book</Text>
       <Text style={styles.noRecipesText}>
-        Or, choose a recipe you've already saved.
+        Or, choose a recipe you&apos;ve already saved.
       </Text>
       {recipes.length > 0 ? (
         recipes.slice(0, 3).map((recipe: UserRecipe) => (
