@@ -60,13 +60,13 @@ export const useRecipes = () => {
 
   // Generate and save recipe mutation
   const generateRecipeMutation = useMutation({
-    mutationFn: async (request: string) => {
+    mutationFn: async ({ request, context }: { request: string; context?: { remainingMacros?: { calories: number; protein: number; carbs: number; fat: number } } }) => {
       if (!user) {
         throw new Error("User must be authenticated");
       }
 
       // 1. Get structured data from the AI
-      const recipeData = await geminiService.generateRecipe(request);
+      const recipeData = await geminiService.generateRecipe(request, context);
 
       // 2. Reconstruct the human-readable markdown content
       const recipeContent = reconstructMarkdownFromData(recipeData);
@@ -96,7 +96,7 @@ export const useRecipes = () => {
   });
 
   const generateAndSaveRecipe = useCallback(
-    async (request: string) => {
+    async (request: string, context?: { remainingMacros?: { calories: number; protein: number; carbs: number; fat: number } }) => {
       if (!user) {
         Alert.alert(
           "Authentication Error",
@@ -106,7 +106,7 @@ export const useRecipes = () => {
       }
 
       try {
-        return await generateRecipeMutation.mutateAsync(request);
+        return await generateRecipeMutation.mutateAsync({ request, context });
       } catch {
         return null;
       }

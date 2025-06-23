@@ -2,7 +2,7 @@
 
 **Document Purpose:** This is the living strategic plan for the Sage application. It serves as the single source of truth for the project's status, architecture, and future plans. It is designed to provide complete context for any developer, including future AI assistants, joining the project.
 
-**Last Updated:** June 23, 2025 (CRITICAL MEAL PLAN JSON PARSING FIX & REMAINING ISSUES)
+**Last Updated:** June 23, 2025 (ARCHITECTURAL REFINEMENT & ENHANCEMENT PHASE INITIATED)
 
 ---
 
@@ -25,11 +25,11 @@ _This section is a meta-guide on how to maintain this document._
 
 **Vision:** To transform "kitchen anxious" beginners into confident home cooks through a delightful, AI-powered companion that adapts to their skill level, available tools, and preferences.
 
-**Current Status (as of June 22, 2025): CRITICAL BUG FIXES COMPLETE - PRODUCTION-STABLE DEPLOYMENT**
+**Current Status (as of June 23, 2025): ARCHITECTURAL REFINEMENT & ENHANCEMENT PHASE**
 
-**SAGE AI COOKING COACH: REFINED PRODUCTION-READY COMPREHENSIVE COOKING PLATFORM** - The application is now a complete, enterprise-grade cooking coach platform featuring: (1) **Core Nutritional Intelligence** with macro goal setting, daily progress tracking, and complete nutritional data for every recipe, (2) **Enhanced Recipe Experience** with natural language modification, descriptive cooking guidance with rich sensory cues, and interactive recipe customization, (3) **Advanced Workflow Optimization** with meal prep functionality, smart meal suggestions, and professional meal planning interface, (4) **Production Infrastructure** with intelligent AI caching (up to 90% cost reduction), comprehensive error monitoring, and centralized API key management, and (5) **Post-Testing Refinements** with critical bug fixes, improved UI compactness, intelligent personalization, and enhanced user experience.
+**SAGE AI COOKING COACH: ENTERING MAJOR POLISHING & ARCHITECTURAL REFINEMENT PHASE** - Following successful resolution of critical stability issues (meal plan scrolling, cloning, and architectural bugs), the application now enters a comprehensive refinement phase focusing on: (1) **Code Architecture Optimization** - eliminating code bloat through smart component abstractions and reusable hooks, (2) **Enhanced User Experience** - daily macro visualization in meal planning, context-aware recipe generation, and intelligent UI patterns, (3) **AI System Enhancement** - advanced prompt engineering with few-shot examples and context-aware recipe suggestions, (4) **Database Optimization** - performance improvements, data integrity constraints, and automated field population, (5) **Production Readiness** - infrastructure hardening and scalability improvements, and (6) **Feature Maturation** - transforming functional features into polished, production-grade experiences.
 
-**ENTERPRISE-READY DEPLOYMENT ARCHITECTURE WITH USER-TESTED REFINEMENTS** - The application features intelligent recipe caching with similarity scoring, production error logging and monitoring, scalable API key management with hybrid architecture, performance optimization, and comprehensive bug fixes based on real user feedback. Complete feature set includes achievement system, cost analysis, enhanced onboarding safety, professional UI design system, and refined user interface optimizations. Ready for immediate production deployment with comprehensive cooking coach capabilities from beginner to advanced users, now with enhanced reliability and user experience.
+**TRANSITION FROM BUG FIXING TO ARCHITECTURAL EXCELLENCE** - Having achieved stable core functionality, the focus shifts from reactive fixes to proactive enhancement. This phase emphasizes code quality, user experience refinement, and architectural patterns that support long-term maintainability and scalability. The comprehensive enhancement plan addresses six key areas: component refactoring, macro tracking visualization, intelligent recipe generation, code flow optimization, AI prompt engineering, and database schema improvements.
 
 ---
 
@@ -188,6 +188,211 @@ _This section details what has been built and the technical decisions made. It i
 ## 🗺️ Strategic Roadmap (The "To-Be")
 
 _This section outlines the planned next phases of development, prioritized by value delivery._
+
+---
+
+## 🔧 **CURRENT PHASE: ARCHITECTURAL REFINEMENT & ENHANCEMENT** *(ACTIVE)*
+
+**Goal:** Transform the application from "functionally complete" to "architecturally excellent" through comprehensive code optimization, enhanced user experience patterns, and production-grade infrastructure improvements.
+
+### **Priority 1: Code Architecture Optimization**
+
+**Objective:** Eliminate code bloat and create intelligent, reusable component abstractions that accelerate future development.
+
+**1.1 Component Refactoring & Smart Hooks**
+- **Problem:** MealPlannerScreen contains excessive handler functions mixing view logic with action logic
+- **Solution:** Create `useMealPlanActions` hook encapsulating all meal plan interaction logic
+- **Implementation:** 
+  - Extract `handleAddRecipe`, `handleSelectRecipe`, `handleRemoveRecipe`, `handleCloneRecipe` functions
+  - Create reusable hook: `const { addRecipe, removeRecipe, cloneRecipe } = useMealPlanActions(mealPlan)`
+  - Dramatically simplify main component by separating concerns
+- **Impact:** Cleaner components, reusable logic, better testability
+
+**1.2 Reusable BottomSheet Components**
+- **Problem:** Recipe selection BottomSheet tightly coupled to MealPlannerScreen
+- **Solution:** Create `RecipeSelectorSheet` component for universal recipe selection
+- **Implementation:**
+  - Extract BottomSheet logic into `src/components/RecipeSelectorSheet.tsx`
+  - Accept props: `isVisible`, `onClose`, `onRecipeSelect: (recipeId: string) => void`
+  - Enable reuse across multiple screens (recipe replacement, meal suggestions, etc.)
+- **Impact:** Consistent UX patterns, reduced duplication, faster feature development
+
+**1.3 PreferencesEditor Component Decomposition**
+- **Problem:** Monolithic PreferencesEditor with large render functions violates Single Responsibility Principle
+- **Solution:** Break down into focused sub-components by preference category
+- **Implementation:**
+  - Create `src/components/preferences/DietaryPreferencesEditor.tsx`
+  - Create `CookingContextEditor.tsx`, `KitchenCapabilitiesEditor.tsx`, etc.
+  - Transform main PreferencesEditor into simple router component
+- **Impact:** Maintainable code, clear separation of concerns, easier feature additions
+
+### **Priority 2: Enhanced User Experience - Daily Macro Visualization**
+
+**Objective:** Provide immediate nutritional feedback within meal planning workflow through intelligent macro progress visualization.
+
+**2.1 DailyMacroBreakdown Component**
+- **Problem:** Users have no immediate feedback on daily nutritional progress in meal planning view
+- **Solution:** Create compact, reusable macro totals visualization component
+- **Implementation:**
+  - Develop `src/components/DailyMacroBreakdown.tsx`
+  - Accept `DayMealPlan` object and user's `macroGoals` as props
+  - Calculate totals from breakfast, lunch, dinner, and snacks
+  - Display compact summary: "🔥 1800/2500 kcal", "💪 120/150g P"
+  - Include loading states for recipe data fetching
+- **Impact:** Real-time nutritional awareness, informed meal planning decisions
+
+**2.2 WeeklyMealGrid Integration**
+- **Problem:** Meal planning grid shows only meal cards without nutritional context
+- **Solution:** Integrate DailyMacroBreakdown at bottom of each day's column
+- **Implementation:**
+  - Modify WeeklyMealGrid to accept user's macro goals from MealPlannerScreen
+  - Render `<DailyMacroBreakdown dayPlan={dayMealPlan} goals={macroGoals} />` after meal cards
+  - Ensure recipe data includes necessary nutritional information via database JOINs
+- **Impact:** Contextual nutritional feedback, better meal planning decisions
+
+### **Priority 3: Context-Aware Recipe Generation**
+
+**Objective:** Transform recipe generation from "fire-and-forget" to intelligent, context-aware recommendations that consider user's daily nutritional progress.
+
+**3.1 Enhanced AI Prompt Context**
+- **Problem:** Recipe generation doesn't consider user's current daily macro intake
+- **Solution:** Modify `generateRecipe` method to accept daily macro context
+- **Implementation:**
+  - Update method signature: `generateRecipe(request: string, context?: { remainingMacros: MacroBreakdown })`
+  - Enhance prompt with contextual guidance:
+    ```
+    USER'S CURRENT DAILY CONTEXT (optional):
+    The user has already planned other meals for today. Generate a recipe that helps them meet their remaining nutritional goals.
+    - Remaining Calories: {{context.remainingMacros.calories}}
+    - Remaining Protein: {{context.remainingMacros.protein}}g
+    - Remaining Carbs: {{context.remainingMacros.carbs}}g
+    - Remaining Fat: {{context.remainingMacros.fat}}g
+    
+    RECIPE REQUIREMENTS:
+    - Recipe should target remaining calories per serving
+    - Prioritize hitting remaining protein goal
+    - Balance other macros appropriately
+    ```
+- **Impact:** Intelligent recipe suggestions that complete daily nutritional goals
+
+**3.2 RecipeGenerationScreen Context Integration**
+- **Problem:** Recipe generation screen lacks awareness of meal planning context
+- **Solution:** Pass daily meal plan context when navigating from meal planner
+- **Implementation:**
+  - Modify navigation to include entire `dayMealPlan` for target date
+  - Calculate `remainingMacros` by subtracting day's current totals from user's goals
+  - Pass context to `generateAndSaveRecipe` function
+- **Impact:** Context-aware recipe generation improving daily nutritional balance
+
+### **Priority 4: Code Flow Optimization & Architectural Soundness**
+
+**Objective:** Establish bulletproof data flow patterns and centralized navigation architecture for production stability.
+
+**4.1 Single Source of Truth for Meal Plans**
+- **Problem:** Potential confusion between general `mealPlans` list and specific `mealPlanByWeek` data
+- **Solution:** Establish strict data flow rule: MealPlannerScreen only uses `useMealPlanByWeek` hook
+- **Implementation:**
+  - Review all mutations in `useMealPlans.ts`
+  - Ensure every `onSuccess` callback updates correct `mealPlanByWeek` query key
+  - Use `queryClient.setQueryData` for immediate cache updates
+- **Impact:** Predictable data flow, eliminated cache inconsistencies
+
+**4.2 Centralized Navigation Service**
+- **Problem:** Navigation calls scattered throughout components creating coupling
+- **Solution:** Create dedicated navigation service for consistent routing patterns
+- **Implementation:**
+  - Develop `src/services/navigationService.ts`
+  - Export functions: `navigateToRecipeDetail(recipe)`, `navigateToRecipeGeneration(context)`
+  - Use navigation ref for component-independent access
+  - Replace direct navigation calls: `navigationService.navigateToRecipeDetail(recipe)`
+- **Impact:** Decoupled components, consistent navigation patterns, centralized routing logic
+
+### **Priority 5: AI Prompt Engineering Excellence**
+
+**Objective:** Implement advanced prompt engineering techniques for consistent, high-quality AI responses with robust error handling.
+
+**5.1 System Prompt Architecture**
+- **Problem:** Repetitive persona definitions in each prompt, inefficient API usage
+- **Solution:** Implement centralized system prompt with Gemini's `systemInstruction` field
+- **Implementation:**
+  ```typescript
+  const SYSTEM_PROMPT = `You are Sage, an expert, encouraging, and patient AI cooking coach. Your primary goal is to make cooking accessible and enjoyable for beginners. You must ALWAYS prioritize user safety, especially regarding allergies and dietary restrictions. All your responses must be in JSON format as specified in the user's prompt.`;
+  
+  this.model = this.genAI.getGenerativeModel({
+    model: "gemini-1.5-flash",
+    generationConfig: { responseMimeType: "application/json" },
+    systemInstruction: SYSTEM_PROMPT,
+  });
+  ```
+- **Impact:** Consistent AI persona, reduced token usage, cleaner individual prompts
+
+**5.2 Few-Shot Prompting for JSON Consistency**
+- **Problem:** AI occasionally deviates from requested JSON structure
+- **Solution:** Implement few-shot prompting with high-quality examples
+- **Implementation:**
+  - Add EXAMPLE section to `generateRecipe` prompt:
+    ```
+    Here is an example of a perfect response:
+    EXAMPLE INPUT: "A quick, healthy lunch with chicken"
+    EXAMPLE OUTPUT: {
+      "recipeName": "15-Minute Lemon Herb Chicken and Asparagus",
+      "difficulty": 2,
+      // ... complete example with all required fields
+    }
+    ```
+- **Impact:** Dramatically improved structural consistency, reduced parsing errors
+
+### **Priority 6: Database Optimization & Schema Improvements**
+
+**Objective:** Implement production-grade database optimizations with automated data integrity and performance enhancements.
+
+**6.1 Meal Plan Uniqueness Enforcement**
+- **Problem:** Database allows duplicate meal plans for same user/week causing data pollution
+- **Solution:** Add unique constraint preventing future duplicates
+- **Implementation:**
+  ```sql
+  -- Create migration 11_unique_meal_plan.sql
+  ALTER TABLE public.meal_plans
+  ADD CONSTRAINT user_week_unique UNIQUE (user_id, week_start_date);
+  ```
+- **Impact:** Data integrity, prevented duplicate creation, cleaner meal plan queries
+
+**6.2 Automated Recipe Macro Population**
+- **Problem:** Top-level nutrition columns in `user_recipes` inconsistently populated from JSONB data
+- **Solution:** Create database trigger for automatic field population
+- **Implementation:**
+  ```sql
+  -- Create migration 12_populate_recipe_macros.sql
+  CREATE OR REPLACE FUNCTION populate_recipe_details_from_json()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    NEW.calories_per_serving := COALESCE((NEW.recipe_data->>'caloriesPerServing')::integer, NEW.calories_per_serving);
+    NEW.protein_per_serving := COALESCE((NEW.recipe_data->>'proteinPerServing')::numeric, NEW.protein_per_serving);
+    NEW.carbs_per_serving := COALESCE((NEW.recipe_data->>'carbsPerServing')::numeric, NEW.carbs_per_serving);
+    NEW.fat_per_serving := COALESCE((NEW.recipe_data->>'fatPerServing')::numeric, NEW.fat_per_serving);
+    -- ... other fields
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+  
+  CREATE TRIGGER trigger_populate_recipe_details
+  BEFORE INSERT OR UPDATE ON public.user_recipes
+  FOR EACH ROW
+  EXECUTE FUNCTION populate_recipe_details_from_json();
+  ```
+- **Impact:** Data consistency, faster nutritional queries, automated field population
+
+### **Expected Outcomes:**
+
+1. **Code Quality:** Elimination of bloated components, reusable abstractions, maintainable architecture
+2. **User Experience:** Real-time macro feedback, context-aware recipe generation, intelligent meal planning
+3. **AI Performance:** Consistent responses, reduced API costs, enhanced personalization
+4. **Data Integrity:** Automated field population, uniqueness constraints, optimized queries
+5. **Production Readiness:** Bulletproof data flow, centralized navigation, scalable architecture patterns
+
+**Timeline:** 2-3 development sessions focusing on systematic refactoring and enhancement rather than new feature addition.
+
+---
 
 ### **PHASE 2.5: Foundational Architecture Upgrade**
 

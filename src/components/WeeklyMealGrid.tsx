@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView } from 'react-native';
 import { Box, Text } from './ui';
 import { MealPlanCard } from './MealPlanCard';
+import { DailyMacroBreakdown } from './DailyMacroBreakdown';
 import { 
   WeeklyMealPlan, 
   MealPlanRecipe,
@@ -11,8 +12,16 @@ import {
   getWeekDates
 } from '../types/mealPlan';
 
+interface MacroGoals {
+  dailyCalories: number;
+  dailyProtein: number;
+  dailyCarbs: number;
+  dailyFat: number;
+}
+
 interface WeeklyMealGridProps {
   mealPlan: WeeklyMealPlan;
+  macroGoals?: MacroGoals;
   onAddRecipe: (date: string, mealType: MealType) => void;
   onViewRecipe: (recipeId: string) => void;
   onRemoveRecipe: (date: string, mealType: MealType) => void;
@@ -21,6 +30,7 @@ interface WeeklyMealGridProps {
 
 export const WeeklyMealGrid: React.FC<WeeklyMealGridProps> = ({
   mealPlan,
+  macroGoals,
   onAddRecipe,
   onViewRecipe,
   onRemoveRecipe,
@@ -110,6 +120,14 @@ export const WeeklyMealGrid: React.FC<WeeklyMealGridProps> = ({
                   );
                 })}
               </Box>
+
+              {/* Daily Macro Breakdown */}
+              {macroGoals && dayMealPlan && (
+                <DailyMacroBreakdown
+                  dayPlan={dayMealPlan}
+                  goals={macroGoals}
+                />
+              )}
             </Box>
           );
         })}

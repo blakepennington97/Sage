@@ -20,9 +20,11 @@ import {
 } from "../components/ui";
 import { WeeklyMealGrid } from "../components/WeeklyMealGrid";
 import { PremiumGate } from "../components/PremiumGate";
+import { RecipeSelectorSheet } from "../components/RecipeSelectorSheet";
 import { useAuthStore } from "../stores/authStore";
 import { useRecipes } from "../hooks/useRecipes";
 import { useMealPlanByWeek, useMealPlans } from "../hooks/useMealPlans";
+import { useMealPlanActions } from "../hooks/useMealPlanActions";
 import { HapticService } from "../services/haptics";
 import { ErrorHandler } from "../utils/errorHandling";
 import {
@@ -75,9 +77,6 @@ export const MealPlannerScreen: React.FC = () => {
     formatDateForMealPlan(new Date())
   );
 
-  const { createMealPlan, batchUpdateMealPlan, updateMealPlan, isCreating } =
-    useMealPlans();
-
   const getCurrentWeekStartDate = useCallback(() => {
     const today = new Date();
     today.setDate(today.getDate() + currentWeekOffset * 7);
@@ -105,6 +104,14 @@ export const MealPlannerScreen: React.FC = () => {
     error: mealPlanError,
   });
 
+  const { createMealPlan, isCreating } = useMealPlans();
+  
+  // Extract meal plan actions to custom hook
+  const mealPlanActions = useMealPlanActions({
+    mealPlan: mealPlan || null,
+    userId: user?.id,
+  });
+
   const { data: mealEntries } = useMealEntriesForDay(selectedDate);
   const { data: macroProgress } = useDailyMacroProgress(selectedDate);
   const { setMacroGoals, isLoading: macroLoading } = useUserProfile();
@@ -120,53 +127,25 @@ export const MealPlannerScreen: React.FC = () => {
   );
 
   const handleCloneRecipe = (recipe: MealPlanRecipe, mealType: MealType) => {
-    console.log(
-      `1️⃣ [USER ACTION] handleCloneRecipe: User wants to clone recipe "${recipe.recipe_name}"`
+    mealPlanActions.handleCloneRecipe(
+      recipe,
+      mealType,
+      () => setShowMealPrepModal(true),
+      setRecipeToClone
     );
-    setRecipeToClone({ recipe, mealType });
-    setShowMealPrepModal(true);
-    HapticService.light();
   };
 
   const handleCopyToSlots = async (
     slots: { date: string; mealType: MealType }[]
   ) => {
-    console.log(
-      `2️⃣ [UI EVENT] handleCopyToSlots: Modal confirmed. Preparing to copy to ${slots.length} slots.`
+    await mealPlanActions.handleCopyToSlots(
+      slots,
+      recipeToClone,
+      () => {
+        setShowMealPrepModal(false);
+        setRecipeToClone(null);
+      }
     );
-    if (!mealPlan || !recipeToClone) {
-      console.error(
-        "❌ ERROR: handleCopyToSlots called without mealPlan or recipeToClone."
-      );
-      return;
-    }
-    try {
-      HapticService.medium();
-      setShowMealPrepModal(false);
-      const updateRequests = slots.map((slot) => ({
-        meal_plan_id: mealPlan.id,
-        date: slot.date,
-        meal_type: slot.mealType,
-        recipe_id: recipeToClone.recipe.recipe_id,
-        servings: recipeToClone.recipe.servings,
-      }));
-      console.log(
-        "3️⃣ [MUTATION TRIGGER] handleCopyToSlots: Calling batchUpdateMealPlan with requests:",
-        updateRequests
-      );
-      await batchUpdateMealPlan(updateRequests);
-      setRecipeToClone(null);
-      HapticService.success();
-      Alert.alert(
-        "Recipe Copied!",
-        `Successfully copied "${recipeToClone.recipe.recipe_name}" to ${
-          slots.length
-        } meal slot${slots.length > 1 ? "s" : ""}.`
-      );
-    } catch (err) {
-      console.error("❌ ERROR in handleCopyToSlots:", err);
-      ErrorHandler.handleError(err, "copying recipe to meal slots");
-    }
   };
 
   const handleRefresh = useCallback(async () => {
@@ -187,67 +166,31 @@ export const MealPlannerScreen: React.FC = () => {
   };
 
   const handleAddRecipe = (date: string, mealType: MealType) => {
-    if (!isPremium) {
-      setShowPremiumGate(true);
-      return;
-    }
-    HapticService.light();
-    setSelectedMealSlot({ date, mealType });
-    Alert.alert("Add to Meal Plan", "What would you like to add?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "📖 Recipe", onPress: () => setShowRecipeSelector(true) },
-      {
-        text: "🔍 Food Item",
-        onPress: () => {
-          setSelectedDate(date);
-          setShowFoodEntry(true);
-        },
-      },
-    ]);
+    mealPlanActions.handleAddRecipe(
+      date,
+      mealType,
+      () => setShowPremiumGate(true),
+      () => setShowRecipeSelector(true),
+      () => setShowFoodEntry(true),
+      setSelectedMealSlot,
+      setSelectedDate,
+      isPremium
+    );
   };
 
   const handleSelectRecipe = async (recipeId: string) => {
-    if (!mealPlan || !selectedMealSlot || !user) return;
-    try {
-      HapticService.medium();
-      setShowRecipeSelector(false);
-      await updateMealPlan({
-        meal_plan_id: mealPlan.id,
-        date: selectedMealSlot.date,
-        meal_type: selectedMealSlot.mealType,
-        recipe_id: recipeId,
-        servings: 2,
-      });
-      setSelectedMealSlot(null);
-      HapticService.success();
-      ErrorHandler.showSuccessToast("Recipe added to meal plan!");
-    } catch (err) {
-      ErrorHandler.handleError(err, "adding recipe to meal plan");
-    }
+    await mealPlanActions.handleSelectRecipe(
+      recipeId,
+      selectedMealSlot,
+      () => {
+        setShowRecipeSelector(false);
+        setSelectedMealSlot(null);
+      }
+    );
   };
 
   const handleRemoveRecipe = (date: string, mealType: MealType) => {
-    if (!mealPlan) return;
-    Alert.alert(
-      "Remove Recipe",
-      "Are you sure you want to remove this recipe from your meal plan?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            HapticService.medium();
-            await updateMealPlan({
-              meal_plan_id: mealPlan.id,
-              date,
-              meal_type: mealType,
-            });
-            HapticService.success();
-          },
-        },
-      ]
-    );
+    mealPlanActions.handleRemoveRecipe(date, mealType);
   };
 
   const handleViewRecipe = (recipeId: string) => {
@@ -477,6 +420,12 @@ export const MealPlannerScreen: React.FC = () => {
       >
         <WeeklyMealGrid
           mealPlan={mealPlan}
+          macroGoals={profile?.macro_goals_set ? {
+            dailyCalories: profile.daily_calorie_goal || 2000,
+            dailyProtein: profile.daily_protein_goal || 100,
+            dailyCarbs: profile.daily_carbs_goal || 200,
+            dailyFat: profile.daily_fat_goal || 70,
+          } : undefined}
           onAddRecipe={handleAddRecipe}
           onViewRecipe={handleViewRecipe}
           onRemoveRecipe={handleRemoveRecipe}
@@ -485,105 +434,26 @@ export const MealPlannerScreen: React.FC = () => {
       </ScrollView>
 
       {/* Bottom Sheets and Modals */}
-      <BottomSheet
+      <RecipeSelectorSheet
         isVisible={showRecipeSelector}
         onClose={() => {
           setShowRecipeSelector(false);
           setSelectedMealSlot(null);
         }}
-        title={`Add ${selectedMealSlot?.mealType} for ${selectedMealSlot?.date}`}
-      >
-        <Box padding="md">
-          {recipes.length === 0 ? (
-            <Box alignItems="center" padding="xl">
-              <Text
-                variant="body"
-                color="secondaryText"
-                textAlign="center"
-                marginBottom="lg"
-              >
-                You don't have any saved recipes yet.
-              </Text>
-              <Button
-                variant="primary"
-                onPress={() => {
-                  setShowRecipeSelector(false);
-                  navigation.navigate("RecipeGeneration", {
-                    fromMealPlanner: true,
-                    mealPlanContext: {
-                      ...selectedMealSlot,
-                      meal_plan_id: mealPlan.id,
-                    },
-                  });
-                }}
-              >
-                <Text variant="button" color="primaryButtonText">
-                  Create Your First Recipe
-                </Text>
-              </Button>
-            </Box>
-          ) : (
-            <>
-              <Box
-                marginBottom="lg"
-                padding="md"
-                backgroundColor="surface"
-                borderRadius="lg"
-                borderWidth={1}
-                borderColor="border"
-              >
-                <Box flexDirection="row" alignItems="center" marginBottom="sm">
-                  <Text fontSize={24} marginRight="sm">
-                    ✨
-                  </Text>
-                  <Text variant="h3" flex={1}>
-                    Generate New Recipe
-                  </Text>
-                </Box>
-                <Text variant="body" color="secondaryText" marginBottom="md">
-                  Create a personalized recipe just for this meal
-                </Text>
-                <Button
-                  variant="primary"
-                  onPress={() => {
-                    setShowRecipeSelector(false);
-                    navigation.navigate("RecipeGeneration", {
-                      fromMealPlanner: true,
-                      mealPlanContext: {
-                        ...selectedMealSlot,
-                        meal_plan_id: mealPlan.id,
-                      },
-                    });
-                  }}
-                >
-                  <Text variant="button" color="primaryButtonText">
-                    🔥 Generate Recipe
-                  </Text>
-                </Button>
-              </Box>
-              <Box flexDirection="row" alignItems="center" marginBottom="lg">
-                <Box flex={1} height={1} backgroundColor="border" />
-                <Text
-                  variant="caption"
-                  color="secondaryText"
-                  marginHorizontal="md"
-                >
-                  OR CHOOSE FROM SAVED
-                </Text>
-                <Box flex={1} height={1} backgroundColor="border" />
-              </Box>
-              {recipes.map((recipe) => (
-                <Box key={recipe.id} marginBottom="md">
-                  <RecipeCard
-                    recipe={recipe}
-                    onPress={() => handleSelectRecipe(recipe.id)}
-                  />
-                </Box>
-              ))}
-            </>
-          )}
-        </Box>
-      </BottomSheet>
+        selectedMealSlot={selectedMealSlot}
+        recipes={recipes}
+        onRecipeSelect={handleSelectRecipe}
+        onGenerateNewRecipe={() => {
+          setShowRecipeSelector(false);
+          navigation.navigate("RecipeGeneration", {
+            fromMealPlanner: true,
+            mealPlanContext: {
+              ...selectedMealSlot,
+              meal_plan_id: mealPlan?.id,
+            },
+          });
+        }}
+      />
 
       <BottomSheet
         isVisible={showFoodEntry}

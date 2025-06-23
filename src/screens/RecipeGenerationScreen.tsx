@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,11 +17,13 @@ import { useNetworkStatus } from "../hooks/useNetworkStatus";
 import { useUsageTracking } from "../hooks/useUsageTracking";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useAuthStore } from "../stores/authStore";
+import { useMealPlanByWeek } from "../hooks/useMealPlans";
 import { UsageIndicator, LimitReachedModal } from "../components/UsageDisplay";
 import { isFeatureEnabled } from "../config/features";
 import { colors, spacing, borderRadius, typography } from "../constants/theme";
 import { HapticService } from "../services/haptics";
 import { UserRecipe } from "../services/supabase";
+import { formatDateForMealPlan, getWeekStartDate } from "../types/mealPlan";
 
 export const RecipeGenerationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -38,6 +40,68 @@ export const RecipeGenerationScreen: React.FC = () => {
   const { canPerformAction, incrementUsage, isPremium } = useUsageTracking();
 
   const { recipes, isLoading, error, generateAndSaveRecipe } = useRecipes();
+
+  // Get meal plan data if coming from meal planner
+  const targetDate = mealPlanContext?.date;
+  const weekStartDate = targetDate ? getWeekStartDate(new Date(targetDate)) : '';
+  const { data: mealPlan } = useMealPlanByWeek(
+    fromMealPlanner && weekStartDate ? weekStartDate : ''
+  );
+
+  // Calculate remaining macros for context-aware generation
+  const remainingMacros = useMemo(() => {
+    if (!fromMealPlanner || !mealPlanContext || !mealPlan || !profile?.macro_goals_set) {
+      return undefined;
+    }
+
+    const dayPlan = mealPlan.days.find(day => day.date === targetDate);
+    if (!dayPlan) return undefined;
+
+    let totalMacros = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+    const addRecipeMacros = (recipe: any) => {
+      if (recipe?.recipe_data) {
+        const recipeData = typeof recipe.recipe_data === 'string' 
+          ? JSON.parse(recipe.recipe_data) 
+          : recipe.recipe_data;
+        
+        const servings = recipe.servings || 1;
+        totalMacros.calories += (recipeData.caloriesPerServing || 0) * servings;
+        totalMacros.protein += (recipeData.proteinPerServing || 0) * servings;
+        totalMacros.carbs += (recipeData.carbsPerServing || 0) * servings;
+        totalMacros.fat += (recipeData.fatPerServing || 0) * servings;
+      }
+    };
+
+    // Add existing meals for the day (excluding the target meal type)
+    if (dayPlan.breakfast && mealPlanContext.mealType !== 'breakfast') {
+      addRecipeMacros(dayPlan.breakfast);
+    }
+    if (dayPlan.lunch && mealPlanContext.mealType !== 'lunch') {
+      addRecipeMacros(dayPlan.lunch);
+    }
+    if (dayPlan.dinner && mealPlanContext.mealType !== 'dinner') {
+      addRecipeMacros(dayPlan.dinner);
+    }
+    if (dayPlan.snacks && mealPlanContext.mealType !== 'snacks') {
+      dayPlan.snacks.forEach(addRecipeMacros);
+    }
+
+    // Calculate remaining macros
+    const goals = {
+      calories: profile.daily_calorie_goal || 2000,
+      protein: profile.daily_protein_goal || 100,
+      carbs: profile.daily_carbs_goal || 200,
+      fat: profile.daily_fat_goal || 70,
+    };
+
+    return {
+      calories: Math.max(0, goals.calories - totalMacros.calories),
+      protein: Math.max(0, goals.protein - totalMacros.protein),
+      carbs: Math.max(0, goals.carbs - totalMacros.carbs),
+      fat: Math.max(0, goals.fat - totalMacros.fat),
+    };
+  }, [fromMealPlanner, mealPlanContext, mealPlan, profile, targetDate]);
 
   const handleGenerateRecipe = async () => {
     if (!recipeRequest.trim()) {
@@ -73,7 +137,9 @@ export const RecipeGenerationScreen: React.FC = () => {
     
     HapticService.medium();
     
-    const newRecipe = await generateAndSaveRecipe(recipeRequest);
+    // Pass macro context if available
+    const context = remainingMacros ? { remainingMacros } : undefined;
+    const newRecipe = await generateAndSaveRecipe(recipeRequest, context);
     if (newRecipe) {
       HapticService.success();
       setRecipeRequest("");

@@ -421,7 +421,7 @@ export class GeminiService {
     }
   }
 
-  public async generateRecipe(request: string): Promise<RecipeData> {
+  public async generateRecipe(request: string, context?: { remainingMacros?: { calories: number; protein: number; carbs: number; fat: number } }): Promise<RecipeData> {
     await this.initialize();
     try {
       // Get user context and cache request information
@@ -446,10 +446,27 @@ export class GeminiService {
         }
         return cachedRecipe;
       }
+      // Build contextual macro guidance if provided
+      const macroContextPrompt = context?.remainingMacros ? `
+        
+        USER'S CURRENT DAILY CONTEXT (IMPORTANT):
+        The user has already planned other meals for today. Generate a recipe that helps them meet their remaining nutritional goals:
+        - Remaining Calories: ${context.remainingMacros.calories}
+        - Remaining Protein: ${context.remainingMacros.protein}g
+        - Remaining Carbs: ${context.remainingMacros.carbs}g
+        - Remaining Fat: ${context.remainingMacros.fat}g
+        
+        RECIPE REQUIREMENTS:
+        - The recipe should have a calorie count per serving that fits within the user's remaining calories
+        - Prioritize hitting the remaining protein goal while balancing other macros
+        - If remaining calories are low, focus on nutrient-dense, lower-calorie options
+        - If remaining protein is high, emphasize protein-rich ingredients and cooking methods
+        ` : '';
+
       // We can now simplify the prompt slightly as the JSON mode handles syntax.
       const prompt = `Generate a beginner-friendly recipe based on the user's request and profile, including cost analysis and nutritional information.
         USER REQUEST: "${request}"
-        ${userContext}
+        ${userContext}${macroContextPrompt}
         The JSON object must match this exact structure:
         {
           "recipeName": "A catchy but clear name for the recipe",
