@@ -40,6 +40,7 @@ export interface PromptTemplate {
 export interface RecipeGenerationParams {
   request: string;
   context: PromptContext;
+  history?: string[]; // Optional recent recipe titles for diversity
 }
 
 export interface CookingAdviceParams {

@@ -163,105 +163,148 @@ export const RecipeGenerationScreen: React.FC = () => {
     </View>
   );
 
+  // Dynamic suggestion logic using useMemo for performance optimization
+  const dynamicSuggestions = useMemo(() => {
+    const suggestions = new Set<string>();
+    if (!profile) return ["A simple 15-minute meal"]; // Fallback
+
+    // Logic based on skill level
+    if (profile.skill_level === 'complete_beginner') {
+      suggestions.add("An easy one-pot meal");
+      suggestions.add("Simple 10-minute dish");
+    } else if (profile.skill_level === 'confident') {
+      suggestions.add("Impressive dinner technique");
+      suggestions.add("Complex flavor combination");
+    } else {
+      suggestions.add("A healthy weeknight dinner");
+    }
+
+    // Logic based on preferences
+    if (preferences?.setupCompleted) {
+      const { dietary, cookingContext, cookingStyles } = preferences;
+      
+      // Add cuisine-based suggestions
+      const favCuisine = cookingStyles.preferredCuisines?.[0];
+      if (favCuisine) {
+        suggestions.add(`A tasty ${favCuisine.replace(/_/g, ' ')} dish`);
+      }
+      
+      // Add time-based suggestions
+      if (cookingContext.typicalCookingTime === 'quick_15min') {
+        suggestions.add("Quick 15-minute meal");
+      } else if (cookingContext.typicalCookingTime === 'project_90min_plus') {
+        suggestions.add("Weekend cooking project");
+      }
+      
+      // Add dietary style suggestions
+      if (dietary.dietaryStyle !== 'omnivore') {
+        suggestions.add(`${dietary.dietaryStyle} comfort food`);
+      }
+    }
+
+    // Logic based on recipe history
+    if (recipes.length > 0) {
+      const recentRecipes = recipes.slice(0, 5);
+      const hasCookedFish = recentRecipes.some(r => 
+        r.recipe_name.toLowerCase().includes('fish') || 
+        r.recipe_name.toLowerCase().includes('salmon')
+      );
+      if (!hasCookedFish) {
+        suggestions.add("A simple fish recipe");
+      }
+      
+      const hasCookedVegetarian = recentRecipes.some(r => 
+        r.recipe_name.toLowerCase().includes('vegetarian') || 
+        r.recipe_name.toLowerCase().includes('veggie')
+      );
+      if (!hasCookedVegetarian) {
+        suggestions.add("Fresh vegetarian option");
+      }
+    }
+
+    // Ensure a default if no specific rules match
+    suggestions.add("A healthy weeknight dinner");
+
+    return Array.from(suggestions).slice(0, 3);
+  }, [profile, recipes, preferences]);
+
   const renderRecipeInput = () => {
-    // Generate intelligent suggestions based on user preferences and profile
-    const getIntelligentSuggestions = () => {
-      const baseSuggestions = [];
-      
-      // Based on skill level
-      const skillLevel = profile?.skill_level;
-      if (skillLevel === 'complete_beginner') {
-        baseSuggestions.push("Simple 10-minute meal", "Easy one-pot dish", "No-cook healthy option");
-      } else if (skillLevel === 'confident') {
-        baseSuggestions.push("Impressive dinner", "New technique to try", "Complex flavor combo");
-      } else {
-        baseSuggestions.push("Weeknight favorite", "Comfort food classic", "Fresh and healthy");
-      }
-      
-      // Based on preferences if available
-      if (preferences?.setupCompleted) {
-        const { dietary, cookingContext, cookingStyles } = preferences;
-        
-        // Add cuisine-based suggestions
-        if (cookingStyles.preferredCuisines.length > 0) {
-          const randomCuisine = cookingStyles.preferredCuisines[
-            Math.floor(Math.random() * cookingStyles.preferredCuisines.length)
-          ].replace(/_/g, ' ');
-          baseSuggestions.push(`${randomCuisine} dish`);
-        }
-        
-        // Add time-based suggestions
-        if (cookingContext.typicalCookingTime === 'quick_15min') {
-          baseSuggestions.push("15-minute meal", "Quick lunch");
-        } else if (cookingContext.typicalCookingTime === 'project_90min_plus') {
-          baseSuggestions.push("Weekend cooking project", "Slow-cooked comfort");
-        }
-        
-        // Add mood-based suggestions
-        if (cookingStyles.cookingMoods.includes('healthy_fresh')) {
-          baseSuggestions.push("Nutritious and light", "Fresh vegetable focus");
-        }
-        if (cookingStyles.cookingMoods.includes('comfort_food')) {
-          baseSuggestions.push("Cozy comfort meal", "Nostalgic favorite");
-        }
-      }
-      
-      // Add recent recipe patterns
-      if (recipes.length > 0) {
-        const recentRecipes = recipes.slice(0, 5);
-        const hasAsianRecipes = recentRecipes.some(r => 
-          r.recipe_name.toLowerCase().includes('asian') || 
-          r.recipe_name.toLowerCase().includes('thai') ||
-          r.recipe_name.toLowerCase().includes('chinese')
-        );
-        if (!hasAsianRecipes) {
-          baseSuggestions.push("Asian-inspired dish");
-        }
-        
-        const hasItalianRecipes = recentRecipes.some(r => 
-          r.recipe_name.toLowerCase().includes('pasta') || 
-          r.recipe_name.toLowerCase().includes('italian')
-        );
-        if (!hasItalianRecipes) {
-          baseSuggestions.push("Italian classic");
-        }
-      }
-      
-      return baseSuggestions.slice(0, 3); // Return top 3
-    };
 
-    const quickSuggestions = getIntelligentSuggestions();
-
-    const handleSmartSuggestion = () => {
-      const contextualSuggestions = [
-        "A quick and healthy weeknight dinner using whatever vegetables I have",
-        "Something comforting and warm for a cozy evening",
-        "A simple one-pot meal that won&apos;t make too many dishes",
-        "A nutritious lunch I can make in under 20 minutes",
-        "An impressive dish that&apos;s easier than it looks",
-        "Something with bold flavors to try a new cuisine",
-        "A filling breakfast that will give me energy for the day",
-        "A light and fresh meal perfect for today's weather",
-        "Something I can meal prep for the week ahead",
-        "A satisfying dinner using pantry staples I probably have"
-      ];
+    // Enhanced "Surprise Me" functionality with direct prompt construction
+    const handleSurpriseMe = () => {
+      let surprisePrompt = "Surprise me with a delicious recipe that fits my profile.";
       
-      // Add preference-based suggestions
+      // Add context from profile and preferences
       if (preferences?.setupCompleted) {
-        const { dietary, cookingStyles } = preferences;
+        const { dietary, cookingStyles, cookingContext } = preferences;
         
         if (cookingStyles.preferredCuisines.length > 0) {
           const cuisine = cookingStyles.preferredCuisines[0].replace(/_/g, ' ');
-          contextualSuggestions.unshift(`A delicious ${cuisine} dish that matches my taste preferences`);
+          surprisePrompt = `Surprise me with a delicious ${cuisine} recipe that matches my taste preferences.`;
         }
         
         if (dietary.dietaryStyle !== 'omnivore') {
-          contextualSuggestions.unshift(`A satisfying ${dietary.dietaryStyle} meal with great flavors`);
+          surprisePrompt = `Surprise me with a satisfying ${dietary.dietaryStyle} recipe with amazing flavors.`;
+        }
+        
+        if (cookingContext.typicalCookingTime === 'quick_15min') {
+          surprisePrompt += " Keep it quick and simple, around 15 minutes or less.";
         }
       }
       
-      const randomSuggestion = contextualSuggestions[Math.floor(Math.random() * contextualSuggestions.length)];
-      setRecipeRequest(randomSuggestion);
+      // Directly call the generation function with the constructed prompt
+      handleGenerateRecipeWithRequest(surprisePrompt);
+    };
+
+    // Modify handleGenerateRecipe to accept an optional request string
+    const handleGenerateRecipeWithRequest = async (requestOverride?: string) => {
+      const finalRequest = requestOverride || recipeRequest;
+      if (!finalRequest.trim()) {
+        HapticService.warning();
+        Alert.alert("Enter Request", "Please describe what you'd like to cook.");
+        return;
+      }
+      if (isOffline) {
+        HapticService.error();
+        Alert.alert(
+          "No Internet Connection",
+          "Recipe generation requires an internet connection."
+        );
+        return;
+      }
+      
+      // Check usage limits (only if feature is enabled)
+      if (isFeatureEnabled('usageTracking')) {
+        if (!canPerformAction('recipe_generation')) {
+          HapticService.warning();
+          setShowLimitModal(true);
+          return;
+        }
+        
+        // Increment usage counter before generation
+        const canProceed = await incrementUsage('recipe_generation');
+        if (!canProceed) {
+          HapticService.warning();
+          setShowLimitModal(true);
+          return;
+        }
+      }
+      
+      HapticService.medium();
+      
+      // Pass macro context if available
+      const context = remainingMacros ? { remainingMacros } : undefined;
+      const newRecipe = await generateAndSaveRecipe(finalRequest, context);
+      if (newRecipe) {
+        HapticService.success();
+        setRecipeRequest("");
+        // Navigate to the new detail screen, passing meal planner context if present
+        navigation.navigate("RecipeDetail", { 
+          recipe: newRecipe,
+          fromMealPlanner,
+          mealPlanContext 
+        });
+      }
     };
     return (
       <View style={styles.inputSection}>
@@ -273,31 +316,43 @@ export const RecipeGenerationScreen: React.FC = () => {
           multiline
         />
         
-        {/* Smart Suggestion Button */}
-        {!recipeRequest && (
-          <TouchableOpacity
-            style={styles.suggestionButton}
-            onPress={handleSmartSuggestion}
-          >
-            <Text style={styles.suggestionButtonText}>✨ Suggest me something</Text>
-          </TouchableOpacity>
-        )}
+        {/* Large "Surprise Me!" Button - Primary Action */}
         <TouchableOpacity
           style={[
-            styles.generateButton,
+            styles.surpriseMeButton,
             isLoading && styles.generateButtonDisabled,
           ]}
-          onPress={handleGenerateRecipe}
+          onPress={handleSurpriseMe}
           disabled={isLoading}
         >
           {isLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.generateButtonText}>Generate & Cook</Text>
+            <Text style={styles.surpriseMeButtonText}>🎲 Surprise Me!</Text>
           )}
         </TouchableOpacity>
+
+        {/* Standard Generate Button */}
+        {recipeRequest.trim() && (
+          <TouchableOpacity
+            style={[
+              styles.generateButton,
+              isLoading && styles.generateButtonDisabled,
+            ]}
+            onPress={() => handleGenerateRecipeWithRequest()}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.generateButtonText}>Generate & Cook</Text>
+            )}
+          </TouchableOpacity>
+        )}
+        
+        {/* Dynamic Suggestion Chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {quickSuggestions.map((suggestion, index) => (
+          {dynamicSuggestions.map((suggestion, index) => (
             <TouchableOpacity
               key={index}
               style={styles.suggestionChip}
@@ -429,6 +484,25 @@ const styles = StyleSheet.create({
     color: colors.primary, 
     fontSize: 16, 
     fontWeight: "600" 
+  },
+  surpriseMeButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: borderRadius.lg,
+    alignItems: "center",
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  surpriseMeButtonText: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "bold",
   },
   suggestionChip: {
     backgroundColor: colors.surfaceVariant,

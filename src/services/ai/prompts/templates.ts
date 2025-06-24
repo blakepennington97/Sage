@@ -117,6 +117,8 @@ You will act as an expert cooking coach and generate a recipe based on the user'
 
 USER REQUEST: "{{userRequest}}"
 
+{{historyContext}}
+
 {{contextSections}}
 
 ---
@@ -132,6 +134,9 @@ USER REQUEST: "{{userRequest}}"
   "difficulty": <number between 1 and 5 (1=easiest)>,
   "totalTime": "string (e.g., '30 minutes')",
   "whyGood": "A short, encouraging sentence explaining why this recipe fits the user's profile.",
+  "mealTypes": ["string (e.g., 'Breakfast', 'Lunch', 'Dinner', 'Snack')"],
+  "cuisineType": "string (e.g., 'Italian', 'Mexican', 'Asian')",
+  "mainIngredient": "string (e.g., 'chicken', 'vegetables', 'pasta')",
   "ingredients": [ { "amount": "string", "name": "string" } ],
   "instructions": [ { "step": <number>, "text": "string" } ],
   "tips": [ "string" ],

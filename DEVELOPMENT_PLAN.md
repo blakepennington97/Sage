@@ -639,8 +639,131 @@ _This section outlines the planned next phases of development, prioritized by va
 - ✅ TypeScript compilation clean
 - ✅ Ready for immediate App Store submission
 
+## 🎨 **PHASE 5: UX & AI INTELLIGENCE UPGRADE** *(CURRENT ACTIVE PHASE)*
+
+**Goal:** Transform the application's user experience and AI intelligence through visual enhancements, intelligent organization, and dynamic personalization to create a best-in-class cooking companion.
+
+### **Initiative 1: Visual Macro Progress Rings** *(Priority 1)*
+
+**Objective:** Replace text-based daily macro summary with visually engaging Apple Watch-style progress rings for immediate nutritional feedback.
+
+**Key Technical Changes:**
+- **Create MacroProgressRing.tsx**: Reusable SVG-based progress ring component with over-goal handling
+- **Refactor DailyMacroSummary.tsx**: Self-sufficient data fetching with useDailyMacroProgress hook
+- **Enhanced Visual Design**: Symbolic colors (Protein=Red, Carbs=Orange, Fat=Green, Calories=Blue)
+- **Loading & Error States**: Proper state management with graceful fallbacks
+
+**Implementation Details:**
+- Ring component with props: `label`, `current`, `goal`, `unit`, `color`, `size`, `strokeWidth`
+- Over-goal state handling with warning colors (#ff6b6b)
+- Horizontal ScrollView layout for four macro rings
+- Co-located data fetching eliminating stale props issues
+
+**Acceptance Criteria:**
+- ✅ Self-sufficient DailyMacroSummary with fresh data
+- ✅ Four distinct colored progress rings (Protein, Carbs, Fat, Calories)  
+- ✅ Warning colors for over-goal consumption
+- ✅ Graceful loading, error, and no-data states
+
+### **Initiative 2: Intelligent Recipe Book Organization** *(Priority 2)*
+
+**Objective:** Transform recipe discovery through AI-enhanced tagging and faceted search filtering for effortless recipe finding.
+
+**Key Technical Changes:**
+- **Enhanced AI Prompts**: Update templates.ts with meal_types array support for multi-category recipes
+- **Database Migration**: Create migration 13_add_recipe_tags.sql with indexed meal_types, cuisine_type, main_ingredient
+- **Advanced Filtering UI**: Dynamic filter options with chip-based selection interface
+- **Backward Compatibility**: Graceful handling of older recipes missing new tags
+
+**Implementation Details:**
+- Modified recipeGeneration prompt JSON schema: `"meal_types": ["string"]`
+- PostgreSQL indexes: GIN index on meal_types array, standard indexes on cuisine/ingredient
+- Dynamic filter state: `selectedMealTypes`, `selectedCuisines` arrays
+- Array overlap filtering logic: `recipe.meal_types?.some(type => selectedMealTypes.includes(type))`
+
+**Acceptance Criteria:**
+- ✅ AI generates recipes with meal_types array and cuisine_type
+- ✅ Database schema updated with indexed columns
+- ✅ Filter modal with dynamically populated options
+- ✅ Graceful handling of pre-update recipes (null/undefined arrays)
+- ✅ Multi-category filtering functionality
+
+### **Initiative 3: AI-Powered Recipe Diversity** *(Priority 3)*
+
+**Objective:** Eliminate repetitive AI responses by incorporating user's recent recipe history into generation context for intelligent variety.
+
+**Key Technical Changes:**
+- **Prompt Template Enhancement**: Add formal {{historyContext}} placeholder in templates.ts
+- **PromptService Update**: Accept optional `history: string[]` parameter with context building
+- **Recipe Hook Integration**: Pass recent 5 recipe titles to prevent repetition
+- **Cache Busting**: Ensure generic prompts generate fresh content
+
+**Implementation Details:**
+- Modified recipeGeneration template with history placeholder
+- PromptService.buildRecipeGenerationPrompt enhanced with history parameter
+- useRecipes.generateAndSaveRecipe passes `recipes.slice(0, 5).map(r => r.recipe_name)`
+- History context string: "For context, the user has recently generated: X, Y, Z. Please provide something new and distinct."
+
+**Acceptance Criteria:**
+- ✅ Generic prompts ("healthy dinner") produce different recipes each time
+- ✅ PromptService formally handles recipe history context
+- ✅ Cache invalidation for generic prompts forces new generation
+- ✅ Reduced AI response repetition with diverse recommendations
+
+### **Initiative 4: Dynamic "Suggest Me Something" System** *(Priority 4)*
+
+**Objective:** Replace static recipe suggestions with intelligent, contextual recommendations based on user profile, preferences, and history.
+
+**Key Technical Changes:**
+- **Smart Suggestion Logic**: useMemo hook computing contextual suggestions from user data
+- **Surprise Me Refactor**: Direct prompt construction without setTimeout delays
+- **Profile-Based Rules**: Skill level, cuisine preferences, ingredient history analysis
+- **Enhanced User Experience**: Large "Surprise Me!" button as primary action
+
+**Implementation Details:**
+- Dynamic suggestions using Set for uniqueness: `const suggestions = new Set<string>()`
+- Rule-based logic: skill level → suggestion type, preferences → cuisine suggestions
+- Recipe history analysis: missing ingredients → suggestion opportunities  
+- handleSurpriseMe directly calls handleGenerateRecipe with constructed prompt
+
+**Acceptance Criteria:**
+- ✅ Contextual suggestion chips changing based on user data
+- ✅ "Surprise Me!" button with personalized prompt construction
+- ✅ No brittle setTimeout logic - direct generation flow
+- ✅ Intelligent suggestions reflecting user profile and history
+
+### **Expected Outcomes:**
+
+1. **Visual Excellence**: Apple Watch-style macro rings providing immediate nutritional feedback
+2. **Intelligent Discovery**: AI-enhanced recipe tagging with sophisticated filtering capabilities  
+3. **Diverse AI Responses**: History-aware recipe generation preventing repetitive suggestions
+4. **Personalized Experience**: Dynamic suggestions adapting to individual user context
+
+**Timeline:** 2-3 development sessions focusing on UX enhancement and AI intelligence improvements.
+
+---
+
+## 🔮 **Future Enhancement Ideas** *(Non-Priority Archive)*
+
+_Ideas for potential future development phases when core UX enhancements are complete:_
+
+### **Deep-Dive Topic 1: The Social Cook — Community & Collaboration Features**
+- Public user profiles & recipe books with following system
+- Recipe sharing & remixing with attribution
+- Community meal plans and collaborative planning
+- Recipe reviews & photos with social proof
+
+### **Deep-Dive Topic 2: From Plan to Plate — Integrated Shopping Experience**  
+- Grocery service integration (Instacart API)
+- Smart ingredient matching with SKU mapping
+- Pantry management with automatic list generation
+- Affiliate revenue model through grocery partnerships
+
+---
+
 **Next Steps:**
-1. App Store/Play Store listing preparation
-2. Final user testing and feedback collection
-3. Payment system activation when monetization desired
-4. Marketing and user acquisition strategies
+1. Complete Phase 5: UX & AI Intelligence Upgrade implementation
+2. App Store/Play Store listing preparation
+3. Final user testing and feedback collection
+4. Payment system activation when monetization desired
+5. Marketing and user acquisition strategies

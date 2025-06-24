@@ -71,6 +71,10 @@ export interface UserRecipe {
   user_rating: number;
   created_at: string;
   last_cooked: string | null;
+  // New tagging fields for intelligent recipe organization
+  meal_types: string[] | null;
+  cuisine_type: string | null;
+  main_ingredient: string | null;
 }
 export interface CookingSession {
   id: string;
@@ -165,9 +169,18 @@ export class RecipeService {
       estimated_time: string;
     }
   ): Promise<UserRecipe> {
+    // Extract tagging fields from recipe_data for intelligent organization
+    const mealTypes = recipeData.recipe_data?.mealTypes || null;
+    const cuisineType = recipeData.recipe_data?.cuisineType || null;
+    const mainIngredient = recipeData.recipe_data?.mainIngredient || null;
+
     const newRecipe = {
       user_id: userId,
       ...recipeData,
+      // Add new tagging fields
+      meal_types: mealTypes,
+      cuisine_type: cuisineType,
+      main_ingredient: mainIngredient,
       cook_count: 0,
       is_favorite: false,
     };

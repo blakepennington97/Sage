@@ -163,7 +163,8 @@ export class GeminiService {
         carbs: number;
         fat: number;
       };
-    }
+    },
+    history?: string[]
   ): Promise<RecipeData> {
     await this.initialize();
     try {
@@ -187,6 +188,7 @@ export class GeminiService {
           macro: context,
           safety: {} as any, // will be built internally
         },
+        history: history, // Pass recipe history for diversity
       });
 
       const result = await this.model.generateContent(prompt);

@@ -124,8 +124,17 @@ export class PromptService {
   static async buildRecipeGenerationPrompt(params: RecipeGenerationParams): Promise<string> {
     const context = await this.buildPromptContext(params.context.macro);
     
+    // Build history context string if history is provided
+    let historyContext = '';
+    if (params.history && params.history.length > 0) {
+      historyContext = `RECIPE HISTORY CONTEXT:
+For context, the user has recently generated the following recipes: ${params.history.join(', ')}. 
+Please provide something new and distinct to avoid repetition.`;
+    }
+    
     return this.populateTemplate('recipeGeneration', {
-      userRequest: params.request
+      userRequest: params.request,
+      historyContext: historyContext
     }, context);
   }
 

@@ -26,12 +26,26 @@ export const RecipeBookScreen: React.FC = () => {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [usePreferenceFiltering, setUsePreferenceFiltering] = useState(false);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
+  // New state for advanced filtering
+  const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>([]);
+  const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
 
   useEffect(() => {
     if (isFocused) {
       refetchRecipes();
     }
   }, [isFocused]);
+
+  // Dynamic filter options generated from current recipes
+  const availableMealTypes = useMemo(() => {
+    const allTypes = recipes.flatMap(r => r.meal_types || []);
+    return [...new Set(allTypes)].sort();
+  }, [recipes]);
+
+  const availableCuisines = useMemo(() => {
+    const allCuisines = recipes.map(r => r.cuisine_type).filter((cuisine): cuisine is string => Boolean(cuisine));
+    return [...new Set(allCuisines)].sort();
+  }, [recipes]);
 
   const filteredRecipes = useMemo(() => {
     return recipes.filter((recipe) => {
@@ -47,6 +61,14 @@ export const RecipeBookScreen: React.FC = () => {
       
       // Filter by favorites
       const matchesFavorites = !showFavoritesOnly || recipe.is_favorite;
+      
+      // Filter by meal types (new functionality)
+      const matchesMealTypes = selectedMealTypes.length === 0 || 
+        recipe.meal_types?.some(type => selectedMealTypes.includes(type));
+      
+      // Filter by cuisine (new functionality)
+      const matchesCuisine = selectedCuisines.length === 0 || 
+        (recipe.cuisine_type && selectedCuisines.includes(recipe.cuisine_type));
       
       // Preference-based filtering
       let matchesPreferences = true;
@@ -83,9 +105,9 @@ export const RecipeBookScreen: React.FC = () => {
         }
       }
       
-      return matchesSearch && matchesDifficulty && matchesFavorites && matchesPreferences;
+      return matchesSearch && matchesDifficulty && matchesFavorites && matchesMealTypes && matchesCuisine && matchesPreferences;
     });
-  }, [recipes, searchQuery, difficultyFilter, showFavoritesOnly, usePreferenceFiltering, preferences]);
+  }, [recipes, searchQuery, difficultyFilter, showFavoritesOnly, usePreferenceFiltering, preferences, selectedMealTypes, selectedCuisines]);
 
 
   const renderHeader = () => (
@@ -124,7 +146,7 @@ export const RecipeBookScreen: React.FC = () => {
         <TouchableOpacity
           onPress={() => setShowFiltersModal(true)}
           style={{
-            backgroundColor: (showFavoritesOnly || usePreferenceFiltering || difficultyFilter) ? theme.colors.primary : theme.colors.surface,
+            backgroundColor: (showFavoritesOnly || usePreferenceFiltering || difficultyFilter || selectedMealTypes.length > 0 || selectedCuisines.length > 0) ? theme.colors.primary : theme.colors.surface,
             paddingHorizontal: 16,
             paddingVertical: 8,
             borderRadius: 20,
@@ -138,13 +160,13 @@ export const RecipeBookScreen: React.FC = () => {
           <Text style={{ fontSize: 16 }}>🎛️</Text>
           <Text 
             variant="caption" 
-            color={(showFavoritesOnly || usePreferenceFiltering || difficultyFilter) ? "primaryButtonText" : "text"}
+            color={(showFavoritesOnly || usePreferenceFiltering || difficultyFilter || selectedMealTypes.length > 0 || selectedCuisines.length > 0) ? "primaryButtonText" : "text"}
             fontSize={14}
             fontWeight="600"
           >
             Filters
           </Text>
-          {(showFavoritesOnly || usePreferenceFiltering || difficultyFilter) && (
+          {(showFavoritesOnly || usePreferenceFiltering || difficultyFilter || selectedMealTypes.length > 0 || selectedCuisines.length > 0) && (
             <Box
               backgroundColor="primaryButtonText"
               style={{ width: 6, height: 6, borderRadius: 3 }}
@@ -154,6 +176,70 @@ export const RecipeBookScreen: React.FC = () => {
       </Box>
     </Box>
   );
+
+  // Helper function to render filter chips
+  const renderFilterChips = (
+    options: string[], 
+    selectedOptions: string[], 
+    onToggle: (option: string) => void,
+    emptyMessage: string
+  ) => {
+    if (options.length === 0) {
+      return (
+        <Text variant="caption" color="secondaryText" textAlign="center" fontStyle="italic">
+          {emptyMessage}
+        </Text>
+      );
+    }
+
+    return (
+      <Box flexDirection="row" flexWrap="wrap" gap="xs">
+        {options.map((option) => {
+          const isSelected = selectedOptions.includes(option);
+          return (
+            <TouchableOpacity
+              key={option}
+              onPress={() => onToggle(option)}
+              style={{
+                backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                marginBottom: 4,
+              }}
+            >
+              <Text 
+                variant="caption" 
+                color={isSelected ? "primaryButtonText" : "text"}
+                fontSize={12}
+                fontWeight="500"
+              >
+                {option}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </Box>
+    );
+  };
+
+  const toggleMealType = (mealType: string) => {
+    setSelectedMealTypes(prev => 
+      prev.includes(mealType) 
+        ? prev.filter(t => t !== mealType)
+        : [...prev, mealType]
+    );
+  };
+
+  const toggleCuisine = (cuisine: string) => {
+    setSelectedCuisines(prev => 
+      prev.includes(cuisine) 
+        ? prev.filter(c => c !== cuisine)
+        : [...prev, cuisine]
+    );
+  };
 
   const renderFiltersModal = () => (
     <Modal
@@ -279,12 +365,44 @@ export const RecipeBookScreen: React.FC = () => {
             </Box>
           </Box>
 
+          {/* Meal Type Filter */}
+          {availableMealTypes.length > 0 && (
+            <Box marginBottom="lg">
+              <Text variant="body" color="text" marginBottom="md" fontWeight="600">
+                Meal Type
+              </Text>
+              {renderFilterChips(
+                availableMealTypes,
+                selectedMealTypes,
+                toggleMealType,
+                "No meal types available"
+              )}
+            </Box>
+          )}
+
+          {/* Cuisine Filter */}
+          {availableCuisines.length > 0 && (
+            <Box marginBottom="lg">
+              <Text variant="body" color="text" marginBottom="md" fontWeight="600">
+                Cuisine
+              </Text>
+              {renderFilterChips(
+                availableCuisines,
+                selectedCuisines,
+                toggleCuisine,
+                "No cuisines available"
+              )}
+            </Box>
+          )}
+
           {/* Clear All Filters */}
           <TouchableOpacity
             onPress={() => {
               setDifficultyFilter(null);
               setShowFavoritesOnly(false);
               setUsePreferenceFiltering(false);
+              setSelectedMealTypes([]);
+              setSelectedCuisines([]);
             }}
             style={{
               backgroundColor: theme.colors.surface,

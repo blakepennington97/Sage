@@ -150,7 +150,7 @@ export const DailyMacroSummary: React.FC<DailyMacroSummaryProps> = ({
           current={macros.protein.current}
           goal={macros.protein.goal}
           unit="g"
-          color="#9c27b0"
+          color="#c62828"
           size={90}
         />
         <MacroProgressRing
@@ -158,7 +158,7 @@ export const DailyMacroSummary: React.FC<DailyMacroSummaryProps> = ({
           current={macros.carbs.current}
           goal={macros.carbs.goal}
           unit="g"
-          color="#ff9800"
+          color="#fb8c00"
           size={90}
         />
         <MacroProgressRing

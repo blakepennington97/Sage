@@ -72,13 +72,13 @@ export const useRecipes = () => {
 
   // Generate and save recipe mutation
   const generateRecipeMutation = useMutation({
-    mutationFn: async ({ request, context }: { request: string; context?: { remainingMacros?: { calories: number; protein: number; carbs: number; fat: number } } }) => {
+    mutationFn: async ({ request, context, history }: { request: string; context?: { remainingMacros?: { calories: number; protein: number; carbs: number; fat: number } }; history?: string[] }) => {
       if (!user) {
         throw new Error("User must be authenticated");
       }
 
       // 1. Get structured data from the AI
-      const recipeData = await geminiService.generateRecipe(request, context);
+      const recipeData = await geminiService.generateRecipe(request, context, history);
 
       // 2. Reconstruct the human-readable markdown content
       const recipeContent = reconstructMarkdownFromData(recipeData);
@@ -120,13 +120,20 @@ export const useRecipes = () => {
         return null;
       }
 
+      // Get recent recipe titles for diversity (most recent 5)
+      const recentRecipeTitles = recipes.slice(0, 5).map(r => r.recipe_name);
+
       try {
-        return await generateRecipeMutation.mutateAsync({ request, context });
+        return await generateRecipeMutation.mutateAsync({ 
+          request, 
+          context,
+          history: recentRecipeTitles
+        });
       } catch {
         return null;
       }
     },
-    [user, generateRecipeMutation]
+    [user, generateRecipeMutation, recipes]
   );
 
   // Delete recipe mutation

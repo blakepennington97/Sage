@@ -1,5 +1,7 @@
 import React from "react";
+import { ScrollView } from "react-native";
 import { Box, Text } from "./ui";
+import { MacroProgressRing } from "./MacroProgressRing";
 import { DayMealPlan, MealPlanRecipe } from "../types/mealPlan";
 
 interface MacroGoals {
@@ -56,10 +58,6 @@ export const DailyMacroBreakdown: React.FC<DailyMacroBreakdownProps> = ({
     return totals;
   };
 
-  const formatMacroDisplay = (current: number, goal: number, unit: string = "g"): string => {
-    return `${Math.round(current)}/${goal}${unit}`;
-  };
-
   const getMacroPercentage = (current: number, goal: number): number => {
     return goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
   };
@@ -104,7 +102,6 @@ export const DailyMacroBreakdown: React.FC<DailyMacroBreakdownProps> = ({
   }
 
   const calorieProgress = getMacroPercentage(totals.calories, goals.dailyCalories);
-  const proteinProgress = getMacroPercentage(totals.protein, goals.dailyProtein);
 
   return (
     <Box 
@@ -115,51 +112,51 @@ export const DailyMacroBreakdown: React.FC<DailyMacroBreakdownProps> = ({
       borderWidth={1}
       borderColor="border"
     >
-      {/* Main calories display */}
-      <Box flexDirection="row" alignItems="center" justifyContent="center" marginBottom="xs">
-        <Text fontSize={16} marginRight="xs">🔥</Text>
-        <Text variant="body" color="primaryText" fontWeight="600">
-          {formatMacroDisplay(totals.calories, goals.dailyCalories, " kcal")}
-        </Text>
-        <Text variant="caption" color="secondaryText" marginLeft="xs">
-          ({Math.round(calorieProgress)}%)
-        </Text>
-      </Box>
+      {/* Apple Watch-style Progress Rings */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, paddingHorizontal: 4 }}
+      >
+        <MacroProgressRing
+          label="Calories"
+          current={totals.calories}
+          goal={goals.dailyCalories}
+          unit="kcal"
+          color="#2196f3"
+          size={60}
+          strokeWidth={4}
+        />
+        <MacroProgressRing
+          label="Protein"
+          current={totals.protein}
+          goal={goals.dailyProtein}
+          unit="g"
+          color="#c62828"
+          size={60}
+          strokeWidth={4}
+        />
+        <MacroProgressRing
+          label="Carbs"
+          current={totals.carbs}
+          goal={goals.dailyCarbs}
+          unit="g"
+          color="#fb8c00"
+          size={60}
+          strokeWidth={4}
+        />
+        <MacroProgressRing
+          label="Fat"
+          current={totals.fat}
+          goal={goals.dailyFat}
+          unit="g"
+          color="#4caf50"
+          size={60}
+          strokeWidth={4}
+        />
+      </ScrollView>
 
-      {/* Macro breakdown */}
-      <Box flexDirection="row" justifyContent="space-around">
-        <Box alignItems="center">
-          <Text fontSize={12} marginBottom="xs">💪</Text>
-          <Text variant="caption" color="primaryText" fontWeight="500">
-            {formatMacroDisplay(totals.protein, goals.dailyProtein)}
-          </Text>
-          <Text variant="caption" color="tertiaryText" fontSize={10}>
-            P
-          </Text>
-        </Box>
-        
-        <Box alignItems="center">
-          <Text fontSize={12} marginBottom="xs">🌾</Text>
-          <Text variant="caption" color="primaryText" fontWeight="500">
-            {formatMacroDisplay(totals.carbs, goals.dailyCarbs)}
-          </Text>
-          <Text variant="caption" color="tertiaryText" fontSize={10}>
-            C
-          </Text>
-        </Box>
-        
-        <Box alignItems="center">
-          <Text fontSize={12} marginBottom="xs">🥑</Text>
-          <Text variant="caption" color="primaryText" fontWeight="500">
-            {formatMacroDisplay(totals.fat, goals.dailyFat)}
-          </Text>
-          <Text variant="caption" color="tertiaryText" fontSize={10}>
-            F
-          </Text>
-        </Box>
-      </Box>
-
-      {/* Progress indicator */}
+      {/* Daily progress indicator */}
       {calorieProgress > 90 && (
         <Box marginTop="xs" alignItems="center">
           <Text variant="caption" color="primaryGreen" fontSize={10}>
