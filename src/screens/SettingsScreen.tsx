@@ -160,8 +160,8 @@ export const SettingsScreen: React.FC = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              await updateProfile({ skill_level: "" }); // Setting skill_level to empty triggers onboarding
-              Alert.alert("Profile Reset", "Your cooking profile has been reset. Your achievements are preserved.");
+              await updateProfile({ onboarding_steps_completed: {} }); // Clear onboarding tracking to restart onboarding
+              Alert.alert("Profile Reset", "Your cooking profile has been reset. Please restart the app to begin onboarding. Your achievements are preserved.");
             } catch (error) {
               Alert.alert("Error", "Failed to reset profile.");
             }

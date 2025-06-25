@@ -4,7 +4,8 @@ export interface MealPlanRecipe {
   recipe_name: string;
   estimated_time: string;
   difficulty_level: number;
-  servings: number;
+  servings: number; // Total servings the recipe makes
+  servingsForMeal?: number; // Servings allocated to this specific meal slot
   // Quick access to recipe content for cooking
   recipe_content?: string;
   recipe_data?: any;
@@ -65,6 +66,7 @@ export interface UpdateMealPlanRequest {
   meal_type: MealType;
   recipe_id?: string; // undefined to remove recipe
   servings?: number;
+  servingsForMeal?: number; // Servings for this specific meal slot
 }
 
 // Weekly view helpers

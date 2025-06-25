@@ -337,11 +337,79 @@ export class GeminiService {
       const prompt = await PromptService.buildGroceryListPrompt(recipeContent);
 
       const result = await this.model.generateContent(prompt);
-      return JSON.parse(result.response.text()) as GroceryListData;
+      const responseText = result.response.text();
+
+      // Robust JSON parsing for grocery list
+      let parsedResponse: any;
+      try {
+        parsedResponse = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Grocery List AI response was not valid JSON.", responseText);
+        throw new Error("The AI returned an invalid format for the grocery list.");
+      }
+
+      // Intelligent array finding
+      if (Array.isArray(parsedResponse)) {
+        return parsedResponse as GroceryListData;
+      }
+
+      if (typeof parsedResponse === 'object' && parsedResponse !== null) {
+        // Look for a key that holds an array (e.g., "grocery_list", "items", "groceries")
+        const arrayKey = Object.keys(parsedResponse).find(key => Array.isArray(parsedResponse[key]));
+        if (arrayKey) {
+          return parsedResponse[arrayKey] as GroceryListData;
+        }
+        
+        // Handle nested grocery list structure like {"grocery_list": {"meat": [...], "produce": [...]}}
+        if (parsedResponse.grocery_list && typeof parsedResponse.grocery_list === 'object') {
+          const groceryList = parsedResponse.grocery_list;
+          const categories: GroceryListCategory[] = [];
+          
+          for (const [category, items] of Object.entries(groceryList)) {
+            if (Array.isArray(items)) {
+              categories.push({
+                category,
+                items: items.map(item => typeof item === 'string' ? item : item.name || item.item || String(item))
+              });
+            }
+          }
+          
+          if (categories.length > 0) {
+            return categories;
+          }
+        }
+        
+        // Handle other possible nested structures
+        for (const [key, value] of Object.entries(parsedResponse)) {
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            // Check if this object contains category-like structure
+            const subArrayKey = Object.keys(value).find(subKey => Array.isArray((value as any)[subKey]));
+            if (subArrayKey) {
+              const categories: GroceryListCategory[] = [];
+              for (const [category, items] of Object.entries(value)) {
+                if (Array.isArray(items)) {
+                  categories.push({
+                    category,
+                    items: items.map(item => typeof item === 'string' ? item : item.name || item.item || String(item))
+                  });
+                }
+              }
+              if (categories.length > 0) {
+                return categories;
+              }
+            }
+          }
+        }
+      }
+      
+      // If we reach here, the format is still wrong
+      console.error("Could not find a valid grocery list array in AI response:", parsedResponse);
+      throw new Error("The AI returned the grocery list in an unexpected structure.");
+
     } catch (error) {
       console.error("Grocery list generation error:", error);
       throw new Error(
-        "Failed to generate grocery list from AI. The response may not be valid JSON."
+        error instanceof Error ? error.message : "Failed to generate grocery list from AI."
       );
     }
   }

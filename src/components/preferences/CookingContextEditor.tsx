@@ -28,6 +28,34 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
     5: "$35+",
   };
 
+  // Mapping functions for cook time
+  const timeValueMap: Record<string, number> = {
+    'quick_15min': 1,
+    'weeknight_30min': 2,
+    'weekend_60min': 3,
+    'project_90min_plus': 4,
+  };
+  
+  const valueTimeMap: Record<number, string> = {
+    1: 'quick_15min',
+    2: 'weeknight_30min',
+    3: 'weekend_60min',
+    4: 'project_90min_plus',
+  };
+
+  // Mapping functions for budget
+  const budgetValueMap: Record<string, number> = {
+    'budget_friendly': 1,
+    'mid_range': 2,
+    'premium_ok': 3,
+  };
+
+  const valueBudgetMap: Record<number, string> = {
+    1: 'budget_friendly',
+    2: 'mid_range',
+    3: 'premium_ok',
+  };
+
   const servingLabels = {
     1: "1-2 people",
     2: "3-4 people",
@@ -47,10 +75,10 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
           How much time do you usually have for cooking?
         </Text>
         <Slider
-          value={2}
-          onValueChange={(value) => {}}
+          value={timeValueMap[preferences.cookingContext.typicalCookingTime] || 2}
+          onValueChange={(value) => onUpdate({ typicalCookingTime: valueTimeMap[value] as any })}
           minimumValue={1}
-          maximumValue={5}
+          maximumValue={4}
           step={1}
           thumbTintColor="#4CAF50"
           minimumTrackTintColor="#4CAF50"
@@ -58,7 +86,7 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
         <Box flexDirection="row" justifyContent="space-between" marginTop="sm">
           <Text variant="caption" color="secondaryText">Quick</Text>
           <Text variant="body" color="primaryText" fontWeight="600">
-            {timeLabels[2]}
+            {timeLabels[(timeValueMap[preferences.cookingContext.typicalCookingTime] || 2) as keyof typeof timeLabels]}
           </Text>
           <Text variant="caption" color="secondaryText">Extended</Text>
         </Box>
@@ -73,10 +101,10 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
           What's your typical spending range per meal?
         </Text>
         <Slider
-          value={2}
-          onValueChange={(value) => {}}
+          value={budgetValueMap[preferences.cookingContext.budgetLevel] || 2}
+          onValueChange={(value) => onUpdate({ budgetLevel: valueBudgetMap[value] as any })}
           minimumValue={1}
-          maximumValue={5}
+          maximumValue={3}
           step={1}
           thumbTintColor="#4CAF50"
           minimumTrackTintColor="#4CAF50"
@@ -84,7 +112,7 @@ export const CookingContextEditor: React.FC<CookingContextEditorProps> = ({
         <Box flexDirection="row" justifyContent="space-between" marginTop="sm">
           <Text variant="caption" color="secondaryText">Budget</Text>
           <Text variant="body" color="primaryText" fontWeight="600">
-            {budgetLabels[2]}
+            {budgetLabels[(budgetValueMap[preferences.cookingContext.budgetLevel] || 2) as keyof typeof budgetLabels]}
           </Text>
           <Text variant="caption" color="secondaryText">Premium</Text>
         </Box>

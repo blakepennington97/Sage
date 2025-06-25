@@ -90,3 +90,4 @@ export { CustomBottomSheet as BottomSheet } from './BottomSheet';
 export { CustomToastProvider as ToastProvider, useCustomToast as useToast } from './Toast';
 export { ModernRecipeCard as RecipeCard } from './RecipeCard';
 export { RecipeGrid } from './RecipeGrid';
+export { Tag } from './Tag';

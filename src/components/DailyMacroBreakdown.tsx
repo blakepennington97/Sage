@@ -39,7 +39,8 @@ export const DailyMacroBreakdown: React.FC<DailyMacroBreakdownProps> = ({
           ? JSON.parse(recipe.recipe_data) 
           : recipe.recipe_data;
         
-        const servings = recipe.servings || 1;
+        // Use servingsForMeal if available, fallback to 1 serving for this meal
+        const servings = recipe.servingsForMeal || 1;
         totals.calories += (recipeData.caloriesPerServing || 0) * servings;
         totals.protein += (recipeData.proteinPerServing || 0) * servings;
         totals.carbs += (recipeData.carbsPerServing || 0) * servings;

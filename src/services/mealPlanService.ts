@@ -127,6 +127,7 @@ export class MealPlanService {
         estimated_time: recipeData.estimated_time,
         difficulty_level: recipeData.difficulty_level,
         servings: request.servings || 2,
+        servingsForMeal: request.servingsForMeal || 1,
         recipe_content: recipeData.recipe_content,
         recipe_data: recipeData.recipe_data,
       };
@@ -258,6 +259,7 @@ export class MealPlanService {
         estimated_time: recipeData.estimated_time,
         difficulty_level: recipeData.difficulty_level,
         servings: request.servings || 2,
+        servingsForMeal: request.servingsForMeal || 1,
         recipe_content: recipeData.recipe_content,
         recipe_data: recipeData.recipe_data,
       };

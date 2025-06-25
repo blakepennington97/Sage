@@ -39,6 +39,11 @@ interface MealPlanActions {
     recipeToClone: { recipe: MealPlanRecipe; mealType: MealType } | null,
     onSuccess: () => void
   ) => Promise<void>;
+  handleServingsChange: (
+    date: string,
+    mealType: MealType,
+    newServings: number
+  ) => Promise<void>;
 }
 
 export const useMealPlanActions = ({
@@ -95,6 +100,7 @@ export const useMealPlanActions = ({
           meal_type: selectedMealSlot.mealType,
           recipe_id: recipeId,
           servings: 2,
+          servingsForMeal: 1, // Default to 1 serving for this meal
         });
         onSuccess();
         HapticService.success();
@@ -195,11 +201,50 @@ export const useMealPlanActions = ({
     [mealPlan, batchUpdateMealPlan]
   );
 
+  const handleServingsChange = useCallback(
+    async (date: string, mealType: MealType, newServings: number) => {
+      if (!mealPlan) return;
+      
+      try {
+        // Find the current recipe in the meal plan
+        const dayPlan = mealPlan.days.find((d: any) => d.date === date);
+        const currentRecipe = dayPlan?.[mealType];
+        
+        if (currentRecipe) {
+          // Handle the case where currentRecipe could be an array (for snacks)
+          if (Array.isArray(currentRecipe)) {
+            // For snacks, we would need to handle multiple items differently
+            // For now, we'll skip this case as it's more complex
+            console.warn('Serving adjustment not supported for snacks with multiple items');
+            return;
+          }
+          
+          // Update the meal plan with the new servingsForMeal value
+          await updateMealPlan({
+            meal_plan_id: mealPlan.id,
+            date,
+            meal_type: mealType,
+            recipe_id: currentRecipe.recipe_id,
+            servings: currentRecipe.servings, // Keep original total servings
+            servingsForMeal: newServings, // Update the servings for this meal
+          });
+          
+          HapticService.light();
+        }
+      } catch (err) {
+        console.error("Error updating meal servings:", err);
+        ErrorHandler.handleError(err, "updating meal servings");
+      }
+    },
+    [mealPlan, updateMealPlan]
+  );
+
   return {
     handleAddRecipe,
     handleSelectRecipe,
     handleRemoveRecipe,
     handleCloneRecipe,
     handleCopyToSlots,
+    handleServingsChange,
   };
 };

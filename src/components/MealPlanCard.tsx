@@ -10,6 +10,7 @@ interface MealPlanCardProps {
   onPress: () => void;
   onRemove?: () => void;
   onClone?: () => void;
+  onServingsChange?: (newServings: number) => void;
 }
 
 const getMealTypeEmoji = (mealType: MealType): string => {
@@ -43,6 +44,7 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
   onPress,
   onRemove,
   onClone,
+  onServingsChange,
 }) => {
   if (!recipe) {
     // Empty slot - show add button
@@ -108,8 +110,48 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
             </Box>
             
             <Text variant="caption" color="secondaryText">
-              👥 {recipe.servings} serving{recipe.servings !== 1 ? 's' : ''}
+              👥 {recipe.servings} serving{recipe.servings !== 1 ? 's' : ''} total
             </Text>
+            
+            {/* Servings for this meal adjustment */}
+            {onServingsChange && (
+              <Box flexDirection="row" alignItems="center" justifyContent="space-between" marginTop="sm">
+                <Text variant="caption" color="secondaryText">
+                  🍽️ For this meal:
+                </Text>
+                <Box flexDirection="row" alignItems="center" gap="sm">
+                  <TouchableOpacity 
+                    onPress={(e) => {
+                      e.stopPropagation(); // Prevent card press
+                      const currentServings = recipe.servingsForMeal || 1;
+                      if (currentServings > 0.5 && onServingsChange) {
+                        onServingsChange(currentServings - 0.5);
+                      }
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text variant="h3" color="primary" fontSize={18}>-</Text>
+                  </TouchableOpacity>
+                  
+                  <Text variant="body" color="primaryText" fontWeight="600" minWidth={30} textAlign="center">
+                    {recipe.servingsForMeal || 1}
+                  </Text>
+
+                  <TouchableOpacity 
+                    onPress={(e) => {
+                      e.stopPropagation(); // Prevent card press
+                      const currentServings = recipe.servingsForMeal || 1;
+                      if (onServingsChange) {
+                        onServingsChange(currentServings + 0.5);
+                      }
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text variant="h3" color="primary" fontSize={18}>+</Text>
+                  </TouchableOpacity>
+                </Box>
+              </Box>
+            )}
           </Box>
 
           <Box flexDirection="row" gap="xs" marginLeft="sm">

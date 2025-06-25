@@ -47,6 +47,12 @@ export interface CookingContext {
 }
 
 export interface KitchenCapabilities {
+  // Overall skill level (1-5 scale)
+  overallSkillLevel?: number;
+
+  // Storage space level
+  storageSpaceLevel?: 'minimal' | 'compact' | 'adequate' | 'spacious';
+
   // Enhanced Appliance Inventory
   appliances: {
     essential: string[]; // 'stove' | 'oven' | 'microwave' | 'refrigerator'

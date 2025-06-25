@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Switch,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useRecipes } from "../hooks/useRecipes";
@@ -37,6 +38,7 @@ export const RecipeGenerationScreen: React.FC = () => {
   const mealPlanContext = route.params?.mealPlanContext;
   const [recipeRequest, setRecipeRequest] = useState("");
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [useMacroContext, setUseMacroContext] = useState(true); // Default to enabled
   const { canPerformAction, incrementUsage, isPremium } = useUsageTracking();
 
   const { recipes, isLoading, error, generateAndSaveRecipe } = useRecipes();
@@ -65,7 +67,7 @@ export const RecipeGenerationScreen: React.FC = () => {
           ? JSON.parse(recipe.recipe_data) 
           : recipe.recipe_data;
         
-        const servings = recipe.servings || 1;
+        const servings = recipe.servingsForMeal || 1; // Use servingsForMeal for accurate macro calculation
         totalMacros.calories += (recipeData.caloriesPerServing || 0) * servings;
         totalMacros.protein += (recipeData.proteinPerServing || 0) * servings;
         totalMacros.carbs += (recipeData.carbsPerServing || 0) * servings;
@@ -137,8 +139,15 @@ export const RecipeGenerationScreen: React.FC = () => {
     
     HapticService.medium();
     
-    // Pass macro context if available
-    const context = remainingMacros ? { remainingMacros } : undefined;
+    // Pass macro context if enabled by user
+    const context = useMacroContext && profile?.macro_goals_set ? { 
+      remainingMacros: remainingMacros || {
+        calories: profile.daily_calorie_goal || 2000,
+        protein: profile.daily_protein_goal || 150,
+        carbs: profile.daily_carbs_goal || 200,
+        fat: profile.daily_fat_goal || 65
+      }
+    } : undefined;
     const newRecipe = await generateAndSaveRecipe(recipeRequest, context);
     if (newRecipe) {
       HapticService.success();
@@ -292,8 +301,15 @@ export const RecipeGenerationScreen: React.FC = () => {
       
       HapticService.medium();
       
-      // Pass macro context if available
-      const context = remainingMacros ? { remainingMacros } : undefined;
+      // Pass macro context if enabled by user
+      const context = useMacroContext && profile?.macro_goals_set ? { 
+        remainingMacros: remainingMacros || {
+          calories: profile.daily_calorie_goal || 2000,
+          protein: profile.daily_protein_goal || 150,
+          carbs: profile.daily_carbs_goal || 200,
+          fat: profile.daily_fat_goal || 65
+        }
+      } : undefined;
       const newRecipe = await generateAndSaveRecipe(finalRequest, context);
       if (newRecipe) {
         HapticService.success();
@@ -308,6 +324,29 @@ export const RecipeGenerationScreen: React.FC = () => {
     };
     return (
       <View style={styles.inputSection}>
+        {/* Context-Aware Generation Toggle */}
+        {profile?.macro_goals_set && (
+          <View style={styles.macroToggleSection}>
+            <View style={styles.macroToggleContent}>
+              <View style={styles.macroToggleText}>
+                <Text style={styles.macroToggleTitle}>Consider My Daily Macros</Text>
+                <Text style={styles.macroToggleSubtitle}>
+                  {remainingMacros 
+                    ? "Suggest a recipe that fits your remaining nutrition goals for today."
+                    : "Consider your daily nutrition goals when generating recipes."
+                  }
+                </Text>
+              </View>
+              <Switch
+                trackColor={{ false: '#767577', true: '#4CAF50' }}
+                thumbColor={'#f4f3f4'}
+                onValueChange={() => setUseMacroContext(previousState => !previousState)}
+                value={useMacroContext}
+              />
+            </View>
+          </View>
+        )}
+
         <TextInput
           style={styles.textInput}
           value={recipeRequest}
@@ -535,5 +574,33 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: spacing.sm,
     paddingHorizontal: spacing.xs,
+  },
+  macroToggleSection: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  macroToggleContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  macroToggleText: {
+    flex: 1,
+    paddingRight: spacing.md,
+  },
+  macroToggleTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  macroToggleSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
 });

@@ -2,6 +2,7 @@ import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
 import { UserRecipe } from "../../services/supabase";
 import { createBox, createText , useTheme } from '@shopify/restyle';
+import { Tag } from './Tag';
 
 import { Theme } from "../../constants/restyleTheme";
 
@@ -116,7 +117,7 @@ export const ModernRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onPress })
             borderTopColor="border"
             style={{ borderTopColor: `${theme.colors.border}50` }}
           >
-            <Box flexDirection="row" alignItems="center">
+            <Box flexDirection="row" alignItems="center" flex={1}>
               <Text fontSize={14} marginRight="xs">⏱️</Text>
               <Text variant="caption" color="secondaryText" fontWeight="500">
                 {recipe.estimated_time || "N/A"}
@@ -124,15 +125,12 @@ export const ModernRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onPress })
             </Box>
             
             {(recipe as any).cuisine_type && (
-              <Box
-                backgroundColor="surfaceVariant"
-                paddingHorizontal="sm"
-                paddingVertical="xs"
-                borderRadius="md"
-              >
-                <Text variant="small" color="secondaryText" fontSize={10} fontWeight="600">
-                  {((recipe as any).cuisine_type as string).toUpperCase()}
-                </Text>
+              <Box maxWidth="40%" marginLeft="xs">
+                <Tag 
+                  text={(recipe as any).cuisine_type as string}
+                  variant="cuisine"
+                  size="small"
+                />
               </Box>
             )}
           </Box>

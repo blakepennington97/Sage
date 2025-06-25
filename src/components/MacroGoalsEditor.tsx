@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, TouchableOpacity } from "react-native";
+import { Alert, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { Box, Text, Button, Input, Card } from "./ui";
 import {
   TDEECalculator,
@@ -656,8 +656,28 @@ export const MacroGoalsEditor: React.FC<MacroGoalsEditorProps> = ({
           </Box>
         </Box>
       </Box>
+      {/* Extra padding to ensure content is accessible above keyboard */}
+      <Box height={100} />
     </Box>
   );
 
-  return <Box flex={1}>{renderContent()}</Box>;
+  return (
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      style={{ flex: 1 }}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <Box flex={1}>
+          <ScrollView 
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {renderContent()}
+          </ScrollView>
+        </Box>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
+  );
 };

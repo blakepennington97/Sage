@@ -37,13 +37,15 @@ export const MacroGoalsScreen: React.FC = () => {
         </Box>
       </Box>
       
-      <MacroGoalsEditor
-        onSave={handleSaveGoals}
-        isLoading={isLoading}
-        showTDEECalculator={true}
-        title="🎯 Nutrition Goals"
-        subtitle="Set your daily macro targets for personalized recipes"
-      />
+      <Box flex={1}>
+        <MacroGoalsEditor
+          onSave={handleSaveGoals}
+          isLoading={isLoading}
+          showTDEECalculator={true}
+          title="🎯 Nutrition Goals"
+          subtitle="Set your daily macro targets for personalized recipes"
+        />
+      </Box>
     </Box>
   );
 };

@@ -7,7 +7,7 @@ import {
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { useRecipes } from "../hooks/useRecipes";
 import { useUserPreferences } from "../hooks/useUserPreferences";
-import { RecipeGrid , Box, Text, Input, Slider, Button } from "../components/ui";
+import { RecipeGrid , Box, Text, Input, Slider, Button, Tag } from "../components/ui";
 import { UserRecipe } from "../services/supabase";
 
 import { CustomSlider } from "../components/ui/Slider";
@@ -200,24 +200,13 @@ export const RecipeBookScreen: React.FC = () => {
             <TouchableOpacity
               key={option}
               onPress={() => onToggle(option)}
-              style={{
-                backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: theme.colors.border,
-                marginBottom: 4,
-              }}
             >
-              <Text 
-                variant="caption" 
-                color={isSelected ? "primaryButtonText" : "text"}
-                fontSize={12}
-                fontWeight="500"
-              >
-                {option}
-              </Text>
+              <Tag
+                text={option}
+                variant="filter"
+                isSelected={isSelected}
+                size="medium"
+              />
             </TouchableOpacity>
           );
         })}

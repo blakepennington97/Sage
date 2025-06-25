@@ -117,7 +117,10 @@ export const SkillEvaluationScreen: React.FC = () => {
           overallConfidence: confidence,
         });
         HapticService.success();
-        // Navigation will be handled automatically by AuthWrapper
+        
+        // Navigate explicitly to next onboarding step to prevent timing issues
+        // The AuthWrapper will handle overall flow, but we ensure immediate navigation
+        navigation.navigate('DietaryRestrictions' as any);
       } catch (error) {
         HapticService.error();
         Alert.alert("Error", "Could not save your skills. Please try again.");

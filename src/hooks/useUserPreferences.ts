@@ -61,12 +61,48 @@ export const useUserPreferences = () => {
         '1.0'
       );
     },
-    onSuccess: () => {
-      // Invalidate and refetch preferences
-      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.id] });
+    
+    // Optimistic update for instant UI feedback
+    onMutate: async (newPreferencesUpdate) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['userPreferences', user?.id] });
+
+      // Snapshot the previous value
+      const previousPreferencesRecord = queryClient.getQueryData(['userPreferences', user?.id]) as any;
+
+      // Optimistically update to the new value
+      if (previousPreferencesRecord) {
+        const currentPrefs = migratePreferences(
+          previousPreferencesRecord.preferences_data, 
+          previousPreferencesRecord.version, 
+          '1.0'
+        ) || createDefaultPreferences();
+        
+        const updatedData = { ...currentPrefs, ...newPreferencesUpdate };
+        
+        queryClient.setQueryData(['userPreferences', user?.id], {
+          ...previousPreferencesRecord,
+          preferences_data: updatedData,
+        });
+      }
+
+      // Return a context object with the snapshotted value
+      return { previousPreferencesRecord };
     },
-    onError: (error) => {
-      console.error("Failed to update preferences:", error);
+
+    // If the mutation fails, use the context returned from onMutate to roll back
+    onError: (err, newPreferencesUpdate, context) => {
+      if (context?.previousPreferencesRecord) {
+        queryClient.setQueryData(['userPreferences', user?.id], context.previousPreferencesRecord);
+      }
+      console.error("Failed to update preferences:", err);
+      // Note: You could add a toast notification here
+      // Toast.show({ type: 'error', text1: 'Update Failed', text2: 'Your preference change could not be saved.' });
+    },
+
+    // Always refetch after error or success to ensure data consistency
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.id] });
     },
   });
 

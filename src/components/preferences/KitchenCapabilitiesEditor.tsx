@@ -82,8 +82,8 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
           How would you rate your overall cooking experience?
         </Text>
         <Slider
-          value={3}
-          onValueChange={(value) => {}}
+          value={preferences.kitchenCapabilities.overallSkillLevel || 3}
+          onValueChange={(value) => onUpdate({ overallSkillLevel: value })}
           minimumValue={1}
           maximumValue={5}
           step={1}
@@ -93,7 +93,7 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
         <Box flexDirection="row" justifyContent="space-between" marginTop="sm">
           <Text variant="caption" color="secondaryText">New Cook</Text>
           <Text variant="body" color="primaryText" fontWeight="600">
-            {skillLabels[3]}
+            {skillLabels[(preferences.kitchenCapabilities.overallSkillLevel || 3) as keyof typeof skillLabels]}
           </Text>
           <Text variant="caption" color="secondaryText">Chef Level</Text>
         </Box>
@@ -328,14 +328,18 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
           ].map(({ key, label, icon }) => (
             <TouchableOpacity
               key={key}
-              onPress={() => {}}
+              onPress={() => onUpdate({ storageSpaceLevel: key as any })}
             >
               <Box
                 flexDirection="row"
                 alignItems="center"
                 padding="sm"
                 marginBottom="xs"
-                backgroundColor="surface"
+                backgroundColor={
+                  preferences.kitchenCapabilities.storageSpaceLevel === key
+                    ? "primary"
+                    : "surface"
+                }
                 borderRadius="md"
               >
                 <Text fontSize={20} marginRight="sm">
@@ -344,9 +348,23 @@ export const KitchenCapabilitiesEditor: React.FC<KitchenCapabilitiesEditorProps>
                 <Text
                   variant="body"
                   flex={1}
-                  color="primaryText"
+                  color={
+                    preferences.kitchenCapabilities.storageSpaceLevel === key
+                      ? "primaryButtonText"
+                      : "primaryText"
+                  }
                 >
                   {label}
+                </Text>
+                <Text
+                  variant="body"
+                  color={
+                    preferences.kitchenCapabilities.storageSpaceLevel === key
+                      ? "primaryButtonText"
+                      : "primaryText"
+                  }
+                >
+                  {preferences.kitchenCapabilities.storageSpaceLevel === key ? "✅" : "⬜"}
                 </Text>
               </Box>
             </TouchableOpacity>

@@ -409,6 +409,7 @@ export const MealPlannerScreen: React.FC = () => {
           onViewRecipe={handleViewRecipe}
           onRemoveRecipe={handleRemoveRecipe}
           onCloneRecipe={handleCloneRecipe}
+          onServingsChange={mealPlanActions.handleServingsChange}
         />
       </ScrollView>
 
